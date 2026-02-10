@@ -1,6 +1,6 @@
 # ADR 007: Tailwind CSS + shadcn/ui
 
-**Status:** Accepted
+**Status:** Superseded by [007-styling-approach.md](./007-styling-approach.md)
 **Date:** 2025-02
 
 ## Context

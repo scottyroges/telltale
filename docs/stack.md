@@ -6,7 +6,7 @@
 - **ORM:** Prisma — generated types from schema, migrations
 - **Database:** PostgreSQL via Neon — serverless Postgres
 - **Auth:** Auth.js (NextAuth v5) — OAuth + email support
-- **Styling:** Tailwind CSS + shadcn/ui — utility-first CSS, accessible components
+- **Styling:** CSS Modules + Radix UI — scoped CSS, accessible unstyled component primitives
 - **AI:** Anthropic Claude API (Sonnet) — conversation engine, story synthesis, thread extraction
 - **File Storage:** Cloudflare R2 — S3-compatible, audio file storage
 - **Deployment:** Vercel — git-push deploys, optimized for Next.js

@@ -59,7 +59,7 @@ src/
 ├── lib/                       # External API clients (Anthropic, R2, Prisma, etc.)
 │
 ├── components/                # React components
-│   ├── ui/                    # shadcn/ui base components
+│   ├── ui/                    # Base components (Radix UI primitives + CSS Modules)
 │   ├── conversation/          # Chat UI, message bubbles, mic button
 │   ├── stories/               # Story cards, editor, synthesis review
 │   └── books/                 # Book preview, chapter management
