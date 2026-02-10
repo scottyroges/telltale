@@ -3,10 +3,23 @@
 ## When to Consult
 
 - **Tech stack & dependencies:** docs/stack.md
+- **Project roadmap & phases:** docs/roadmap.md
 - **Architecture decisions (and why):** docs/decisions/
 - **System architecture & mental models:** docs/architecture/
 - **Active work plans:** docs/plans/active/
 - **Completed work plans:** docs/plans/completed/
+
+## Roadmap
+
+- **docs/roadmap.md** — Full project roadmap, Phases 0-7, with acceptance criteria per phase
+
+## Active Plans (Phase 0: Foundation)
+
+- **docs/plans/active/0.1-nextjs-scaffold.md** — Next.js 15, TypeScript strict, Tailwind, shadcn/ui, directory structure
+- **docs/plans/active/0.2-prisma-database.md** — Prisma ORM, Neon PostgreSQL, Auth.js models, seed script
+- **docs/plans/active/0.3-authjs-configuration.md** — Auth.js v5, Google OAuth, middleware, sign-in/sign-out flow
+- **docs/plans/active/0.4-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client
+- **docs/plans/active/0.5-vercel-deployment.md** — Vercel deployment, CI on push, automated migrations
 
 ## Architecture
 
