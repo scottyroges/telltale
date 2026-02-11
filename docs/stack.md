@@ -1,5 +1,6 @@
 # Tech Stack
 
+- **Runtime:** Node.js 22 LTS (pinned via `.nvmrc`)
 - **Framework:** Next.js 15 (App Router) — full-stack TypeScript, SSR, API routes
 - **Language:** TypeScript (strict mode) — end-to-end type safety
 - **API Layer:** tRPC — typesafe API calls, no codegen

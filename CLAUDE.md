@@ -6,8 +6,10 @@ AI-powered life story platform — conversational AI that draws out rich, deep s
 
 - **Dev:** `npm run dev`
 - **Build:** `npm run build`
-- **Test:** `npm test` (Vitest — not yet installed, see ADR 010)
-- **Test E2E:** `npm run test:e2e` (Playwright — not yet installed, see ADR 010)
+- **Test:** `npm test` (Vitest)
+- **Test Watch:** `npm run test:watch`
+- **Test Coverage:** `npm run test:coverage`
+- **Test E2E:** `npm run test:e2e` (Playwright)
 - **Lint:** `npm run lint`
 
 ## Backend Extraction Rules

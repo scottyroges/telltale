@@ -18,6 +18,8 @@ build/
 
 # testing
 /coverage
+playwright-report/
+test-results/
 
 # env files
 .env
