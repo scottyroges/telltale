@@ -6,7 +6,7 @@ AI-powered life story platform — conversational AI that draws out rich, deep s
 
 - **Dev:** `npm run dev`
 - **Build:** `npm run build`
-- **Test:** `TODO`
+- **Test:** Not yet configured (no test runner installed)
 - **Lint:** `npm run lint`
 
 ## Documentation

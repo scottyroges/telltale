@@ -15,11 +15,14 @@
 
 ## Active Plans (Phase 0: Foundation)
 
-- **docs/plans/active/0.1-nextjs-scaffold.md** — Next.js 15, TypeScript strict, CSS Modules, directory structure
 - **docs/plans/active/0.2-prisma-database.md** — Prisma ORM, Neon PostgreSQL, Auth.js models, seed script
 - **docs/plans/active/0.3-authjs-configuration.md** — Auth.js v5, Google OAuth, middleware, sign-in/sign-out flow
 - **docs/plans/active/0.4-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client
 - **docs/plans/active/0.5-vercel-deployment.md** — Vercel deployment, CI on push, automated migrations
+
+## Completed Plans
+
+- **docs/plans/completed/0.1-nextjs-scaffold.md** — Next.js 15, TypeScript strict, CSS Modules, directory structure
 
 ## Architecture
 
