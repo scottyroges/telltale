@@ -24,6 +24,12 @@ The backend lives in Next.js for speed, but must stay extractable. These rules a
 
 For full architecture details, see `docs/architecture/system-overview.md`.
 
+## Code Organization
+
+- **Keep files small and focused.** Each file should have a single clear responsibility.
+- **Split when files grow.** When a file becomes large or cluttered, find abstractions and seams to break it into smaller pieces.
+- **Group files into directories.** Related files belong together — use directories to make the codebase easy to navigate.
+
 ## Documentation
 
 For project documentation, see `docs/INDEX.md`.

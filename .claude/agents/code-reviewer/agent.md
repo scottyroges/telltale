@@ -67,6 +67,8 @@ Check these in order of importance:
 - Are abstractions at the right level (not over/under-engineered)?
 - Are there obvious simplifications?
 - Is anything duplicated that shouldn't be?
+- Are files small and focused on a single responsibility? Flag files that are growing large or cluttered — suggest seams to split them.
+- Are related files grouped into directories? Flag loose files that should be organized together.
 
 **Robustness**
 - Are edge cases handled?
