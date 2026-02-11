@@ -30,13 +30,15 @@ Decisions keep scaling options open without paying the complexity cost upfront:
 
 ```
 src/
+├── middleware.ts               # Route protection (cookie check via Better Auth)
 ├── app/                       # Next.js App Router (routes + layouts only)
-│   ├── (auth)/                # Auth pages (login, register)
-│   ├── (app)/                 # Authenticated app pages
+│   ├── (auth)/                # Auth pages (login)
+│   ├── (app)/                 # Authenticated app pages (session-validated layout)
 │   │   ├── dashboard/
 │   │   ├── books/[id]/
 │   │   ├── stories/[id]/
 │   │   └── conversation/[sessionId]/
+│   ├── api/auth/[...all]/     # Better Auth API handler
 │   └── api/trpc/[trpc]/      # tRPC HTTP handler
 │
 ├── server/                    # Server-side code

@@ -1,0 +1,22 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.name {
+  font-weight: 500;
+}
+
+.main {
+  flex: 1;
+  padding: 2rem 1.5rem;
+}

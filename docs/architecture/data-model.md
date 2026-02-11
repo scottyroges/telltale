@@ -45,4 +45,4 @@ Tracks whether the thread has been `explored` in follow-up questions.
 
 ## Auth Models
 
-Account, Session, and VerificationToken models follow the standard Better Auth/Prisma adapter schema. These models are managed by Better Auth.
+Account, Session, and Verification models follow the standard Better Auth/Prisma adapter schema. These models are managed by Better Auth — IDs are generated at runtime (no `@default(cuid())`), and table names are lowercased via `@@map`.

@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -7,9 +8,10 @@ async function main() {
     where: { email: "dev@telltale.local" },
     update: {},
     create: {
+      id: crypto.randomUUID(),
       email: "dev@telltale.local",
       name: "Dev User",
-      emailVerified: new Date(),
+      emailVerified: true,
     },
   });
 
