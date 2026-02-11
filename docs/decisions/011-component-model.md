@@ -20,7 +20,7 @@ Add `"use client"` only when the component uses one or more of these:
 - **Lifecycle / effect hooks** — `useEffect`, `useLayoutEffect`
 - **Browser APIs** — `window`, `localStorage`, `navigator`, etc.
 - **Third-party libraries requiring client features** — e.g., animation libs, rich text editors
-- **Auth context consumers** — `useSession()` or similar context hooks
+- **Auth context consumers** — `authClient.useSession()` or similar hooks from Better Auth's client
 
 ## When to Use Server Components (the Default)
 
@@ -55,7 +55,7 @@ export function StoryCardActions({ storyId }: { storyId: string }) {
 
 ### Context providers wrap children without infecting them
 
-`SessionProvider`, `TRPCProvider`, and similar providers are Client Components that accept `children`. The children passed in remain Server Components — the `"use client"` boundary doesn't propagate to children passed as props.
+`TRPCProvider` and similar providers are Client Components that accept `children`. The children passed in remain Server Components — the `"use client"` boundary doesn't propagate to children passed as props. Note: Better Auth doesn't require a SessionProvider — `authClient` works without one.
 
 ### Guard server-only modules
 

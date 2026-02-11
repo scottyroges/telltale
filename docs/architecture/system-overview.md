@@ -42,7 +42,7 @@ src/
 ├── server/                    # Server-side code
 │   ├── routers/               # tRPC routers (thin wrappers over services)
 │   ├── trpc.ts                # tRPC initialization + context
-│   └── auth.ts                # Auth.js configuration
+│   └── auth.ts                # Better Auth configuration
 │
 ├── services/                  # Business logic (NO framework imports)
 │   ├── conversation.service   # AI interview engine

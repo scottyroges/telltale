@@ -16,7 +16,7 @@
 ## Completed Plans
 - 0.1: Next.js scaffold
 - 0.2: Testing infrastructure (Vitest 4, Playwright, RTL, Node 22)
-- 0.3: Prisma + Database (Prisma 6, PostgreSQL 16, Docker Compose, Auth.js models)
+- 0.3: Prisma + Database (Prisma 6, PostgreSQL 16, Docker Compose, auth models)
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk

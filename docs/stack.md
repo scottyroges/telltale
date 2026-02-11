@@ -6,7 +6,7 @@
 - **API Layer:** tRPC — typesafe API calls, no codegen
 - **ORM:** Prisma 6 — generated types from schema, migrations
 - **Database:** PostgreSQL 16 — local via Docker Compose, Neon for production
-- **Auth:** Auth.js (NextAuth v5) — OAuth + email support
+- **Auth:** Better Auth — OAuth, TypeScript-first, Prisma adapter, plugin ecosystem
 - **Styling:** CSS Modules + Radix UI — scoped CSS, accessible unstyled component primitives
 - **AI:** Anthropic Claude API (Sonnet) — conversation engine, story synthesis, thread extraction
 - **File Storage:** Cloudflare R2 — S3-compatible, audio file storage

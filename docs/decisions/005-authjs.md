@@ -1,6 +1,6 @@
 # ADR 005: Auth.js for Authentication
 
-**Status:** Accepted
+**Status:** Superseded by [005-better-auth.md](./005-better-auth.md)
 **Date:** 2025-02
 
 ## Context

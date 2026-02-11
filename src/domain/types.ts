@@ -1,1 +1,1 @@
-// Domain types — will be defined in Plan 0.4
+// Domain types — will be defined as domain models are added

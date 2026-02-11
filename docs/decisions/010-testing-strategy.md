@@ -5,7 +5,7 @@
 
 ## Context
 
-Telltale has no test infrastructure yet. Before implementing Phase 0 plans (Prisma, Auth.js, tRPC), we need a testing strategy so all new code ships with tests from the start. We want a testing pyramid: strong unit tests for business logic, integration tests for service/router composition, and a few E2E tests for critical user flows.
+Telltale has no test infrastructure yet. Before implementing Phase 0 plans (Prisma, Better Auth, tRPC), we need a testing strategy so all new code ships with tests from the start. We want a testing pyramid: strong unit tests for business logic, integration tests for service/router composition, and a few E2E tests for critical user flows.
 
 ## Decision
 

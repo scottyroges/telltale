@@ -5,7 +5,7 @@ Get the project scaffolded, deployed, and talking to a database. Nothing user-fa
 
 - Next.js project setup with TypeScript strict mode
 - Prisma schema + Neon database provisioned and migrated
-- Auth.js configured (email + Google OAuth)
+- Better Auth configured (Google OAuth)
 - tRPC wired up with a health-check endpoint
 - Project structure established (services/, repositories/, domain/, lib/)
 - Testing infrastructure (Vitest, React Testing Library, Playwright)

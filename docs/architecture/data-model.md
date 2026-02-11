@@ -20,7 +20,7 @@ User
 ## Models
 
 ### User
-Standard Auth.js user model. Owns Books. Related to Account and Session models for auth.
+Standard Better Auth user model. Owns Books. Related to Account and Session models for auth.
 
 ### Book
 The final deliverable — a collection of stories compiled for print/digital export. Has a status lifecycle: `IN_PROGRESS` → `COMPLETE` → `ARCHIVED`.
@@ -43,6 +43,6 @@ Extracted metadata from conversations. Types:
 
 Tracks whether the thread has been `explored` in follow-up questions.
 
-## Auth.js Models
+## Auth Models
 
-Account, Session, and VerificationToken models follow the standard Auth.js/Prisma adapter schema. These are managed by the auth framework.
+Account, Session, and VerificationToken models follow the standard Better Auth/Prisma adapter schema. These models are managed by Better Auth.
