@@ -4,8 +4,8 @@
 - **Framework:** Next.js 15 (App Router) — full-stack TypeScript, SSR, API routes
 - **Language:** TypeScript (strict mode) — end-to-end type safety
 - **API Layer:** tRPC — typesafe API calls, no codegen
-- **ORM:** Prisma — generated types from schema, migrations
-- **Database:** PostgreSQL via Neon — serverless Postgres
+- **ORM:** Prisma 6 — generated types from schema, migrations
+- **Database:** PostgreSQL 16 — local via Docker Compose, Neon for production
 - **Auth:** Auth.js (NextAuth v5) — OAuth + email support
 - **Styling:** CSS Modules + Radix UI — scoped CSS, accessible unstyled component primitives
 - **AI:** Anthropic Claude API (Sonnet) — conversation engine, story synthesis, thread extraction
