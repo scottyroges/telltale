@@ -65,6 +65,14 @@ src/
 │   └── books/                 # Book preview, chapter management
 │
 └── hooks/                     # Custom React hooks
+
+tests/                             # Backend tests (mirrors src/ structure)
+├── services/
+├── server/routers/
+├── lib/
+└── helpers/                       # Shared factories, fixtures, mocks
+
+e2e/                               # Playwright E2E tests (critical user flows)
 ```
 
 ## Layer Responsibilities

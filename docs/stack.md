@@ -9,6 +9,7 @@
 - **Styling:** CSS Modules + Radix UI — scoped CSS, accessible unstyled component primitives
 - **AI:** Anthropic Claude API (Sonnet) — conversation engine, story synthesis, thread extraction
 - **File Storage:** Cloudflare R2 — S3-compatible, audio file storage
+- **Testing:** Vitest + React Testing Library (unit/integration), Playwright (E2E)
 - **Deployment:** Vercel — git-push deploys, optimized for Next.js
 
 ## Architecture

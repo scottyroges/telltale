@@ -40,6 +40,7 @@ Check:
 - Are there changes that go beyond the spec (scope creep)?
 - Are there edge cases in the requirements that aren't handled?
 - If tests were expected, do they cover the specified behavior?
+- If the changes add or modify business logic in `services/`, `domain/`, or `lib/`, are tests included?
 - Does the implementation actually work for the stated goal, or does it only appear to?
 
 If no spec was provided, infer intent from commit messages, code comments, and the nature of the changes. Note that you're inferring.
@@ -72,6 +73,14 @@ Check these in order of importance:
 - Are errors propagated appropriately?
 - Are external inputs validated?
 - Could this break under load or concurrency?
+
+**Test Coverage**
+- Do new services, utilities, or hooks have corresponding test files?
+- Do tests cover the stated behavior, not just call the function?
+- Are edge cases and error paths tested, not just happy paths?
+- For bug fixes: is there a regression test that would have caught the original bug?
+- Are mocks at the right boundary (mock repositories, not internal functions)?
+- Are tests consolidated and organized well?
 
 **Readability**
 - Would a new developer understand this without extra context?

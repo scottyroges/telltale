@@ -15,10 +15,11 @@
 
 ## Active Plans (Phase 0: Foundation)
 
-- **docs/plans/active/0.2-prisma-database.md** — Prisma ORM, Neon PostgreSQL, Auth.js models, seed script
-- **docs/plans/active/0.3-authjs-configuration.md** — Auth.js v5, Google OAuth, middleware, sign-in/sign-out flow
-- **docs/plans/active/0.4-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client
-- **docs/plans/active/0.5-vercel-deployment.md** — Vercel deployment, CI on push, automated migrations
+- **docs/plans/active/0.2-testing-infrastructure.md** — Vitest, React Testing Library, Playwright, hybrid test organization
+- **docs/plans/active/0.3-prisma-database.md** — Prisma ORM, Neon PostgreSQL, Auth.js models, seed script
+- **docs/plans/active/0.4-authjs-configuration.md** — Auth.js v5, Google OAuth, middleware, sign-in/sign-out flow
+- **docs/plans/active/0.5-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client
+- **docs/plans/active/0.6-vercel-deployment.md** — Vercel deployment, CI on push, automated migrations
 
 ## Completed Plans
 
@@ -41,3 +42,4 @@
 - **007** — CSS Modules + Radix UI (vs. Tailwind + shadcn/ui, styled-components)
 - **008** — Cloudflare R2 for file storage (vs. AWS S3, Supabase Storage)
 - **009** — Vercel for hosting (vs. Railway, Fly.io, AWS)
+- **010** — Testing strategy: Vitest + React Testing Library + Playwright

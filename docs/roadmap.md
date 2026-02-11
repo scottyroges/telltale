@@ -8,10 +8,11 @@ Get the project scaffolded, deployed, and talking to a database. Nothing user-fa
 - Auth.js configured (email + Google OAuth)
 - tRPC wired up with a health-check endpoint
 - Project structure established (services/, repositories/, domain/, lib/)
+- Testing infrastructure (Vitest, React Testing Library, Playwright)
 - Deploy to Vercel with CI on push to main
 - Basic seed script for development data
 
-**Done when:** You can sign in, hit an authenticated tRPC endpoint, and see a database query return data. App is live on a Vercel URL.
+**Done when:** You can sign in, hit an authenticated tRPC endpoint, and see a database query return data. Tests run and pass. App is live on a Vercel URL.
 
 ---
 

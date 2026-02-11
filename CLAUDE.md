@@ -6,8 +6,21 @@ AI-powered life story platform — conversational AI that draws out rich, deep s
 
 - **Dev:** `npm run dev`
 - **Build:** `npm run build`
-- **Test:** Not yet configured (no test runner installed)
+- **Test:** `npm test` (Vitest — not yet installed, see ADR 010)
+- **Test E2E:** `npm run test:e2e` (Playwright — not yet installed, see ADR 010)
 - **Lint:** `npm run lint`
+
+## Backend Extraction Rules
+
+The backend lives in Next.js for speed, but must stay extractable. These rules apply to all backend code (`src/server/`, `src/services/`, `src/domain/`, `src/lib/`, `src/repositories/`):
+
+- **Services are framework-agnostic.** No Next.js, tRPC, or React imports in `src/services/`. Services import only from `repositories/`, `domain/`, and `lib/`.
+- **tRPC routers are thin wrappers.** Input validation, auth checks, then delegate to a service. No business logic in routers.
+- **Repositories abstract the database.** Services never import Prisma directly — they go through `src/repositories/`.
+- **Domain types have no runtime code.** `src/domain/` is TypeScript types and interfaces only.
+- **Backend tests live in `tests/`, not co-located.** Mirror the `src/` structure so tests travel with the code during extraction (see ADR 010).
+
+For full architecture details, see `docs/architecture/system-overview.md`.
 
 ## Documentation
 
