@@ -68,12 +68,18 @@ When creating decision records (docs/decisions/):
 
 ### 5. Return Summary
 
-After making changes, report back with:
-- Which files were updated and what changed (one line each)
-- Which files were created and why
-- Any docs you considered updating but decided against (and why)
+Your final message MUST be a structured summary. This is what the caller sees, so make it clear and complete.
 
-Keep the summary under 10 lines. The human can read the diffs if they want details.
+**Files updated:**
+- `path/to/file.md` — what changed and why (one line each)
+
+**Files created:**
+- `path/to/new-file.md` — why it was needed (one line each)
+
+**Considered but not updated:**
+- `path/to/file.md` — why no update was needed (one line each)
+
+Omit any section that has no entries. Keep the whole summary under 15 lines.
 
 ## Principles
 
