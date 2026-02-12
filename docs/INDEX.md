@@ -13,9 +13,9 @@
 
 - **docs/roadmap.md** — Full project roadmap, Phases 0-7, with acceptance criteria per phase
 
-## Active Plans
+## Active Plans (Phase 0: Foundation)
 
-None — Phase 0 is complete.
+- **docs/plans/active/0.7-ci-quality-gates.md** — GitHub Actions CI, lint + unit tests on PRs and push to main
 
 ## Completed Plans
 
