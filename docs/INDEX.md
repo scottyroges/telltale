@@ -13,9 +13,9 @@
 
 - **docs/roadmap.md** — Full project roadmap, Phases 0-7, with acceptance criteria per phase
 
-## Active Plans (Phase 0: Foundation)
+## Active Plans
 
-- **docs/plans/active/0.6-vercel-deployment.md** — Vercel deployment, CI on push, automated migrations
+None — Phase 0 is complete.
 
 ## Completed Plans
 
@@ -24,6 +24,7 @@
 - **docs/plans/completed/0.3-prisma-database.md** — Prisma 6, PostgreSQL, auth models, Docker Compose for local dev
 - **docs/plans/completed/0.4-better-auth-configuration.md** — Better Auth 1.4, Google OAuth, middleware, sign-in/sign-out flow
 - **docs/plans/completed/0.5-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client, first service + repository
+- **docs/plans/completed/0.6-vercel-deployment.md** — Vercel deployment, Neon database, auto-deploys on push, dynamic auth URL
 
 ## Architecture
 
