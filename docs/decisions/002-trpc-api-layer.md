@@ -18,3 +18,12 @@ Use tRPC for all API communication.
 - Pairs naturally with Prisma-generated types and Zod validation
 - Locked into TypeScript backend (acceptable given monolith-first approach)
 - tRPC routers serve as thin wrappers; business logic stays in services
+
+## Migration Path
+
+If we ever need to move away from tRPC, the blast radius is limited to two layers:
+
+- **Backend (routers):** Replace tRPC router definitions with REST or GraphQL handlers. Because routers are thin wrappers that delegate to framework-agnostic services, the business logic, Zod schemas, and repository layer are untouched.
+- **Frontend (call sites):** Replace `trpc.*.useQuery()` / `useMutation()` calls with plain React Query + `fetch` (or an OpenAPI client). React Query itself stays — tRPC just wraps it — so the migration is mechanical.
+
+The "locked into TypeScript backend" consequence really means "you can't rewrite the backend in another language and keep tRPC." But a backend extraction would require new API handlers regardless of protocol.
