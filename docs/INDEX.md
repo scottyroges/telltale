@@ -45,3 +45,4 @@
 - **009** — Vercel for hosting (vs. Railway, Fly.io, AWS)
 - **010** — Testing strategy: Vitest + React Testing Library + Playwright
 - **011** — Server vs Client Component conventions
+- **012** — Turbopack for development only (not production builds)

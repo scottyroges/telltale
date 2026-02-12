@@ -12,7 +12,17 @@ if (!process.env.GOOGLE_CLIENT_SECRET) {
   throw new Error("GOOGLE_CLIENT_SECRET environment variable is required");
 }
 
+function getBaseUrl(): string {
+  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
+const baseUrl = getBaseUrl();
+
 export const auth = betterAuth({
+  baseURL: baseUrl,
+  trustedOrigins: [baseUrl],
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   socialProviders: {
     google: {
