@@ -62,4 +62,12 @@ describe("middleware", () => {
 
     expect(response.status).toBe(200);
   });
+
+  it("allows unauthenticated users to access /api/trpc/health.ping", () => {
+    mockGetSessionCookie.mockReturnValue(null);
+
+    const response = middleware(createRequest("/api/trpc/health.ping"));
+
+    expect(response.status).toBe(200);
+  });
 });

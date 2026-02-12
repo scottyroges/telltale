@@ -3,7 +3,9 @@
 - **Runtime:** Node.js 22 LTS (pinned via `.nvmrc`)
 - **Framework:** Next.js 15 (App Router) — full-stack TypeScript, SSR, API routes
 - **Language:** TypeScript (strict mode) — end-to-end type safety
-- **API Layer:** tRPC — typesafe API calls, no codegen
+- **API Layer:** tRPC v11 — typesafe API calls, no codegen, superjson transformer
+- **Data Fetching:** TanStack React Query 5 — server state management for tRPC client
+- **Validation:** Zod 4 — runtime schema validation at API boundaries
 - **ORM:** Prisma 6 — generated types from schema, migrations
 - **Database:** PostgreSQL 16 — local via Docker Compose, Neon for production
 - **Auth:** Better Auth — OAuth, TypeScript-first, Prisma adapter, plugin ecosystem

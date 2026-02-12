@@ -7,6 +7,7 @@ const publicRoutes = ["/", "/login"];
 function isPublicRoute(pathname: string): boolean {
   if (publicRoutes.includes(pathname)) return true;
   if (pathname.startsWith("/api/auth")) return true;
+  if (pathname.startsWith("/api/trpc")) return true;
   return false;
 }
 

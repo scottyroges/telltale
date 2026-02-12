@@ -15,7 +15,6 @@
 
 ## Active Plans (Phase 0: Foundation)
 
-- **docs/plans/active/0.5-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client
 - **docs/plans/active/0.6-vercel-deployment.md** — Vercel deployment, CI on push, automated migrations
 
 ## Completed Plans
@@ -24,6 +23,7 @@
 - **docs/plans/completed/0.2-testing-infrastructure.md** — Vitest 4, React Testing Library, Playwright, coverage via V8
 - **docs/plans/completed/0.3-prisma-database.md** — Prisma 6, PostgreSQL, auth models, Docker Compose for local dev
 - **docs/plans/completed/0.4-better-auth-configuration.md** — Better Auth 1.4, Google OAuth, middleware, sign-in/sign-out flow
+- **docs/plans/completed/0.5-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client, first service + repository
 
 ## Architecture
 

@@ -18,6 +18,7 @@
 - 0.2: Testing infrastructure (Vitest 4, Playwright, RTL, Node 22)
 - 0.3: Prisma + Database (Prisma 6, PostgreSQL 16, Docker Compose, auth models)
 - 0.4: Better Auth configuration (Better Auth 1.4, Google OAuth, middleware, login/dashboard pages)
+- 0.5: tRPC setup (tRPC v11, React Query 5, Zod 4, superjson, first service + repository)
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk

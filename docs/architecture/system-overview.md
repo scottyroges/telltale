@@ -59,8 +59,12 @@ src/
 ├── domain/                    # Shared types and interfaces
 │
 ├── lib/                       # External API clients (Anthropic, R2, Prisma, etc.)
+│   └── trpc/                  # tRPC wiring
+│       ├── client.tsx         # React client (TRPCReactProvider, useTRPC)
+│       └── server.ts          # Server-side caller (serverTRPC())
 │
 ├── components/                # React components
+│   ├── providers.tsx          # Root provider composition (tRPC, React Query, future providers)
 │   ├── ui/                    # Base components (Radix UI primitives + CSS Modules)
 │   ├── conversation/          # Chat UI, message bubbles, mic button
 │   ├── stories/               # Story cards, editor, synthesis review
@@ -89,4 +93,4 @@ e2e/                               # Playwright E2E tests (critical user flows)
 
 **Domain (`domain/`)** — TypeScript types and interfaces shared across layers. No runtime code.
 
-**Lib (`lib/`)** — Thin wrappers around external SDKs (Anthropic, R2, Prisma client singleton). Configuration and client instantiation only.
+**Lib (`lib/`)** — Thin wrappers around external SDKs (Anthropic, R2, Prisma client singleton). Configuration and client instantiation only. Also contains tRPC wiring: `lib/trpc/client.tsx` provides the React Query-backed tRPC client for Client Components, `lib/trpc/server.ts` provides `serverTRPC()` for Server Components to call procedures directly without HTTP.
