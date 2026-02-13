@@ -8,14 +8,20 @@
 - **System architecture & mental models:** docs/architecture/
 - **Active work plans:** docs/plans/active/
 - **Completed work plans:** docs/plans/completed/
+- **Ideas & deferred concepts:** docs/ideas/
 
 ## Roadmap
 
 - **docs/roadmap.md** — Full project roadmap, Phases 0-7, with acceptance criteria per phase
 
-## Active Plans (Phase 0: Foundation)
+## Active Plans (Phase 1: Core Conversation)
 
-- **docs/plans/active/0.7-ci-quality-gates.md** — GitHub Actions CI, lint + unit tests on PRs and push to main
+- **docs/plans/active/1.1-data-model-domain-repositories.md** — Prisma models, domain types, repository layer for Phase 1
+- **docs/plans/active/1.2-anthropic-sdk-conversation-service.md** — Anthropic SDK client, conversation service with streaming, system prompt
+- **docs/plans/active/1.3-trpc-routers.md** — tRPC routers for interview/story CRUD, streaming POST /api/chat route
+- **docs/plans/active/1.4-chat-ui.md** — Chat interface, useChatStream hook, stories page, end-to-end conversation flow
+- **docs/plans/active/1.5-thread-extraction.md** — Background insight extraction (entities, events, emotions, details) after each response
+- **docs/plans/active/1.6-context-window-management.md** — Summarization, context assembly, insight injection for long conversations
 
 ## Completed Plans
 
@@ -25,12 +31,17 @@
 - **docs/plans/completed/0.4-better-auth-configuration.md** — Better Auth 1.4, Google OAuth, middleware, sign-in/sign-out flow
 - **docs/plans/completed/0.5-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client, first service + repository
 - **docs/plans/completed/0.6-vercel-deployment.md** — Vercel deployment, Neon database, auto-deploys on push, dynamic auth URL
+- **docs/plans/completed/0.7-ci-quality-gates.md** — GitHub Actions CI, lint + unit tests on PRs and push to main
 
 ## Architecture
 
 - **docs/architecture/system-overview.md** — Architecture principles, project structure, layer responsibilities
 - **docs/architecture/data-model.md** — Entity relationships, model descriptions, schema rationale
 - **docs/architecture/scaling-strategy.md** — Deployment phases, extraction triggers, cost projections
+
+## Ideas (Deferred)
+
+- **docs/ideas/depth-score.md** — Interview depth/richness metric, deferred until real conversations inform the design
 
 ## Decision Records
 
@@ -47,3 +58,4 @@
 - **010** — Testing strategy: Vitest + React Testing Library + Playwright
 - **011** — Server vs Client Component conventions
 - **012** — Turbopack for development only (not production builds)
+- **013** — Streaming architecture: Plain API Route with ReadableStream (vs. Vercel AI SDK, tRPC subscriptions)
