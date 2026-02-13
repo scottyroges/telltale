@@ -10,7 +10,7 @@
 - **Database:** PostgreSQL 16 — local via Docker Compose, Neon for production
 - **Auth:** Better Auth — OAuth, TypeScript-first, Prisma adapter, plugin ecosystem
 - **Styling:** CSS Modules + Radix UI — scoped CSS, accessible unstyled component primitives
-- **AI:** Anthropic Claude API (Sonnet) — conversation engine, story synthesis, thread extraction
+- **AI:** Anthropic Claude API (Sonnet) — conversation engine, story synthesis, insight extraction
 - **File Storage:** Cloudflare R2 — S3-compatible, audio file storage
 - **Testing:** Vitest + React Testing Library (unit/integration), Playwright (E2E)
 - **Deployment:** Vercel — git-push deploys, optimized for Next.js

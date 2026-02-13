@@ -4,7 +4,7 @@
 **Date:** 2025-02
 
 ## Context
-Need an LLM for the core conversation engine (AI interviewer), story synthesis, and thread extraction.
+Need an LLM for the core conversation engine (AI interviewer), story synthesis, and insight extraction.
 
 ## Decision
 Use Anthropic Claude Sonnet via the API.
