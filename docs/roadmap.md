@@ -23,7 +23,7 @@ This is the product. Everything else is scaffolding around this. Get a single co
 - System prompt for the AI interviewer — iterate heavily here
 - Conversation session management (create, continue, complete)
 - Message persistence (save user + assistant messages)
-- Thread extraction after each user message (people, places, events, unexplored details)
+- Insight extraction — interviewer produces structured "mental notes" inline with each response (people, places, events, unexplored details)
 - Context window management (summarize older messages, keep recent ones verbatim)
 - Basic chat UI — functional, not polished. Text input, streaming message display.
 

@@ -20,7 +20,7 @@
 - **docs/plans/active/1.2-anthropic-sdk-conversation-service.md** — Anthropic SDK client, conversation service with streaming, system prompt
 - **docs/plans/active/1.3-trpc-routers.md** — tRPC routers for interview/story CRUD, streaming POST /api/chat route
 - **docs/plans/active/1.4-chat-ui.md** — Chat interface, useChatStream hook, stories page, end-to-end conversation flow
-- **docs/plans/active/1.5-thread-extraction.md** — Background insight extraction (entities, events, emotions, details) after each response
+- **docs/plans/active/1.5-insight-extraction.md** — Inline insight extraction — interviewer's "mental notes" produced with each response (ADR 014)
 - **docs/plans/active/1.6-context-window-management.md** — Summarization, context assembly, insight injection for long conversations
 
 ## Completed Plans
@@ -59,3 +59,4 @@
 - **011** — Server vs Client Component conventions
 - **012** — Turbopack for development only (not production builds)
 - **013** — Streaming architecture: Plain API Route with ReadableStream (vs. Vercel AI SDK, tRPC subscriptions)
+- **014** — Insight extraction strategy: Inline structured output vs. separate background call

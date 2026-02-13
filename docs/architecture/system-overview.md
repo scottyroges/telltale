@@ -50,7 +50,7 @@ src/
 │   ├── conversation.service   # AI interview engine
 │   ├── story.service          # Story CRUD + lifecycle
 │   ├── synthesis.service      # Conversation → polished narrative
-│   ├── thread-extraction.service # Extract follow-up hooks from messages
+│   ├── response-parser          # Parse structured LLM output (response text + insights)
 │   ├── book.service           # Book assembly + export
 │   └── audio.service          # Transcription + TTS (Phase 2)
 │
