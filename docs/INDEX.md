@@ -17,11 +17,12 @@
 ## Active Plans (Phase 1: Core Conversation)
 
 - **docs/plans/active/1.1-data-model-domain-repositories.md** — Prisma models, domain types, repository layer for Phase 1
-- **docs/plans/active/1.2-anthropic-sdk-conversation-service.md** — Anthropic SDK client, conversation service with streaming, system prompt
-- **docs/plans/active/1.3-trpc-routers.md** — tRPC routers for interview/story CRUD, streaming POST /api/chat route
-- **docs/plans/active/1.4-chat-ui.md** — Chat interface, useChatStream hook, stories page, end-to-end conversation flow
+- **docs/plans/active/1.2-anthropic-sdk-conversation-service.md** — LLM provider interface, Anthropic SDK client, conversation service, system prompt
+- **docs/plans/active/1.3-trpc-routers.md** — tRPC routers for questions, books, and interviews
+- **docs/plans/active/1.4-interview-ui.md** — Interview session UI, interviews hub, conversation flow
 - **docs/plans/active/1.5-insight-extraction.md** — Inline insight extraction — interviewer's "mental notes" produced with each response (ADR 014)
 - **docs/plans/active/1.6-context-window-management.md** — Summarization, context assembly, insight injection for long conversations
+- **docs/plans/active/1.7-email-apple-auth.md** — Email/password and Apple OAuth sign-in
 
 ## Completed Plans
 
@@ -58,5 +59,5 @@
 - **010** — Testing strategy: Vitest + React Testing Library + Playwright
 - **011** — Server vs Client Component conventions
 - **012** — Turbopack for development only (not production builds)
-- **013** — Streaming architecture: Plain API Route with ReadableStream (vs. Vercel AI SDK, tRPC subscriptions)
+- **013** — Conversation response delivery: Plain request/response through tRPC, no streaming (vs. ReadableStream, Vercel AI SDK)
 - **014** — Insight extraction strategy: Inline structured output vs. separate background call
