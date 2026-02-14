@@ -33,6 +33,17 @@ export const bookQuestionRepository = {
       .executeTakeFirstOrThrow();
   },
 
+  async findById(id: string): Promise<BookQuestion | null> {
+    // SELECT <columns> FROM book_question WHERE id = $1
+    return (
+      (await db
+        .selectFrom("book_question")
+        .where("id", "=", id)
+        .select([...columns])
+        .executeTakeFirst()) ?? null
+    );
+  },
+
   async findByBookId(bookId: string): Promise<BookQuestion[]> {
     // SELECT <columns> FROM book_question WHERE "bookId" = $1 ORDER BY "orderIndex" ASC
     return db

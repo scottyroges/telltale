@@ -6,6 +6,7 @@ vi.mock("server-only", () => ({}));
 
 const {
   db,
+  executeTakeFirst,
   executeTakeFirstOrThrow,
   execute,
   selectFrom,
@@ -50,6 +51,35 @@ describe("bookQuestionRepository", () => {
       expect(result).toEqual(expected);
       expect(insertInto).toHaveBeenCalledWith("book_question");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
+    });
+  });
+
+  describe("findById", () => {
+    it("returns a book question by id", async () => {
+      const expected = {
+        id: "bq1",
+        bookId: "b1",
+        questionId: "q1",
+        orderIndex: 0,
+        status: "NOT_STARTED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      executeTakeFirst.mockResolvedValue(expected);
+
+      const result = await bookQuestionRepository.findById("bq1");
+
+      expect(result).toEqual(expected);
+      expect(selectFrom).toHaveBeenCalledWith("book_question");
+      expect(executeTakeFirst).toHaveBeenCalled();
+    });
+
+    it("returns null when not found", async () => {
+      executeTakeFirst.mockResolvedValue(undefined);
+
+      const result = await bookQuestionRepository.findById("missing");
+
+      expect(result).toBeNull();
     });
   });
 
