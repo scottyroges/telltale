@@ -1,9 +1,8 @@
 import "server-only";
 
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
 
 if (!process.env.GOOGLE_CLIENT_ID) {
   throw new Error("GOOGLE_CLIENT_ID environment variable is required");
@@ -23,7 +22,7 @@ const baseUrl = getBaseUrl();
 export const auth = betterAuth({
   baseURL: baseUrl,
   trustedOrigins: [baseUrl],
-  database: prismaAdapter(prisma, { provider: "postgresql" }),
+  database: { db, type: "postgres" as const },
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,

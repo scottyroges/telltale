@@ -4,7 +4,7 @@
 - `docs/INDEX.md` is the central documentation index with "When to Consult" quick-reference + detailed sections
 - INDEX.md style: bold file paths with dash-separated descriptions, one line per entry
 - Plans live in `docs/plans/active/` (numbered by phase, e.g., `0.1-nextjs-scaffold.md`) and move to `docs/plans/completed/` when done
-- Decision records in `docs/decisions/`, numbered sequentially (001-011 exist)
+- Decision records in `docs/decisions/`, numbered sequentially (001-015 exist)
 - Architecture docs in `docs/architecture/`
 
 ## Conventions
@@ -19,6 +19,8 @@
 - 0.3: Prisma + Database (Prisma 6, PostgreSQL 16, Docker Compose, auth models)
 - 0.4: Better Auth configuration (Better Auth 1.4, Google OAuth, middleware, login/dashboard pages)
 - 0.5: tRPC setup (tRPC v11, React Query 5, Zod 4, superjson, first service + repository)
+- 1.1: Data model, domain types, repository layer (Prisma schema, 10 repos, 9 test files)
+- 1.1.1: Kysely migration (Prisma client -> Kysely queries, cuid2 IDs, mock-db helper)
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk

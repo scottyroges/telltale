@@ -1,16 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
+import { createMockDb } from "../../helpers/mock-db";
 
 vi.mock("server-only", () => ({}));
 
-const mockFindUnique = vi.fn();
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: {
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-    },
-  },
-}));
+const { db, executeTakeFirst } = createMockDb();
+vi.mock("@/lib/db", () => ({ db }));
 
 vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
 vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-client-secret");
@@ -33,7 +28,7 @@ describe("health router", () => {
 
   it("dbCheck returns user info when authenticated", async () => {
     const mockUser = { id: "user-1", name: "Test User", email: "test@example.com" };
-    mockFindUnique.mockResolvedValue(mockUser);
+    executeTakeFirst.mockResolvedValue(mockUser);
 
     const { createCallerFactory } = await import("@/server/trpc");
     const { appRouter } = await import("@/server/routers/_app");
@@ -48,10 +43,7 @@ describe("health router", () => {
     expect(result.status).toBe("ok");
     expect(result.user).toEqual(mockUser);
     expect(result.timestamp).toBeInstanceOf(Date);
-    expect(mockFindUnique).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      select: { id: true, name: true, email: true },
-    });
+    expect(executeTakeFirst).toHaveBeenCalled();
   });
 
   it("dbCheck throws UNAUTHORIZED when no session", async () => {

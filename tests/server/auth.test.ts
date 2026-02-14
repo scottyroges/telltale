@@ -2,8 +2,8 @@
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/prisma", () => ({
-  prisma: {},
+vi.mock("@/lib/db", () => ({
+  db: {},
 }));
 
 vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
