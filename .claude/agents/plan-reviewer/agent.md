@@ -70,7 +70,21 @@ Look for:
 - Scope that might expand once implementation starts
 - External dependencies or unknowns that could block progress
 
-### 6. Report
+### 6. Splitability Check
+
+Ask: **Can this plan be split into smaller, independently-shippable PRs?**
+
+Look for logical seams where the work can be divided so each PR is self-contained, reviewable, and doesn't leave broken or dead code behind. Good split points:
+- New types/interfaces that can land before their consumers (e.g., domain types → implementation → wiring)
+- Infrastructure layers that are useful on their own (e.g., a repository method, an SDK client singleton)
+- Independent features within the plan that don't depend on each other
+- Tests that can ship alongside their unit of code
+
+When suggesting splits, describe each PR as a concrete unit: what it contains, what it delivers, and what it depends on. Order them so each PR builds on the last. Don't suggest splits that would result in dead code or require feature flags — every PR should leave the codebase in a working state.
+
+If the plan is small enough that splitting adds overhead without benefit, say so and move on.
+
+### 7. Report
 
 Return a structured review:
 
@@ -86,6 +100,9 @@ Return a structured review:
 
 ## Risks
 [List specific risks worth discussing before starting.]
+
+## Splitability: [Single PR/Can Split]
+[If splittable, list each PR as a numbered sequence: what it contains, what it delivers, and its dependency on prior PRs.]
 
 ## Open Questions
 [Numbered list of concrete questions that should be answered before implementation.]

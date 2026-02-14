@@ -67,6 +67,15 @@ export const bookQuestionRepository = {
       .executeTakeFirstOrThrow();
   },
 
+  async getNextOrderIndex(bookId: string): Promise<number> {
+    const result = await db
+      .selectFrom("book_question")
+      .where("bookId", "=", bookId)
+      .select(db.fn.max("orderIndex").as("maxIndex"))
+      .executeTakeFirst();
+    return (result?.maxIndex ?? -1) + 1;
+  },
+
   async delete(id: string): Promise<BookQuestion> {
     // DELETE FROM book_question WHERE id = $1 RETURNING <columns>
     return db
