@@ -78,4 +78,4 @@ Schema and migrations are managed by Prisma (`schema.prisma` + `prisma migrate`)
 
 ## Auth Models
 
-Account, Session, and Verification models follow the standard Better Auth/Prisma adapter schema. These models are managed by Better Auth — IDs are generated at runtime (no `@default(cuid())`), and table names are lowercased via `@@map`.
+Account, Session, and Verification models follow the standard Better Auth schema. These models are managed by Better Auth — IDs are generated at runtime (no `@default(cuid())`), and table names are lowercased via `@@map`.
