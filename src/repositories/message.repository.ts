@@ -1,13 +1,14 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
+import { createId } from "@/lib/id";
 import type { Message, MessageRole } from "@/domain/message";
 
-const select = {
-  id: true,
-  interviewId: true,
-  role: true,
-  content: true,
-  createdAt: true,
-} as const;
+const columns = [
+  "id",
+  "interviewId",
+  "role",
+  "content",
+  "createdAt",
+] as const;
 
 export const messageRepository = {
   async create(data: {
@@ -15,17 +16,26 @@ export const messageRepository = {
     role: MessageRole;
     content: string;
   }): Promise<Message> {
-    return prisma.message.create({
-      data,
-      select,
-    });
+    // INSERT INTO message (id, "interviewId", role, content)
+    //   VALUES ($1, $2, $3, $4)
+    //   RETURNING <columns>
+    return db
+      .insertInto("message")
+      .values({
+        id: createId(),
+        ...data,
+      })
+      .returning([...columns])
+      .executeTakeFirstOrThrow();
   },
 
   async findByInterviewId(interviewId: string): Promise<Message[]> {
-    return prisma.message.findMany({
-      where: { interviewId },
-      select,
-      orderBy: { createdAt: "asc" },
-    });
+    // SELECT <columns> FROM message WHERE "interviewId" = $1 ORDER BY "createdAt" ASC
+    return db
+      .selectFrom("message")
+      .where("interviewId", "=", interviewId)
+      .select([...columns])
+      .orderBy("createdAt", "asc")
+      .execute();
   },
 };

@@ -25,6 +25,7 @@
 
 ## Completed Plans
 
+- **docs/plans/completed/1.1.1-kysely-migration.md** — Migrate repository query layer from Prisma client to Kysely (ADR 015)
 - **docs/plans/completed/1.1-data-model-domain-repositories.md** — Prisma models, domain types, repository layer for Phase 1
 - **docs/plans/completed/0.1-nextjs-scaffold.md** — Next.js 15, TypeScript strict, CSS Modules, directory structure
 - **docs/plans/completed/0.2-testing-infrastructure.md** — Vitest 4, React Testing Library, Playwright, coverage via V8
@@ -48,7 +49,7 @@
 
 - **001** — Next.js monolith (vs. Spring Boot + SPA)
 - **002** — tRPC for API layer (vs. REST, GraphQL)
-- **003** — Prisma ORM (vs. Drizzle, TypeORM, raw SQL)
+- **003** — Prisma ORM (vs. Drizzle, TypeORM, raw SQL) — *superseded by 015*
 - **004** — Neon for PostgreSQL hosting (vs. Supabase, PlanetScale)
 - **005** — Better Auth for authentication (vs. Auth.js, Clerk, Supabase Auth)
 - **005** *(superseded)* — Auth.js for authentication — see [005-better-auth.md](decisions/005-better-auth.md)
@@ -61,3 +62,4 @@
 - **012** — Turbopack for development only (not production builds)
 - **013** — Conversation response delivery: Plain request/response through tRPC, no streaming (vs. ReadableStream, Vercel AI SDK)
 - **014** — Insight extraction strategy: Inline structured output vs. separate background call
+- **015** — Query layer: Prisma Migrate + Kysely queries (vs. Prisma client, Drizzle, raw SQL)

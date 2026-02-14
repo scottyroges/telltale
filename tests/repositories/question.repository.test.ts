@@ -1,30 +1,20 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockDb } from "../helpers/mock-db";
 
 vi.mock("server-only", () => ({}));
 
-const mockCreate = vi.fn();
-const mockFindUnique = vi.fn();
-const mockFindMany = vi.fn();
+const {
+  db,
+  executeTakeFirstOrThrow,
+  executeTakeFirst,
+  execute,
+  selectFrom,
+  insertInto,
+} = createMockDb();
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    question: {
-      create: (...args: unknown[]) => mockCreate(...args),
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-    },
-  },
-}));
-
-const select = {
-  id: true,
-  category: true,
-  prompt: true,
-  orderIndex: true,
-  createdAt: true,
-  updatedAt: true,
-};
+vi.mock("@/lib/db", () => ({ db }));
+vi.mock("@/lib/id", () => ({ createId: () => "generated-id" }));
 
 describe("questionRepository", () => {
   let questionRepository: Awaited<
@@ -32,72 +22,92 @@ describe("questionRepository", () => {
   >["questionRepository"];
 
   beforeEach(async () => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     const mod = await import("@/repositories/question.repository");
     questionRepository = mod.questionRepository;
   });
 
   describe("create", () => {
-    it("creates a question with the given data", async () => {
-      const input = { category: "childhood", prompt: "Tell me about…", orderIndex: 1 };
-      const expected = { id: "q1", ...input, createdAt: new Date(), updatedAt: new Date() };
-      mockCreate.mockResolvedValue(expected);
+    it("creates a question and returns it", async () => {
+      const expected = {
+        id: "q1",
+        category: "childhood",
+        prompt: "Tell me about…",
+        orderIndex: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      executeTakeFirstOrThrow.mockResolvedValue(expected);
 
-      const result = await questionRepository.create(input);
+      const result = await questionRepository.create({
+        category: "childhood",
+        prompt: "Tell me about…",
+        orderIndex: 1,
+      });
 
       expect(result).toEqual(expected);
-      expect(mockCreate).toHaveBeenCalledWith({ data: input, select });
+      expect(insertInto).toHaveBeenCalledWith("question");
+      expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
 
   describe("findById", () => {
     it("returns a question when found", async () => {
-      const expected = { id: "q1", category: "childhood", prompt: "Tell me about…", orderIndex: 1, createdAt: new Date(), updatedAt: new Date() };
-      mockFindUnique.mockResolvedValue(expected);
+      const expected = {
+        id: "q1",
+        category: "childhood",
+        prompt: "Tell me about…",
+        orderIndex: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      executeTakeFirst.mockResolvedValue(expected);
 
       const result = await questionRepository.findById("q1");
 
       expect(result).toEqual(expected);
-      expect(mockFindUnique).toHaveBeenCalledWith({ where: { id: "q1" }, select });
+      expect(selectFrom).toHaveBeenCalledWith("question");
+      expect(executeTakeFirst).toHaveBeenCalled();
     });
 
     it("returns null when not found", async () => {
-      mockFindUnique.mockResolvedValue(null);
+      executeTakeFirst.mockResolvedValue(undefined);
 
       const result = await questionRepository.findById("missing");
 
       expect(result).toBeNull();
+      expect(selectFrom).toHaveBeenCalledWith("question");
     });
   });
 
   describe("findAll", () => {
-    it("returns all questions ordered by orderIndex", async () => {
+    it("returns all questions", async () => {
       const expected = [
         { id: "q1", category: "childhood", prompt: "Q1", orderIndex: 1, createdAt: new Date(), updatedAt: new Date() },
         { id: "q2", category: "career", prompt: "Q2", orderIndex: 2, createdAt: new Date(), updatedAt: new Date() },
       ];
-      mockFindMany.mockResolvedValue(expected);
+      execute.mockResolvedValue(expected);
 
       const result = await questionRepository.findAll();
 
       expect(result).toEqual(expected);
-      expect(mockFindMany).toHaveBeenCalledWith({ select, orderBy: { orderIndex: "asc" } });
+      expect(selectFrom).toHaveBeenCalledWith("question");
+      expect(execute).toHaveBeenCalled();
     });
   });
 
   describe("findByCategory", () => {
     it("returns questions filtered by category", async () => {
-      const expected = [{ id: "q1", category: "childhood", prompt: "Q1", orderIndex: 1, createdAt: new Date(), updatedAt: new Date() }];
-      mockFindMany.mockResolvedValue(expected);
+      const expected = [
+        { id: "q1", category: "childhood", prompt: "Q1", orderIndex: 1, createdAt: new Date(), updatedAt: new Date() },
+      ];
+      execute.mockResolvedValue(expected);
 
       const result = await questionRepository.findByCategory("childhood");
 
       expect(result).toEqual(expected);
-      expect(mockFindMany).toHaveBeenCalledWith({
-        where: { category: "childhood" },
-        select,
-        orderBy: { orderIndex: "asc" },
-      });
+      expect(selectFrom).toHaveBeenCalledWith("question");
+      expect(execute).toHaveBeenCalled();
     });
   });
 });

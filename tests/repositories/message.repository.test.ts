@@ -1,27 +1,19 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockDb } from "../helpers/mock-db";
 
 vi.mock("server-only", () => ({}));
 
-const mockCreate = vi.fn();
-const mockFindMany = vi.fn();
+const {
+  db,
+  executeTakeFirstOrThrow,
+  execute,
+  selectFrom,
+  insertInto,
+} = createMockDb();
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    message: {
-      create: (...args: unknown[]) => mockCreate(...args),
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-    },
-  },
-}));
-
-const select = {
-  id: true,
-  interviewId: true,
-  role: true,
-  content: true,
-  createdAt: true,
-};
+vi.mock("@/lib/db", () => ({ db }));
+vi.mock("@/lib/id", () => ({ createId: () => "generated-id" }));
 
 describe("messageRepository", () => {
   let messageRepository: Awaited<
@@ -29,21 +21,25 @@ describe("messageRepository", () => {
   >["messageRepository"];
 
   beforeEach(async () => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     const mod = await import("@/repositories/message.repository");
     messageRepository = mod.messageRepository;
   });
 
   describe("create", () => {
     it("creates a message", async () => {
-      const input = { interviewId: "i1", role: "USER" as const, content: "Hello" };
-      const expected = { id: "m1", ...input, createdAt: new Date() };
-      mockCreate.mockResolvedValue(expected);
+      const expected = { id: "m1", interviewId: "i1", role: "USER", content: "Hello", createdAt: new Date() };
+      executeTakeFirstOrThrow.mockResolvedValue(expected);
 
-      const result = await messageRepository.create(input);
+      const result = await messageRepository.create({
+        interviewId: "i1",
+        role: "USER",
+        content: "Hello",
+      });
 
       expect(result).toEqual(expected);
-      expect(mockCreate).toHaveBeenCalledWith({ data: input, select });
+      expect(insertInto).toHaveBeenCalledWith("message");
+      expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
 
@@ -53,16 +49,13 @@ describe("messageRepository", () => {
         { id: "m1", interviewId: "i1", role: "USER", content: "Hello", createdAt: new Date() },
         { id: "m2", interviewId: "i1", role: "ASSISTANT", content: "Hi there!", createdAt: new Date() },
       ];
-      mockFindMany.mockResolvedValue(expected);
+      execute.mockResolvedValue(expected);
 
       const result = await messageRepository.findByInterviewId("i1");
 
       expect(result).toEqual(expected);
-      expect(mockFindMany).toHaveBeenCalledWith({
-        where: { interviewId: "i1" },
-        select,
-        orderBy: { createdAt: "asc" },
-      });
+      expect(selectFrom).toHaveBeenCalledWith("message");
+      expect(execute).toHaveBeenCalled();
     });
   });
 });

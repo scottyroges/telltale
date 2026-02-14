@@ -66,11 +66,15 @@ Ordered chunks of generated prose within a story. Each section is generated inde
 
 ## Schema Conventions
 
-- **Application model IDs** use `@default(cuid())` — unlike Better Auth models which use plain `String @id` with runtime-generated IDs
+- **Application model IDs** use `@default(cuid())` in the Prisma schema, but since the Prisma client is not used at runtime, repositories generate IDs via `@paralleldrive/cuid2`. Better Auth models use plain `String @id` with runtime-generated IDs.
 - **Table names** use `@@map("snake_case")` for all models
 - **Foreign keys** have `@@index` for query performance and `onDelete: Cascade` on parent relations
 - **InterviewSummary.parentSummaryId** has `@unique` to enforce a strict 1:1 linked list (each summary can be the parent of at most one child)
 - **Message** and **InterviewSummary** have no `updatedAt` — they are append-only/immutable
+
+## Query Layer
+
+Schema and migrations are managed by Prisma (`schema.prisma` + `prisma migrate`). All repository queries are written in Kysely, a type-safe SQL query builder that gives full control over the generated SQL. Kysely database types are auto-generated from the Prisma schema via `prisma-kysely`. See ADR 015 for the full rationale.
 
 ## Auth Models
 

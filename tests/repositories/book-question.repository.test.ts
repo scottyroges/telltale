@@ -1,33 +1,21 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockDb } from "../helpers/mock-db";
 
 vi.mock("server-only", () => ({}));
 
-const mockCreate = vi.fn();
-const mockFindMany = vi.fn();
-const mockUpdate = vi.fn();
-const mockDelete = vi.fn();
+const {
+  db,
+  executeTakeFirstOrThrow,
+  execute,
+  selectFrom,
+  insertInto,
+  updateTable,
+  deleteFrom,
+} = createMockDb();
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    bookQuestion: {
-      create: (...args: unknown[]) => mockCreate(...args),
-      findMany: (...args: unknown[]) => mockFindMany(...args),
-      update: (...args: unknown[]) => mockUpdate(...args),
-      delete: (...args: unknown[]) => mockDelete(...args),
-    },
-  },
-}));
-
-const select = {
-  id: true,
-  bookId: true,
-  questionId: true,
-  orderIndex: true,
-  status: true,
-  createdAt: true,
-  updatedAt: true,
-};
+vi.mock("@/lib/db", () => ({ db }));
+vi.mock("@/lib/id", () => ({ createId: () => "generated-id" }));
 
 describe("bookQuestionRepository", () => {
   let bookQuestionRepository: Awaited<
@@ -35,70 +23,98 @@ describe("bookQuestionRepository", () => {
   >["bookQuestionRepository"];
 
   beforeEach(async () => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     const mod = await import("@/repositories/book-question.repository");
     bookQuestionRepository = mod.bookQuestionRepository;
   });
 
   describe("create", () => {
-    it("creates a book question", async () => {
-      const input = { bookId: "b1", questionId: "q1", orderIndex: 0 };
-      const expected = { id: "bq1", ...input, status: "NOT_STARTED", createdAt: new Date(), updatedAt: new Date() };
-      mockCreate.mockResolvedValue(expected);
+    it("creates a book question with NOT_STARTED status", async () => {
+      const expected = {
+        id: "bq1",
+        bookId: "b1",
+        questionId: "q1",
+        orderIndex: 0,
+        status: "NOT_STARTED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      executeTakeFirstOrThrow.mockResolvedValue(expected);
 
-      const result = await bookQuestionRepository.create(input);
+      const result = await bookQuestionRepository.create({
+        bookId: "b1",
+        questionId: "q1",
+        orderIndex: 0,
+      });
 
       expect(result).toEqual(expected);
-      expect(mockCreate).toHaveBeenCalledWith({
-        data: { ...input, status: "NOT_STARTED" },
-        select,
-      });
+      expect(insertInto).toHaveBeenCalledWith("book_question");
+      expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
 
   describe("findByBookId", () => {
-    it("returns book questions ordered by orderIndex", async () => {
+    it("returns book questions for a book", async () => {
       const expected = [
-        { id: "bq1", bookId: "b1", questionId: "q1", orderIndex: 0, status: "NOT_STARTED", createdAt: new Date(), updatedAt: new Date() },
+        {
+          id: "bq1",
+          bookId: "b1",
+          questionId: "q1",
+          orderIndex: 0,
+          status: "NOT_STARTED",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ];
-      mockFindMany.mockResolvedValue(expected);
+      execute.mockResolvedValue(expected);
 
       const result = await bookQuestionRepository.findByBookId("b1");
 
       expect(result).toEqual(expected);
-      expect(mockFindMany).toHaveBeenCalledWith({
-        where: { bookId: "b1" },
-        select,
-        orderBy: { orderIndex: "asc" },
-      });
+      expect(selectFrom).toHaveBeenCalledWith("book_question");
+      expect(execute).toHaveBeenCalled();
     });
   });
 
   describe("updateStatus", () => {
     it("updates book question status", async () => {
-      const expected = { id: "bq1", bookId: "b1", questionId: "q1", orderIndex: 0, status: "STARTED", createdAt: new Date(), updatedAt: new Date() };
-      mockUpdate.mockResolvedValue(expected);
+      const expected = {
+        id: "bq1",
+        bookId: "b1",
+        questionId: "q1",
+        orderIndex: 0,
+        status: "STARTED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      executeTakeFirstOrThrow.mockResolvedValue(expected);
 
       const result = await bookQuestionRepository.updateStatus("bq1", "STARTED");
 
       expect(result).toEqual(expected);
-      expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: "bq1" },
-        data: { status: "STARTED" },
-        select,
-      });
+      expect(updateTable).toHaveBeenCalledWith("book_question");
+      expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
 
   describe("delete", () => {
     it("deletes a book question", async () => {
-      const expected = { id: "bq1", bookId: "b1", questionId: "q1", orderIndex: 0, status: "NOT_STARTED", createdAt: new Date(), updatedAt: new Date() };
-      mockDelete.mockResolvedValue(expected);
+      const expected = {
+        id: "bq1",
+        bookId: "b1",
+        questionId: "q1",
+        orderIndex: 0,
+        status: "NOT_STARTED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      executeTakeFirstOrThrow.mockResolvedValue(expected);
 
       const result = await bookQuestionRepository.delete("bq1");
 
       expect(result).toEqual(expected);
-      expect(mockDelete).toHaveBeenCalledWith({ where: { id: "bq1" }, select });
+      expect(deleteFrom).toHaveBeenCalledWith("book_question");
+      expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
 });

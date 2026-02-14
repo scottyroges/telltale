@@ -16,7 +16,7 @@ All business logic lives in `src/services/` with zero framework dependencies. Ro
 
 ### Strong Types, End to End
 
-The type chain: Prisma schema → generated TypeScript types → tRPC procedures → frontend. Changing a field in the schema produces compile errors everywhere that field is referenced. Runtime validation via Zod at API boundaries.
+The type chain: Prisma schema → Kysely database types (via `prisma-kysely`) → domain types → tRPC procedures → frontend. Changing a field in the schema produces compile errors everywhere that field is referenced. Runtime validation via Zod at API boundaries.
 
 ### Scale Later, Architect Now
 
@@ -90,8 +90,8 @@ e2e/                               # Playwright E2E tests (critical user flows)
 
 **Services (`services/`)** — All business logic. Framework-agnostic. Can import from `repositories/`, `domain/`, and `lib/` only. Never imports from `app/` or `server/`.
 
-**Repositories (`repositories/`)** — Database queries via Prisma. Isolates Prisma from services for future ORM swaps. All repository methods return domain types (defined in `domain/`), never raw Prisma types. Repositories use `select` to pick exactly the fields their domain type defines, and `include` for composite domain types that span multiple tables. Services and routers work exclusively with domain types — they have no knowledge of Prisma's generated types.
+**Repositories (`repositories/`)** — Database queries via Kysely (type-safe SQL query builder). Isolates the query layer from services — swapping the database client requires zero service changes. All repository methods return domain types (defined in `domain/`), never raw database types. Repositories write explicit SQL queries via Kysely's builder and map results to domain types. Services and routers work exclusively with domain types — they have no knowledge of the query layer. Schema and migrations are managed by Prisma; queries are written in Kysely (ADR 015).
 
 **Domain (`domain/`)** — TypeScript types and interfaces shared across layers. No runtime code.
 
-**Lib (`lib/`)** — Thin wrappers around external SDKs (Anthropic, R2, Prisma client singleton). Configuration and client instantiation only. Also contains tRPC wiring: `lib/trpc/client.tsx` provides the React Query-backed tRPC client for Client Components, `lib/trpc/server.ts` provides `serverTRPC()` for Server Components to call procedures directly without HTTP.
+**Lib (`lib/`)** — Thin wrappers around external SDKs (Anthropic, R2, Kysely database instance). Configuration and client instantiation only. Also contains tRPC wiring: `lib/trpc/client.tsx` provides the React Query-backed tRPC client for Client Components, `lib/trpc/server.ts` provides `serverTRPC()` for Server Components to call procedures directly without HTTP.

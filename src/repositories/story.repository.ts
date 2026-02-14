@@ -1,17 +1,18 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
+import { createId } from "@/lib/id";
 import type { Story, StoryStatus } from "@/domain/story";
 
-const select = {
-  id: true,
-  bookId: true,
-  interviewId: true,
-  title: true,
-  prose: true,
-  orderIndex: true,
-  status: true,
-  createdAt: true,
-  updatedAt: true,
-} as const;
+const columns = [
+  "id",
+  "bookId",
+  "interviewId",
+  "title",
+  "prose",
+  "orderIndex",
+  "status",
+  "createdAt",
+  "updatedAt",
+] as const;
 
 export const storyRepository = {
   async create(data: {
@@ -20,50 +21,68 @@ export const storyRepository = {
     title: string;
     orderIndex: number;
   }): Promise<Story> {
-    return prisma.story.create({
-      data: {
+    // INSERT INTO story (id, "bookId", "interviewId", title, "orderIndex", status, "updatedAt")
+    //   VALUES ($1, $2, $3, $4, $5, 'DRAFT', $6)
+    //   RETURNING <columns>
+    return db
+      .insertInto("story")
+      .values({
+        id: createId(),
         ...data,
         status: "DRAFT",
-      },
-      select,
-    });
+        updatedAt: new Date(),
+      })
+      .returning([...columns])
+      .executeTakeFirstOrThrow();
   },
 
   async findById(id: string): Promise<Story | null> {
-    return prisma.story.findUnique({
-      where: { id },
-      select,
-    });
+    // SELECT <columns> FROM story WHERE id = $1
+    return (
+      (await db
+        .selectFrom("story")
+        .where("id", "=", id)
+        .select([...columns])
+        .executeTakeFirst()) ?? null
+    );
   },
 
   async findByBookId(bookId: string): Promise<Story[]> {
-    return prisma.story.findMany({
-      where: { bookId },
-      select,
-      orderBy: { orderIndex: "asc" },
-    });
+    // SELECT <columns> FROM story WHERE "bookId" = $1 ORDER BY "orderIndex" ASC
+    return db
+      .selectFrom("story")
+      .where("bookId", "=", bookId)
+      .select([...columns])
+      .orderBy("orderIndex", "asc")
+      .execute();
   },
 
   async findByInterviewId(interviewId: string): Promise<Story[]> {
-    return prisma.story.findMany({
-      where: { interviewId },
-      select,
-    });
+    // SELECT <columns> FROM story WHERE "interviewId" = $1
+    return db
+      .selectFrom("story")
+      .where("interviewId", "=", interviewId)
+      .select([...columns])
+      .execute();
   },
 
   async updateProse(id: string, prose: string): Promise<Story> {
-    return prisma.story.update({
-      where: { id },
-      data: { prose },
-      select,
-    });
+    // UPDATE story SET prose = $1, "updatedAt" = $2 WHERE id = $3 RETURNING <columns>
+    return db
+      .updateTable("story")
+      .set({ prose, updatedAt: new Date() })
+      .where("id", "=", id)
+      .returning([...columns])
+      .executeTakeFirstOrThrow();
   },
 
   async updateStatus(id: string, status: StoryStatus): Promise<Story> {
-    return prisma.story.update({
-      where: { id },
-      data: { status },
-      select,
-    });
+    // UPDATE story SET status = $1, "updatedAt" = $2 WHERE id = $3 RETURNING <columns>
+    return db
+      .updateTable("story")
+      .set({ status, updatedAt: new Date() })
+      .where("id", "=", id)
+      .returning([...columns])
+      .executeTakeFirstOrThrow();
   },
 };

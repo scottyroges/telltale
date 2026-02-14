@@ -1,6 +1,6 @@
 # ADR 003: Prisma ORM
 
-**Status:** Accepted
+**Status:** Superseded by [ADR 015](015-query-layer-prisma-vs-kysely.md)
 **Date:** 2025-02
 
 ## Context
@@ -8,6 +8,8 @@ Need an ORM that generates TypeScript types from the database schema and handles
 
 ## Decision
 Use Prisma as the ORM.
+
+**Update (2026-02):** Prisma remains for schema definition and migrations, but the query layer is being replaced by Kysely. See ADR 015 for the full decision.
 
 ## Alternatives Considered
 - **Drizzle** — lighter weight, closer to SQL, but less mature ecosystem

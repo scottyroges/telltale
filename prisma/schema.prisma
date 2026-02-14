@@ -1,5 +1,17 @@
-generator client {
-  provider = "prisma-client-js"
+// Better Auth CLI workflow (`npx @better-auth/cli generate`):
+// The CLI requires @prisma/client types, which we no longer generate.
+// To run it, temporarily:
+//   1. Add:  generator client { provider = "prisma-client-js" }
+//   2. Remove `import "server-only"` from src/server/auth.ts and src/lib/db.ts
+//   3. Run:  npx prisma generate
+//   4. Run:  npx @better-auth/cli generate
+//   5. Undo steps 1 and 2, then run `npx prisma generate` again
+
+generator kysely {
+  provider     = "prisma-kysely"
+  output       = "../src/db"
+  fileName     = "types.ts"
+  enumFileName = "enums.ts"
 }
 
 datasource db {

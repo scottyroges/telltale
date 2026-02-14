@@ -1,16 +1,17 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
+import { createId } from "@/lib/id";
 import type { Insight, InsightType } from "@/domain/insight";
 
-const select = {
-  id: true,
-  bookId: true,
-  interviewId: true,
-  type: true,
-  content: true,
-  explored: true,
-  createdAt: true,
-  updatedAt: true,
-} as const;
+const columns = [
+  "id",
+  "bookId",
+  "interviewId",
+  "type",
+  "content",
+  "explored",
+  "createdAt",
+  "updatedAt",
+] as const;
 
 export const insightRepository = {
   async createMany(
@@ -21,30 +22,49 @@ export const insightRepository = {
       content: string;
     }>,
   ): Promise<{ count: number }> {
-    return prisma.insight.createMany({
-      data: insights,
-    });
+    if (insights.length === 0) return { count: 0 };
+
+    // INSERT INTO insight (id, "bookId", "interviewId", type, content, explored, "updatedAt")
+    //   VALUES ($1, $2, $3, $4, $5, false, $6), ...
+    await db
+      .insertInto("insight")
+      .values(
+        insights.map((i) => ({
+          id: createId(),
+          ...i,
+          explored: false,
+          updatedAt: new Date(),
+        })),
+      )
+      .execute();
+    return { count: insights.length };
   },
 
   async findByInterviewId(interviewId: string): Promise<Insight[]> {
-    return prisma.insight.findMany({
-      where: { interviewId },
-      select,
-    });
+    // SELECT <columns> FROM insight WHERE "interviewId" = $1
+    return db
+      .selectFrom("insight")
+      .where("interviewId", "=", interviewId)
+      .select([...columns])
+      .execute();
   },
 
   async findByBookId(bookId: string): Promise<Insight[]> {
-    return prisma.insight.findMany({
-      where: { bookId },
-      select,
-    });
+    // SELECT <columns> FROM insight WHERE "bookId" = $1
+    return db
+      .selectFrom("insight")
+      .where("bookId", "=", bookId)
+      .select([...columns])
+      .execute();
   },
 
   async markExplored(id: string): Promise<Insight> {
-    return prisma.insight.update({
-      where: { id },
-      data: { explored: true },
-      select,
-    });
+    // UPDATE insight SET explored = true, "updatedAt" = $1 WHERE id = $2 RETURNING <columns>
+    return db
+      .updateTable("insight")
+      .set({ explored: true, updatedAt: new Date() })
+      .where("id", "=", id)
+      .returning([...columns])
+      .executeTakeFirstOrThrow();
   },
 };
