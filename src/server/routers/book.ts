@@ -7,7 +7,7 @@ import { questionRepository } from "@/repositories/question.repository";
 import {
   verifyBookOwnership,
   verifyBookQuestionOwnership,
-} from "@/server/routers/_helpers";
+} from "@/server/routers/ownership";
 
 export const bookRouter = router({
   create: protectedProcedure
