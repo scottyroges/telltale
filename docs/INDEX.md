@@ -16,7 +16,6 @@
 
 ## Active Plans (Phase 1: Core Conversation)
 
-- **docs/plans/active/1.1-data-model-domain-repositories.md** — Prisma models, domain types, repository layer for Phase 1
 - **docs/plans/active/1.2-anthropic-sdk-conversation-service.md** — LLM provider interface, Anthropic SDK client, conversation service, system prompt
 - **docs/plans/active/1.3-trpc-routers.md** — tRPC routers for questions, books, and interviews
 - **docs/plans/active/1.4-interview-ui.md** — Interview session UI, interviews hub, conversation flow
@@ -26,6 +25,7 @@
 
 ## Completed Plans
 
+- **docs/plans/completed/1.1-data-model-domain-repositories.md** — Prisma models, domain types, repository layer for Phase 1
 - **docs/plans/completed/0.1-nextjs-scaffold.md** — Next.js 15, TypeScript strict, CSS Modules, directory structure
 - **docs/plans/completed/0.2-testing-infrastructure.md** — Vitest 4, React Testing Library, Playwright, coverage via V8
 - **docs/plans/completed/0.3-prisma-database.md** — Prisma 6, PostgreSQL, auth models, Docker Compose for local dev

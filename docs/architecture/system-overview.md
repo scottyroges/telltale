@@ -73,6 +73,7 @@ src/
 └── hooks/                     # Custom React hooks
 
 tests/                             # Backend tests (mirrors src/ structure)
+├── repositories/
 ├── services/
 ├── server/routers/
 ├── lib/
@@ -89,7 +90,7 @@ e2e/                               # Playwright E2E tests (critical user flows)
 
 **Services (`services/`)** — All business logic. Framework-agnostic. Can import from `repositories/`, `domain/`, and `lib/` only. Never imports from `app/` or `server/`.
 
-**Repositories (`repositories/`)** — Database queries via Prisma. Returns domain types. Isolates Prisma from services for future ORM swaps.
+**Repositories (`repositories/`)** — Database queries via Prisma. Isolates Prisma from services for future ORM swaps. All repository methods return domain types (defined in `domain/`), never raw Prisma types. Repositories use `select` to pick exactly the fields their domain type defines, and `include` for composite domain types that span multiple tables. Services and routers work exclusively with domain types — they have no knowledge of Prisma's generated types.
 
 **Domain (`domain/`)** — TypeScript types and interfaces shared across layers. No runtime code.
 

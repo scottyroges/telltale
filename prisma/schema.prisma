@@ -18,6 +18,7 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
+  books         Book[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -69,4 +70,193 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// Application models
+
+enum BookStatus {
+  IN_PROGRESS
+  COMPLETE
+  ARCHIVED
+}
+
+enum BookQuestionStatus {
+  NOT_STARTED
+  STARTED
+  COMPLETE
+}
+
+enum InterviewStatus {
+  ACTIVE
+  PAUSED
+  COMPLETE
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum InsightType {
+  ENTITY
+  EVENT
+  EMOTION
+  DETAIL
+}
+
+enum StoryStatus {
+  DRAFT
+  REVIEWED
+  FINAL
+}
+
+enum StorySectionStatus {
+  GENERATING
+  DRAFT
+  FINAL
+}
+
+model Question {
+  id             String         @id @default(cuid())
+  category       String
+  prompt         String
+  orderIndex     Int
+  bookQuestions  BookQuestion[]
+  interviews     Interview[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("question")
+}
+
+model Book {
+  id            String         @id @default(cuid())
+  userId        String
+  title         String
+  status        BookStatus     @default(IN_PROGRESS)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookQuestions BookQuestion[]
+  interviews    Interview[]
+  insights      Insight[]
+  stories       Story[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([userId])
+  @@map("book")
+}
+
+model BookQuestion {
+  id         String             @id @default(cuid())
+  bookId     String
+  questionId String
+  orderIndex Int
+  status     BookQuestionStatus @default(NOT_STARTED)
+  book       Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  question   Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@unique([bookId, questionId])
+  @@index([bookId])
+  @@index([questionId])
+  @@map("book_question")
+}
+
+model Interview {
+  id         String             @id @default(cuid())
+  bookId     String
+  questionId String
+  status     InterviewStatus    @default(ACTIVE)
+  book       Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  question   Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  messages   Message[]
+  insights   Insight[]
+  summaries  InterviewSummary[]
+  stories    Story[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@index([bookId])
+  @@index([questionId])
+  @@map("interview")
+}
+
+model Message {
+  id          String      @id @default(cuid())
+  interviewId String
+  role        MessageRole
+  content     String
+  interview   Interview   @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+
+  @@index([interviewId])
+  @@map("message")
+}
+
+model Insight {
+  id          String      @id @default(cuid())
+  bookId      String
+  interviewId String
+  type        InsightType
+  content     String
+  explored    Boolean     @default(false)
+  book        Book        @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  interview   Interview   @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([bookId])
+  @@index([interviewId])
+  @@map("insight")
+}
+
+model InterviewSummary {
+  id              String            @id @default(cuid())
+  interviewId     String
+  parentSummaryId String?           @unique
+  content         String
+  messageCount    Int
+  interview       Interview         @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  parentSummary   InterviewSummary? @relation("SummaryChain", fields: [parentSummaryId], references: [id])
+  childSummary    InterviewSummary? @relation("SummaryChain")
+  createdAt       DateTime          @default(now())
+
+  @@index([interviewId])
+  @@index([parentSummaryId])
+  @@map("interview_summary")
+}
+
+model Story {
+  id          String         @id @default(cuid())
+  bookId      String
+  interviewId String
+  title       String
+  prose       String?
+  orderIndex  Int
+  status      StoryStatus    @default(DRAFT)
+  book        Book           @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  interview   Interview      @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  sections    StorySection[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([bookId])
+  @@index([interviewId])
+  @@map("story")
+}
+
+model StorySection {
+  id         String             @id @default(cuid())
+  storyId    String
+  orderIndex Int
+  content    String
+  status     StorySectionStatus @default(GENERATING)
+  story      Story              @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@index([storyId])
+  @@map("story_section")
 }

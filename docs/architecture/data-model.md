@@ -64,6 +64,14 @@ Polished narrative output from an interview. Has a direct relationship to both B
 ### StorySection
 Ordered chunks of generated prose within a story. Each section is generated independently, allowing retry of individual sections. `orderIndex` controls assembly order. Status lifecycle: `GENERATING` → `DRAFT` → `FINAL`.
 
+## Schema Conventions
+
+- **Application model IDs** use `@default(cuid())` — unlike Better Auth models which use plain `String @id` with runtime-generated IDs
+- **Table names** use `@@map("snake_case")` for all models
+- **Foreign keys** have `@@index` for query performance and `onDelete: Cascade` on parent relations
+- **InterviewSummary.parentSummaryId** has `@unique` to enforce a strict 1:1 linked list (each summary can be the parent of at most one child)
+- **Message** and **InterviewSummary** have no `updatedAt` — they are append-only/immutable
+
 ## Auth Models
 
 Account, Session, and Verification models follow the standard Better Auth/Prisma adapter schema. These models are managed by Better Auth — IDs are generated at runtime (no `@default(cuid())`), and table names are lowercased via `@@map`.
