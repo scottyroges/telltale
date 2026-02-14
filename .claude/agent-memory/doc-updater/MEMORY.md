@@ -21,6 +21,7 @@
 - 0.5: tRPC setup (tRPC v11, React Query 5, Zod 4, superjson, first service + repository)
 - 1.1: Data model, domain types, repository layer (Prisma schema, 10 repos, 9 test files)
 - 1.1.1: Kysely migration (Prisma client -> Kysely queries, cuid2 IDs, mock-db helper)
+- 1.2: LLM provider + conversation service (LLMProvider interface, Anthropic SDK, conversation service, system prompt)
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk

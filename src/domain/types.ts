@@ -7,3 +7,9 @@ export type { Insight, InsightType } from "./insight";
 export type { InterviewSummary } from "./interview-summary";
 export type { Story, StoryStatus } from "./story";
 export type { StorySection, StorySectionStatus } from "./story-section";
+export type {
+  LLMMessage,
+  LLMResponse,
+  LLMGenerateOptions,
+  LLMProvider,
+} from "./llm-provider";

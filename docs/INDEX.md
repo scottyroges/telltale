@@ -16,7 +16,6 @@
 
 ## Active Plans (Phase 1: Core Conversation)
 
-- **docs/plans/active/1.2-anthropic-sdk-conversation-service.md** — LLM provider interface, Anthropic SDK client, conversation service, system prompt
 - **docs/plans/active/1.3-trpc-routers.md** — tRPC routers for questions, books, and interviews
 - **docs/plans/active/1.4-interview-ui.md** — Interview session UI, interviews hub, conversation flow
 - **docs/plans/active/1.5-insight-extraction.md** — Inline insight extraction — interviewer's "mental notes" produced with each response (ADR 014)
@@ -25,6 +24,7 @@
 
 ## Completed Plans
 
+- **docs/plans/completed/1.2-anthropic-sdk-conversation-service.md** — LLM provider interface, Anthropic SDK client, conversation service, system prompt
 - **docs/plans/completed/1.1.1-kysely-migration.md** — Migrate repository query layer from Prisma client to Kysely (ADR 015)
 - **docs/plans/completed/1.1-data-model-domain-repositories.md** — Prisma models, domain types, repository layer for Phase 1
 - **docs/plans/completed/0.1-nextjs-scaffold.md** — Next.js 15, TypeScript strict, CSS Modules, directory structure
