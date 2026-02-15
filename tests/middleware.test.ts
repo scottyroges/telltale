@@ -44,15 +44,12 @@ describe("middleware", () => {
     expect(response.status).toBe(200);
   });
 
-  it("redirects authenticated users from /login to /dashboard", () => {
+  it("allows authenticated users to access /login", () => {
     mockGetSessionCookie.mockReturnValue("session-token");
 
     const response = middleware(createRequest("/login"));
 
-    expect(response.status).toBe(307);
-    expect(new URL(response.headers.get("location")!).pathname).toBe(
-      "/dashboard",
-    );
+    expect(response.status).toBe(200);
   });
 
   it("allows authenticated users to access /dashboard", () => {
