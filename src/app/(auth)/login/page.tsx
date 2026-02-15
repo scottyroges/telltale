@@ -1,3 +1,6 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/server/auth";
 import { GoogleSignInButton } from "./google-sign-in-button";
 import styles from "./page.module.css";
 
@@ -6,6 +9,14 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (session) {
+    redirect("/dashboard");
+  }
+
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : undefined;
 
