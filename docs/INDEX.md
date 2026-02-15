@@ -39,6 +39,8 @@
 
 - **docs/architecture/system-overview.md** — Architecture principles, project structure, layer responsibilities
 - **docs/architecture/data-model.md** — Entity relationships, model descriptions, schema rationale
+- **docs/architecture/frontend-patterns.md** — Client/server component patterns, tRPC usage, common pitfalls
+- **docs/architecture/testing-patterns.md** — Testing guidelines, user-facing tests, React Query test setup
 - **docs/architecture/scaling-strategy.md** — Deployment phases, extraction triggers, cost projections
 
 ## Ideas (Deferred)
