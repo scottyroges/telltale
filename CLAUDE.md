@@ -24,6 +24,15 @@ The backend lives in Next.js for speed, but must stay extractable. These rules a
 
 For full architecture details, see `docs/architecture/system-overview.md`.
 
+## Frontend Patterns
+
+- **Use `useMutation` with `trpc.*.mutationOptions()`** — never call `mutationFn` directly
+- **Await `serverTRPC()` once per server component,** reuse the result
+- **Import types from specific domain files** (`@/domain/message`), not barrel exports
+- **Test visible behavior, not implementation details.** Don't assert on CSS class names.
+
+For detailed examples and anti-patterns, see `docs/architecture/frontend-patterns.md`. For testing guidelines, see `docs/architecture/testing-patterns.md`.
+
 ## Code Organization
 
 - **Keep files small and focused.** Each file should have a single clear responsibility.
