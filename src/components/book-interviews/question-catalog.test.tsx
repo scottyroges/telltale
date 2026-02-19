@@ -175,10 +175,10 @@ describe("QuestionCatalog", () => {
 
     await user.click(screen.getByRole("button", { name: /add/i }));
 
-    expect(mockMutate).toHaveBeenCalledWith({
-      bookId: "book-42",
-      questionId: "q-5",
-    });
+    expect(mockMutate).toHaveBeenCalledWith(
+      { bookId: "book-42", questionId: "q-5" },
+      expect.anything(),
+    );
   });
 
   it("calls router.refresh on successful add", async () => {
