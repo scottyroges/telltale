@@ -23,6 +23,7 @@
 - 1.1.1: Kysely migration (Prisma client -> Kysely queries, cuid2 IDs, mock-db helper)
 - 1.2: LLM provider + conversation service (LLMProvider interface, Anthropic SDK, conversation service, system prompt)
 - 1.3: tRPC routers (question, book, interview routers; ownership verification helpers)
+- 1.4: Interview UI (books list, book interviews, interview session, dashboard "Continue Your Story" link — 4 PRs)
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk

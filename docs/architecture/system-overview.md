@@ -35,9 +35,10 @@ src/
 │   ├── (auth)/                # Auth pages (login)
 │   ├── (app)/                 # Authenticated app pages (session-validated layout)
 │   │   ├── dashboard/
-│   │   ├── books/[id]/
-│   │   ├── stories/[id]/
-│   │   └── conversation/[sessionId]/
+│   │   ├── books/
+│   │   ├── books/new/
+│   │   ├── book/[bookId]/interviews/
+│   │   └── interview/[interviewId]/
 │   ├── api/auth/[...all]/     # Better Auth API handler
 │   └── api/trpc/[trpc]/      # tRPC HTTP handler
 │
@@ -66,9 +67,9 @@ src/
 ├── components/                # React components
 │   ├── providers.tsx          # Root provider composition (tRPC, React Query, future providers)
 │   ├── ui/                    # Base components (Radix UI primitives + CSS Modules)
-│   ├── conversation/          # Chat UI, message bubbles, mic button
-│   ├── stories/               # Story cards, editor, synthesis review
-│   └── books/                 # Book preview, chapter management
+│   ├── books/                 # Book list and create form
+│   ├── book-interviews/       # Question list and catalog
+│   └── interview/             # Interview session, transcript, input
 │
 └── hooks/                     # Custom React hooks
 
