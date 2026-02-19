@@ -65,3 +65,4 @@
 - **013** — Conversation response delivery: Plain request/response through tRPC, no streaming (vs. ReadableStream, Vercel AI SDK)
 - **014** — Insight extraction strategy: Inline structured output vs. separate background call
 - **015** — Query layer: Prisma Migrate + Kysely queries (vs. Prisma client, Drizzle, raw SQL)
+- **016** — LLM structured output reliability: defensive parsing + single retry (vs. tool use / function calling)

@@ -185,7 +185,10 @@ describe("QuestionList", () => {
 
     await user.click(screen.getByRole("button", { name: /begin/i }));
 
-    expect(mockMutate.mock.calls[0][0]).toEqual({ bookQuestionId: "bq-99" });
+    expect(mockMutate).toHaveBeenCalledWith(
+      { bookQuestionId: "bq-99" },
+      expect.anything(),
+    );
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/interview/new-int-1");
     });

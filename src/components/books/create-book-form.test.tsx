@@ -55,7 +55,10 @@ describe("CreateBookForm", () => {
     await user.type(screen.getByLabelText(/title/i), "My Story");
     await user.click(screen.getByRole("button", { name: /create book/i }));
 
-    expect(mockMutate.mock.calls[0][0]).toEqual({ title: "My Story" });
+    expect(mockMutate).toHaveBeenCalledWith(
+      { title: "My Story" },
+      expect.anything(),
+    );
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/book/new-book-id/interviews");
     });

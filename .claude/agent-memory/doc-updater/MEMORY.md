@@ -4,7 +4,7 @@
 - `docs/INDEX.md` is the central documentation index with "When to Consult" quick-reference + detailed sections
 - INDEX.md style: bold file paths with dash-separated descriptions, one line per entry
 - Plans live in `docs/plans/active/` (numbered by phase, e.g., `0.1-nextjs-scaffold.md`) and move to `docs/plans/completed/` when done
-- Decision records in `docs/decisions/`, numbered sequentially (001-015 exist)
+- Decision records in `docs/decisions/`, numbered sequentially (001-016 exist)
 - Architecture docs in `docs/architecture/`
 
 ## Conventions
