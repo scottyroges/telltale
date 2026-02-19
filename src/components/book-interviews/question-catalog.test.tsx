@@ -175,7 +175,7 @@ describe("QuestionCatalog", () => {
 
     await user.click(screen.getByRole("button", { name: /add/i }));
 
-    expect(mockMutate.mock.calls[0][0]).toEqual({
+    expect(mockMutate).toHaveBeenCalledWith({
       bookId: "book-42",
       questionId: "q-5",
     });
