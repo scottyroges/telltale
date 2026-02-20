@@ -80,7 +80,8 @@ Make it feel like a product, not a prototype.
 - Error handling, loading states, empty states
 - Stripe integration for subscriptions
 - Email system — welcome emails, weekly topic prompts, re-engagement nudges based on unexplored threads
-- Analytics — track key metrics (session length, completion rate, synthesis approval rate)
+- Observability — Axiom (structured logs), Sentry (error tracking), Better Stack (uptime monitoring)
+- Product analytics — PostHog for user behavior tracking (session length, completion rate, synthesis approval rate)
 
 **Done when:** You'd feel comfortable sharing the URL with strangers and charging money.
 
