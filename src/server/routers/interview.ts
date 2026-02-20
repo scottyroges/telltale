@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "@/server/trpc";
 import { conversationService } from "@/services/conversation.service";
 import {
+  verifyBookOwnership,
   verifyBookQuestionOwnership,
   verifyInterviewOwnership,
 } from "@/server/routers/ownership";
@@ -35,7 +36,7 @@ export const interviewRouter = router({
           message: "Interview is already complete",
         });
       }
-      return conversationService.sendMessage(input.interviewId, input.content);
+      return conversationService.sendMessage(input.interviewId, interview.bookId, input.content);
     }),
 
   getMessages: protectedProcedure
@@ -43,6 +44,20 @@ export const interviewRouter = router({
     .query(async ({ ctx, input }) => {
       await verifyInterviewOwnership(input.interviewId, ctx.userId);
       return conversationService.getInterviewMessages(input.interviewId);
+    }),
+
+  getInsights: protectedProcedure
+    .input(z.object({ interviewId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await verifyInterviewOwnership(input.interviewId, ctx.userId);
+      return conversationService.getInsights(input.interviewId);
+    }),
+
+  getBookInsights: protectedProcedure
+    .input(z.object({ bookId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await verifyBookOwnership(input.bookId, ctx.userId);
+      return conversationService.getBookInsights(input.bookId);
     }),
 
   complete: protectedProcedure

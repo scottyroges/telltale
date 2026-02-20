@@ -42,6 +42,17 @@ vi.mock("@/repositories/message.repository", () => ({
   },
 }));
 
+const mockInsightCreateMany = vi.hoisted(() => vi.fn());
+const mockInsightFindByInterviewId = vi.hoisted(() => vi.fn());
+const mockInsightFindByBookId = vi.hoisted(() => vi.fn());
+vi.mock("@/repositories/insight.repository", () => ({
+  insightRepository: {
+    createMany: mockInsightCreateMany,
+    findByInterviewId: mockInsightFindByInterviewId,
+    findByBookId: mockInsightFindByBookId,
+  },
+}));
+
 describe("conversationService", () => {
   let conversationService: Awaited<
     typeof import("@/services/conversation.service")
@@ -49,6 +60,8 @@ describe("conversationService", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockInsightFindByInterviewId.mockResolvedValue([]);
+    mockInsightFindByBookId.mockResolvedValue([]);
     const mod = await import("@/services/conversation.service");
     conversationService = mod.conversationService;
   });
@@ -85,10 +98,11 @@ describe("conversationService", () => {
       mockQuestionFindById.mockResolvedValue(question);
       mockInterviewCreate.mockResolvedValue(interview);
       mockGenerateResponse.mockResolvedValue({
-        content: "Welcome! Tell me about your earliest memories.",
+        content: '{"response":"Welcome! Tell me about your earliest memories.","insights":[]}',
       });
       mockMessageCreate.mockResolvedValue({});
       mockBookQuestionUpdateStatus.mockResolvedValue({});
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       const result = await conversationService.startInterview("bq1");
 
@@ -135,6 +149,86 @@ describe("conversationService", () => {
         "bq1",
         "STARTED",
       );
+    });
+
+    it("persists extracted insights when present", async () => {
+      const bookQuestion = {
+        id: "bq1",
+        bookId: "b1",
+        questionId: "q1",
+        orderIndex: 0,
+        status: "NOT_STARTED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockBookQuestionFindById.mockResolvedValue(bookQuestion);
+      mockQuestionFindById.mockResolvedValue({
+        id: "q1",
+        category: "childhood",
+        prompt: "Tell me about your earliest memories",
+        orderIndex: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockInterviewCreate.mockResolvedValue({
+        id: "int1",
+        bookId: "b1",
+        questionId: "q1",
+        status: "ACTIVE",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Welcome!","insights":[{"type":"ENTITY","content":"sister Maria — older, bossy"},{"type":"EMOTION","content":"nostalgia for childhood home"}]}',
+      });
+      mockMessageCreate.mockResolvedValue({});
+      mockBookQuestionUpdateStatus.mockResolvedValue({});
+      mockInsightCreateMany.mockResolvedValue({ count: 2 });
+
+      await conversationService.startInterview("bq1");
+
+      expect(mockInsightCreateMany).toHaveBeenCalledWith([
+        { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — older, bossy" },
+        { bookId: "b1", interviewId: "int1", type: "EMOTION", content: "nostalgia for childhood home" },
+      ]);
+    });
+
+    it("persists no insights when AI returns empty insights array", async () => {
+      mockBookQuestionFindById.mockResolvedValue({
+        id: "bq1",
+        bookId: "b1",
+        questionId: "q1",
+        orderIndex: 0,
+        status: "NOT_STARTED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockQuestionFindById.mockResolvedValue({
+        id: "q1",
+        category: "childhood",
+        prompt: "Tell me about your earliest memories",
+        orderIndex: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockInterviewCreate.mockResolvedValue({
+        id: "int1",
+        bookId: "b1",
+        questionId: "q1",
+        status: "ACTIVE",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Welcome!","insights":[]}',
+      });
+      mockMessageCreate.mockResolvedValue({});
+      mockBookQuestionUpdateStatus.mockResolvedValue({});
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+
+      await conversationService.startInterview("bq1");
+
+      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
     });
 
     it("throws when BookQuestion is not found", async () => {
@@ -190,10 +284,11 @@ describe("conversationService", () => {
         },
       ]);
       mockGenerateResponse.mockResolvedValue({
-        content: "That's fascinating! Tell me more.",
+        content: '{"response":"That\'s fascinating! Tell me more.","insights":[]}',
       });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      const result = await conversationService.sendMessage("int1", "my story");
+      const result = await conversationService.sendMessage("int1", "b1", "my story");
 
       expect(result).toEqual({ content: "That's fascinating! Tell me more." });
 
@@ -204,8 +299,9 @@ describe("conversationService", () => {
         content: "my story",
       });
 
-      // Loads history
+      // Loads history and insights
       expect(mockMessageFindByInterviewId).toHaveBeenCalledWith("int1");
+      expect(mockInsightFindByInterviewId).toHaveBeenCalledWith("int1");
 
       // Maps roles to lowercase for LLM
       expect(mockGenerateResponse).toHaveBeenCalledWith(
@@ -217,7 +313,7 @@ describe("conversationService", () => {
         ],
       );
 
-      // Persists assistant response
+      // Persists assistant response (plain text, not raw JSON)
       expect(mockMessageCreate).toHaveBeenCalledWith({
         interviewId: "int1",
         role: "ASSISTANT",
@@ -243,13 +339,100 @@ describe("conversationService", () => {
           createdAt: new Date("2024-01-01T00:00:01Z"),
         },
       ]);
-      mockGenerateResponse.mockResolvedValue({ content: "hi" });
+      mockGenerateResponse.mockResolvedValue({ content: '{"response":"hi","insights":[]}' });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      await conversationService.sendMessage("int1", "hello");
+      await conversationService.sendMessage("int1", "b1", "hello");
 
       expect(mockGenerateResponse).toHaveBeenCalledWith(expect.any(String), [
         { role: "user", content: "hello" },
       ]);
+    });
+
+    it("injects prior insights as a user message before conversation history", async () => {
+      mockInsightFindByInterviewId.mockResolvedValue([
+        {
+          id: "ins1",
+          bookId: "b1",
+          interviewId: "int1",
+          type: "ENTITY",
+          content: "sister Maria — older, bossy",
+          explored: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]);
+      mockMessageFindByInterviewId.mockResolvedValue([
+        {
+          id: "m1",
+          interviewId: "int1",
+          role: "USER",
+          content: "hello",
+          createdAt: new Date(),
+        },
+      ]);
+      mockMessageCreate.mockResolvedValue({});
+      mockGenerateResponse.mockResolvedValue({ content: '{"response":"Tell me more","insights":[]}' });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+
+      await conversationService.sendMessage("int1", "b1", "hello");
+
+      expect(mockGenerateResponse).toHaveBeenCalledWith(
+        expect.any(String),
+        [
+          { role: "user", content: expect.stringContaining("sister Maria — older, bossy") },
+          { role: "user", content: "hello" },
+        ],
+      );
+    });
+
+    it("persists extracted insights via insightRepository.createMany", async () => {
+      mockMessageFindByInterviewId.mockResolvedValue([
+        {
+          id: "m1",
+          interviewId: "int1",
+          role: "USER",
+          content: "I had a sister named Maria",
+          createdAt: new Date(),
+        },
+      ]);
+      mockMessageCreate.mockResolvedValue({});
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Tell me more about Maria.","insights":[{"type":"ENTITY","content":"sister Maria — mentioned in passing"}]}',
+      });
+      mockInsightCreateMany.mockResolvedValue({ count: 1 });
+
+      await conversationService.sendMessage("int1", "b1", "I had a sister named Maria");
+
+      expect(mockInsightCreateMany).toHaveBeenCalledWith([
+        { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — mentioned in passing" },
+      ]);
+    });
+
+    it("handles parse failure gracefully — falls back to raw text, no insights persisted", async () => {
+      mockMessageFindByInterviewId.mockResolvedValue([
+        {
+          id: "m1",
+          interviewId: "int1",
+          role: "USER",
+          content: "hello",
+          createdAt: new Date(),
+        },
+      ]);
+      mockMessageCreate.mockResolvedValue({});
+      // Both initial response and retry return unparseable plain text
+      mockGenerateResponse.mockResolvedValue({ content: "This is just plain text, not JSON." });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+
+      const result = await conversationService.sendMessage("int1", "b1", "hello");
+
+      expect(result).toEqual({ content: "This is just plain text, not JSON." });
+      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
+      expect(mockMessageCreate).toHaveBeenCalledWith({
+        interviewId: "int1",
+        role: "ASSISTANT",
+        content: "This is just plain text, not JSON.",
+      });
     });
   });
 
@@ -293,6 +476,52 @@ describe("conversationService", () => {
         "int1",
         "COMPLETE",
       );
+    });
+  });
+
+  describe("getInsights", () => {
+    it("delegates to insightRepository.findByInterviewId", async () => {
+      const insights = [
+        {
+          id: "ins1",
+          bookId: "b1",
+          interviewId: "int1",
+          type: "ENTITY",
+          content: "sister Maria",
+          explored: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      mockInsightFindByInterviewId.mockResolvedValue(insights);
+
+      const result = await conversationService.getInsights("int1");
+
+      expect(result).toEqual(insights);
+      expect(mockInsightFindByInterviewId).toHaveBeenCalledWith("int1");
+    });
+  });
+
+  describe("getBookInsights", () => {
+    it("delegates to insightRepository.findByBookId", async () => {
+      const insights = [
+        {
+          id: "ins1",
+          bookId: "b1",
+          interviewId: "int1",
+          type: "EMOTION",
+          content: "pride about dad's hardware store",
+          explored: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      mockInsightFindByBookId.mockResolvedValue(insights);
+
+      const result = await conversationService.getBookInsights("b1");
+
+      expect(result).toEqual(insights);
+      expect(mockInsightFindByBookId).toHaveBeenCalledWith("b1");
     });
   });
 });
