@@ -33,12 +33,16 @@ vi.mock("@/repositories/interview.repository", () => ({
 const mockStartInterview = vi.hoisted(() => vi.fn());
 const mockSendMessage = vi.hoisted(() => vi.fn());
 const mockGetInterviewMessages = vi.hoisted(() => vi.fn());
+const mockGetInsights = vi.hoisted(() => vi.fn());
+const mockGetBookInsights = vi.hoisted(() => vi.fn());
 const mockCompleteInterview = vi.hoisted(() => vi.fn());
 vi.mock("@/services/conversation.service", () => ({
   conversationService: {
     startInterview: mockStartInterview,
     sendMessage: mockSendMessage,
     getInterviewMessages: mockGetInterviewMessages,
+    getInsights: mockGetInsights,
+    getBookInsights: mockGetBookInsights,
     completeInterview: mockCompleteInterview,
   },
 }));
@@ -183,6 +187,7 @@ describe("interview router", () => {
       expect(mockBookFindById).toHaveBeenCalledWith("book-1");
       expect(mockSendMessage).toHaveBeenCalledWith(
         "interview-1",
+        "book-1",
         "I grew up in a small town.",
       );
     });
@@ -244,6 +249,104 @@ describe("interview router", () => {
 
       await expect(
         caller.interview.getMessages({ interviewId: "interview-1" }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+  });
+
+  describe("getInsights", () => {
+    it("verifies ownership and delegates to conversationService", async () => {
+      mockInterviewFindById.mockResolvedValue(activeInterview);
+      mockBookFindById.mockResolvedValue(ownBook);
+      const insights = [
+        {
+          id: "ins1",
+          bookId: "book-1",
+          interviewId: "interview-1",
+          type: "ENTITY",
+          content: "sister Maria — older, bossy",
+          explored: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ];
+      mockGetInsights.mockResolvedValue(insights);
+
+      const result = await caller.interview.getInsights({
+        interviewId: "interview-1",
+      });
+
+      expect(result).toEqual(insights);
+      expect(mockInterviewFindById).toHaveBeenCalledWith("interview-1");
+      expect(mockGetInsights).toHaveBeenCalledWith("interview-1");
+    });
+
+    it("throws NOT_FOUND for missing interview", async () => {
+      mockInterviewFindById.mockResolvedValue(null);
+
+      await expect(
+        caller.interview.getInsights({ interviewId: "missing" }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("throws FORBIDDEN for another user's interview", async () => {
+      mockInterviewFindById.mockResolvedValue(activeInterview);
+      mockBookFindById.mockResolvedValue({ ...ownBook, userId: "other-user" });
+
+      await expect(
+        caller.interview.getInsights({ interviewId: "interview-1" }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+  });
+
+  describe("getBookInsights", () => {
+    it("verifies ownership and delegates to conversationService", async () => {
+      mockBookFindById.mockResolvedValue(ownBook);
+      const insights = [
+        {
+          id: "ins1",
+          bookId: "book-1",
+          interviewId: "interview-1",
+          type: "ENTITY",
+          content: "sister Maria — older, bossy",
+          explored: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "ins2",
+          bookId: "book-1",
+          interviewId: "interview-2",
+          type: "EMOTION",
+          content: "nostalgia when discussing childhood home",
+          explored: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ];
+      mockGetBookInsights.mockResolvedValue(insights);
+
+      const result = await caller.interview.getBookInsights({
+        bookId: "book-1",
+      });
+
+      expect(result).toEqual(insights);
+      expect(mockBookFindById).toHaveBeenCalledWith("book-1");
+      expect(mockGetBookInsights).toHaveBeenCalledWith("book-1");
+    });
+
+    it("throws NOT_FOUND for missing book", async () => {
+      mockBookFindById.mockResolvedValue(null);
+
+      await expect(
+        caller.interview.getBookInsights({ bookId: "missing" }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("throws FORBIDDEN for another user's book", async () => {
+      mockBookFindById.mockResolvedValue({ ...ownBook, userId: "other-user" });
+
+      await expect(
+        caller.interview.getBookInsights({ bookId: "book-1" }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });

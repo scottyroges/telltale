@@ -16,12 +16,12 @@
 
 ## Active Plans (Phase 1: Core Conversation)
 
-- **docs/plans/active/1.5-insight-extraction.md** — Inline insight extraction — interviewer's "mental notes" produced with each response (ADR 014)
 - **docs/plans/active/1.6-context-window-management.md** — Summarization, context assembly, insight injection for long conversations
 - **docs/plans/active/1.7-email-apple-auth.md** — Email/password and Apple OAuth sign-in
 
 ## Completed Plans
 
+- **docs/plans/completed/1.5-insight-extraction.md** — Inline insight extraction, JSON response parsing, retry logic, getInsights endpoints (ADR 014, ADR 016)
 - **docs/plans/completed/1.4-interview-ui.md** — Books, book interviews, interview session UI, dashboard entry point
 - **docs/plans/completed/1.3-trpc-routers.md** — tRPC routers for questions, books, interviews; ownership verification helpers
 - **docs/plans/completed/1.2-anthropic-sdk-conversation-service.md** — LLM provider interface, Anthropic SDK client, conversation service, system prompt
@@ -66,3 +66,5 @@
 - **014** — Insight extraction strategy: Inline structured output vs. separate background call
 - **015** — Query layer: Prisma Migrate + Kysely queries (vs. Prisma client, Drizzle, raw SQL)
 - **016** — LLM structured output reliability: defensive parsing + single retry (vs. tool use / function calling)
+- **017** — Observability stack: Axiom + Sentry + Better Stack + PostHog (vs. Datadog, Grafana Cloud)
+- **018** — Insight context placement: near end vs. beginning (vs. both positions, system prompt injection, split old/recent)
