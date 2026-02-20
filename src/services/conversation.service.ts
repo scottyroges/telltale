@@ -84,7 +84,20 @@ export const conversationService = {
 
     const messages: LLMMessage[] = [];
 
-    // Inject insights as a user message before the conversation history
+    // Convert all history to LLM format
+    const historyMessages = history
+      .filter((msg: Message) => msg.role === "USER" || msg.role === "ASSISTANT")
+      .map((msg: Message) => ({
+        role: msg.role.toLowerCase() as "user" | "assistant",
+        content: msg.content,
+      }));
+
+    // Add all messages except the last one (most recent user message)
+    if (historyMessages.length > 0) {
+      messages.push(...historyMessages.slice(0, -1));
+    }
+
+    // Inject insights right before the last message
     if (insights.length > 0) {
       messages.push({
         role: "user",
@@ -92,17 +105,11 @@ export const conversationService = {
       });
     }
 
-    // Add conversation history after insights
-    messages.push(
-      ...history
-        .filter(
-          (msg: Message) => msg.role === "USER" || msg.role === "ASSISTANT",
-        )
-        .map((msg: Message) => ({
-          role: msg.role.toLowerCase() as "user" | "assistant",
-          content: msg.content,
-        }))
-    );
+    // Add the final user message
+    if (historyMessages.length > 0) {
+      const lastMessage = historyMessages[historyMessages.length - 1]!;
+      messages.push(lastMessage);
+    }
 
     const response = await llmProvider.generateResponse(INTERVIEWER_SYSTEM_PROMPT, messages);
 

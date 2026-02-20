@@ -66,3 +66,5 @@
 - **014** — Insight extraction strategy: Inline structured output vs. separate background call
 - **015** — Query layer: Prisma Migrate + Kysely queries (vs. Prisma client, Drizzle, raw SQL)
 - **016** — LLM structured output reliability: defensive parsing + single retry (vs. tool use / function calling)
+- **017** — Observability stack: Axiom + Sentry + Better Stack + PostHog (vs. Datadog, Grafana Cloud)
+- **018** — Insight context placement: near end vs. beginning (vs. both positions, system prompt injection, split old/recent)
