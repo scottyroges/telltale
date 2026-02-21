@@ -25,7 +25,15 @@
 - 1.3: tRPC routers (question, book, interview routers; ownership verification helpers)
 - 1.4: Interview UI (books list, book interviews, interview session, dashboard "Continue Your Story" link — 4 PRs)
 - 1.5: Insight extraction (JSON response parsing, parseWithRetry, insight injection as user message, getInsights/getBookInsights — 2 PRs)
+- 1.6 PR 1: Prompt organization (src/prompts/ directory, interviewer + summarization prompts, architecture doc for context window management)
+
+## Code Organization Patterns
+- **Prompts directory:** As of Plan 1.6 PR 1, all LLM prompts live in `src/prompts/` (not `src/services/`). This keeps prompt engineering visible and centralized.
+  - `src/prompts/interviewer.ts` — interviewer system prompt (moved from `src/services/prompt.ts`)
+  - `src/prompts/summarization.ts` — summarization prompt
+  - Completed plans that reference `src/services/prompt.ts` should NOT be updated retroactively — they are historical records
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk
 - `docs/stack.md` should be checked when runtime/tooling changes (e.g., Node version bump)
+- Completed plan documents are historical records — don't update old file paths retroactively when code reorganizes

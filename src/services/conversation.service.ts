@@ -5,7 +5,7 @@ import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
 import { insightRepository } from "@/repositories/insight.repository";
 import { parseInterviewerResponse, parseWithRetry } from "@/services/response-parser";
-import { INTERVIEWER_SYSTEM_PROMPT } from "./prompt";
+import { INTERVIEWER_SYSTEM_PROMPT } from "@/prompts/interviewer";
 import type { LLMMessage } from "@/domain/llm-provider";
 import type { Message } from "@/domain/message";
 import type { Insight } from "@/domain/insight";
