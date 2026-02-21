@@ -47,11 +47,15 @@ src/
 │   ├── trpc.ts                # tRPC initialization + context
 │   └── auth.ts                # Better Auth configuration
 │
+├── prompts/                   # LLM prompt templates (centralized for review/iteration)
+│   ├── interviewer.ts         # System prompt for AI interviewer
+│   └── summarization.ts       # Prompt for conversation summarization
+│
 ├── services/                  # Business logic (NO framework imports)
 │   ├── conversation.service   # AI interview engine
 │   ├── story.service          # Story CRUD + lifecycle
 │   ├── synthesis.service      # Conversation → polished narrative
-│   ├── response-parser          # Parse structured LLM output (response text + insights)
+│   ├── response-parser        # Parse structured LLM output (response text + insights)
 │   ├── book.service           # Book assembly + export
 │   └── audio.service          # Transcription + TTS (Phase 2)
 │
