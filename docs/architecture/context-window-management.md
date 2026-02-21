@@ -1,6 +1,6 @@
 # Context Window Management
 
-**Status:** Active (Plan 1.6)
+**Status:** Implementation complete, not yet wired (Plan 1.6 PR 2 done, PR 3 pending)
 **Related:** ADR 018 (Insight Context Placement)
 
 ## Problem

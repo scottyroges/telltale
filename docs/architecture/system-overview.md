@@ -53,6 +53,7 @@ src/
 │
 ├── services/                  # Business logic (NO framework imports)
 │   ├── conversation.service   # AI interview engine
+│   ├── context.service        # Context window assembly + summarization
 │   ├── story.service          # Story CRUD + lifecycle
 │   ├── synthesis.service      # Conversation → polished narrative
 │   ├── response-parser        # Parse structured LLM output (response text + insights)
