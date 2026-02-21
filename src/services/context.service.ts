@@ -87,8 +87,173 @@ async function summarizeMessages(
   return response.content.trim();
 }
 
+interface TokenBreakdown {
+  systemPrompt: number;
+  summary: number;
+  messages: number;
+  insights: number;
+  total: number;
+}
+
+interface MessageBuckets {
+  recent: Message[];
+  old: Message[];
+  alreadySummarizedCount: number;
+}
+
+function calculateTokenBreakdown(
+  conversationMessages: Message[],
+  existingSummary: Awaited<
+    ReturnType<typeof interviewSummaryRepository.findLatestByInterviewId>
+  >,
+  insights: Insight[],
+): TokenBreakdown {
+  const systemPromptTokens = estimateTokens(INTERVIEWER_SYSTEM_PROMPT);
+  const summaryTokens = existingSummary
+    ? estimateTokens(existingSummary.content)
+    : 0;
+  const messagesTokens = estimateTokens(
+    conversationMessages.map((m) => m.content).join("\n"),
+  );
+  const insightsTokens =
+    insights.length > 0
+      ? estimateTokens(buildInsightContextMessage(insights))
+      : 0;
+  const totalTokens =
+    systemPromptTokens + summaryTokens + messagesTokens + insightsTokens;
+
+  console.log("[Context] Token breakdown:", {
+    systemPrompt: systemPromptTokens,
+    summary: summaryTokens,
+    messages: messagesTokens,
+    insights: insightsTokens,
+    total: totalTokens,
+  });
+
+  return {
+    systemPrompt: systemPromptTokens,
+    summary: summaryTokens,
+    messages: messagesTokens,
+    insights: insightsTokens,
+    total: totalTokens,
+  };
+}
+
+function calculateMessageBuckets(
+  conversationMessages: Message[],
+  existingSummary: Awaited<
+    ReturnType<typeof interviewSummaryRepository.findLatestByInterviewId>
+  >,
+): MessageBuckets {
+  const recent = conversationMessages.slice(-RECENT_WINDOW_SIZE);
+  const alreadySummarizedCount = existingSummary?.messageCount ?? 0;
+  const old = conversationMessages.slice(
+    alreadySummarizedCount,
+    -RECENT_WINDOW_SIZE,
+  );
+
+  return { recent, old, alreadySummarizedCount };
+}
+
+function assembleUnderThreshold(
+  conversationMessages: Message[],
+  insights: Insight[],
+): ContextWindow {
+  return {
+    systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+    messages: assembleMessagesWithInsights(conversationMessages, insights),
+  };
+}
+
+async function assembleSummarized(
+  interviewId: string,
+  conversationMessages: Message[],
+  buckets: MessageBuckets,
+  insights: Insight[],
+  existingSummary: Awaited<
+    ReturnType<typeof interviewSummaryRepository.findLatestByInterviewId>
+  >,
+): Promise<ContextWindow> {
+  try {
+    const newSummaryContent = await summarizeMessages(
+      buckets.old,
+      existingSummary?.content,
+    );
+    await interviewSummaryRepository.create({
+      interviewId,
+      parentSummaryId: existingSummary?.id,
+      content: newSummaryContent,
+      messageCount: buckets.alreadySummarizedCount + buckets.old.length,
+    });
+
+    // Return summary message + recent messages
+    const messages: LLMMessage[] = [
+      { role: "assistant", content: newSummaryContent },
+    ];
+    messages.push(
+      ...assembleMessagesWithInsights(buckets.recent, insights),
+    );
+
+    return {
+      systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+      messages,
+    };
+  } catch (error) {
+    console.error(
+      "[Context] Summarization failed, falling back to truncation:",
+      error,
+    );
+
+    // Fallback: keep last 5 from old + 5 recent = 10 messages
+    const fallbackMessages = conversationMessages.slice(
+      -RECENT_WINDOW_SIZE * 2,
+    );
+    const messages: LLMMessage[] = [];
+
+    // Include existing summary if available
+    if (existingSummary) {
+      messages.push({
+        role: "assistant",
+        content: existingSummary.content,
+      });
+    }
+
+    messages.push(...assembleMessagesWithInsights(fallbackMessages, insights));
+
+    return {
+      systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+      messages,
+    };
+  }
+}
+
+function assembleIncremental(
+  buckets: MessageBuckets,
+  insights: Insight[],
+  existingSummary: Awaited<
+    ReturnType<typeof interviewSummaryRepository.findLatestByInterviewId>
+  >,
+): ContextWindow {
+  const messages: LLMMessage[] = [];
+
+  // Include existing summary if available
+  if (existingSummary) {
+    messages.push({ role: "assistant", content: existingSummary.content });
+  }
+
+  // Combine old + recent messages
+  const combinedMessages = [...buckets.old, ...buckets.recent];
+  messages.push(...assembleMessagesWithInsights(combinedMessages, insights));
+
+  return {
+    systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+    messages,
+  };
+}
+
 export const contextService = {
   async buildContextWindow(interviewId: string): Promise<ContextWindow> {
+    // Load all required data
     const [interview, allMessages, insights, existingSummary] =
       await Promise.all([
         interviewRepository.findById(interviewId),
@@ -114,115 +279,36 @@ export const contextService = {
       };
     }
 
-    // Estimate tokens for all components
-    const systemPromptTokens = estimateTokens(INTERVIEWER_SYSTEM_PROMPT);
-    const summaryTokens = existingSummary
-      ? estimateTokens(existingSummary.content)
-      : 0;
-    const messagesTokens = estimateTokens(
-      conversationMessages.map((m) => m.content).join("\n"),
-    );
-    const insightsTokens =
-      insights.length > 0
-        ? estimateTokens(buildInsightContextMessage(insights))
-        : 0;
-    const totalTokens =
-      systemPromptTokens + summaryTokens + messagesTokens + insightsTokens;
-
-    console.log("[Context] Token breakdown:", {
-      systemPrompt: systemPromptTokens,
-      summary: summaryTokens,
-      messages: messagesTokens,
-      insights: insightsTokens,
-      total: totalTokens,
-    });
-
-    // If under threshold, return all messages
-    if (totalTokens < SUMMARIZATION_THRESHOLD) {
-      return {
-        systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
-        messages: assembleMessagesWithInsights(conversationMessages, insights),
-      };
-    }
-
-    // Over threshold - split into buckets
-    const recentMessages = conversationMessages.slice(-RECENT_WINDOW_SIZE);
-    const alreadySummarizedCount = existingSummary?.messageCount ?? 0;
-    const oldMessages = conversationMessages.slice(
-      alreadySummarizedCount,
-      -RECENT_WINDOW_SIZE,
+    // Calculate token usage
+    const tokenBreakdown = calculateTokenBreakdown(
+      conversationMessages,
+      existingSummary,
+      insights,
     );
 
-    // If old bucket >= 5 messages, trigger summarization
-    if (oldMessages.length >= SUMMARIZATION_BATCH_SIZE) {
-      try {
-        const newSummaryContent = await summarizeMessages(
-          oldMessages,
-          existingSummary?.content,
-        );
-        await interviewSummaryRepository.create({
-          interviewId,
-          parentSummaryId: existingSummary?.id,
-          content: newSummaryContent,
-          messageCount: alreadySummarizedCount + oldMessages.length,
-        });
-
-        // Return summary message + recent messages
-        const messages: LLMMessage[] = [
-          { role: "assistant", content: newSummaryContent },
-        ];
-        messages.push(...assembleMessagesWithInsights(recentMessages, insights));
-
-        return {
-          systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
-          messages,
-        };
-      } catch (error) {
-        console.error(
-          "[Context] Summarization failed, falling back to truncation:",
-          error,
-        );
-
-        // Fallback: keep last 5 from old + 5 recent = 10 messages
-        const fallbackMessages = conversationMessages.slice(
-          -RECENT_WINDOW_SIZE * 2,
-        );
-        const messages: LLMMessage[] = [];
-
-        // Include existing summary if available
-        if (existingSummary) {
-          messages.push({
-            role: "assistant",
-            content: existingSummary.content,
-          });
-        }
-
-        messages.push(
-          ...assembleMessagesWithInsights(fallbackMessages, insights),
-        );
-
-        return {
-          systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
-          messages,
-        };
-      }
+    // Under threshold: return all messages
+    if (tokenBreakdown.total < SUMMARIZATION_THRESHOLD) {
+      return assembleUnderThreshold(conversationMessages, insights);
     }
 
-    // Old bucket < 5 messages - include all old + recent
-    const messages: LLMMessage[] = [];
+    // Over threshold: split into buckets
+    const buckets = calculateMessageBuckets(
+      conversationMessages,
+      existingSummary,
+    );
 
-    // Include existing summary if available
-    if (existingSummary) {
-      messages.push({ role: "assistant", content: existingSummary.content });
+    // Enough old messages: trigger summarization
+    if (buckets.old.length >= SUMMARIZATION_BATCH_SIZE) {
+      return await assembleSummarized(
+        interviewId,
+        conversationMessages,
+        buckets,
+        insights,
+        existingSummary,
+      );
     }
 
-    // Combine old + recent messages
-    const combinedMessages = [...oldMessages, ...recentMessages];
-    messages.push(...assembleMessagesWithInsights(combinedMessages, insights));
-
-    return {
-      systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
-      messages,
-    };
+    // Not enough old messages: incremental assembly
+    return assembleIncremental(buckets, insights, existingSummary);
   },
 };
