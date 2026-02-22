@@ -548,4 +548,45 @@ describe("contextService", () => {
       { role: "user", content: "Second message" },
     ]);
   });
+
+  it("enforces MAX_CONTEXT_TOKENS by truncating to most recent messages", async () => {
+    // Create messages totaling > 16k tokens
+    // Each message: 20000 chars = 5000 tokens (ceil(20000/4))
+    // 5 messages = 25000 tokens total (exceeds 16k limit)
+    const largeContent = "x".repeat(20000);
+    const messages = Array.from({ length: 5 }, (_, i) => ({
+      id: `m${i + 1}`,
+      interviewId: "int1",
+      role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
+      content: largeContent,
+      createdAt: new Date(),
+    }));
+
+    mockInterviewFindById.mockResolvedValue(mockInterview);
+    mockMessageFindByInterviewId.mockResolvedValue(messages);
+    mockInsightFindByInterviewId.mockResolvedValue([]);
+    mockSummaryFindLatest.mockResolvedValue(null);
+
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await contextService.buildContextWindow("int1");
+
+    // Should truncate to fit under 16k tokens
+    // System prompt uses some tokens, so we expect fewer than 5 messages
+    expect(result.messages.length).toBeLessThan(5);
+    expect(result.messages.length).toBeGreaterThan(0);
+
+    // Should keep the most recent messages (last messages in the array)
+    // The last message should be the most recent user message (m5)
+    const lastMessage = result.messages[result.messages.length - 1];
+    expect(lastMessage.content).toBe(largeContent);
+    expect(lastMessage.role).toBe("user");
+
+    // Should log warning about truncation
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("[Context] Exceeded MAX_CONTEXT_TOKENS"),
+    );
+
+    consoleSpy.mockRestore();
+  });
 });
