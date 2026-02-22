@@ -16,11 +16,11 @@
 
 ## Active Plans (Phase 1: Core Conversation)
 
-- **docs/plans/active/1.6-context-window-management.md** — Summarization, context assembly, insight injection for long conversations
 - **docs/plans/active/1.7-email-apple-auth.md** — Email/password and Apple OAuth sign-in
 
 ## Completed Plans
 
+- **docs/plans/completed/1.6-context-window-management.md** — Summarization, context assembly, insight injection, hard token limit enforcement (3 PRs)
 - **docs/plans/completed/1.5-insight-extraction.md** — Inline insight extraction, JSON response parsing, retry logic, getInsights endpoints (ADR 014, ADR 016)
 - **docs/plans/completed/1.4-interview-ui.md** — Books, book interviews, interview session UI, dashboard entry point
 - **docs/plans/completed/1.3-trpc-routers.md** — tRPC routers for questions, books, interviews; ownership verification helpers
