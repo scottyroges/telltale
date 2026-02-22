@@ -26,8 +26,7 @@
 - 1.4: Interview UI (books list, book interviews, interview session, dashboard "Continue Your Story" link — 4 PRs)
 - 1.5: Insight extraction (JSON response parsing, parseWithRetry, insight injection as user message, getInsights/getBookInsights — 2 PRs)
 - 1.6: Context window management (prompt organization, context service, summarization, insight injection — 3 PRs)
-- 1.7 PR 1: Email provider (Resend integration, sendEmail utility)
-- 1.7 PR 2: Email/password auth (signup, forgot-password, reset-password pages, email verification, auth-patterns.md, testing-patterns.md env stubs section)
+- 1.7: Email/password authentication (Resend integration, signup/forgot-password/reset-password flows, multi-method login page — 3 PRs, originally planned Apple Sign-In removed from scope)
 
 ## Code Organization Patterns
 - **Prompts directory:** As of Plan 1.6 PR 1, all LLM prompts live in `src/prompts/` (not `src/services/`). This keeps prompt engineering visible and centralized.
@@ -35,7 +34,7 @@
   - `src/prompts/summarization.ts` — summarization prompt
   - Completed plans that reference `src/services/prompt.ts` should NOT be updated retroactively — they are historical records
 - **Email provider (1.7 PR 1):** `src/lib/email.ts` abstracts email sending (Resend) — server-only guard, env var validation
-- **Auth pages (1.7 PR 2):** Signup, forgot-password, reset-password at `src/app/(auth)/` — colocated tests, CSS modules
+- **Auth pages (1.7):** Signup, forgot-password, reset-password, email-sign-in-form at `src/app/(auth)/` — colocated tests, CSS modules, multi-method login layout
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk

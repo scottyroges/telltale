@@ -16,10 +16,11 @@
 
 ## Active Plans (Phase 1: Core Conversation)
 
-- **docs/plans/active/1.7-email-apple-auth.md** — Email/password and Apple OAuth sign-in
+(none)
 
 ## Completed Plans
 
+- **docs/plans/completed/1.7-email-apple-auth.md** — Email/password authentication, sign-up/sign-in flows, password reset (3 PRs)
 - **docs/plans/completed/1.6-context-window-management.md** — Summarization, context assembly, insight injection, hard token limit enforcement (3 PRs)
 - **docs/plans/completed/1.5-insight-extraction.md** — Inline insight extraction, JSON response parsing, retry logic, getInsights endpoints (ADR 014, ADR 016)
 - **docs/plans/completed/1.4-interview-ui.md** — Books, book interviews, interview session UI, dashboard entry point
