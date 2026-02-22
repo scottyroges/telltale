@@ -1,6 +1,6 @@
 # Context Window Management
 
-**Status:** Implementation complete, not yet wired (Plan 1.6 PR 2 done, PR 3 pending)
+**Status:** Complete (Plan 1.6 done)
 **Related:** ADR 018 (Insight Context Placement)
 
 ## Problem
@@ -63,11 +63,17 @@ Reset old bucket to empty
 ### Constants
 
 ```typescript
-MAX_CONTEXT_TOKENS = 16000             // Hard limit (model capacity)
+MAX_CONTEXT_TOKENS = 16000             // Hard limit (enforced by truncation)
 SUMMARIZATION_THRESHOLD = 8000         // Trigger point for starting summarization
 RECENT_WINDOW_SIZE = 5                 // Keep last 5 messages verbatim
 SUMMARIZATION_BATCH_SIZE = 5           // Summarize when 5 messages accumulate
 ```
+
+**Hard Limit Enforcement:**
+After context assembly (whether under threshold, incremental, or summarized), `enforceMaxTokens()` performs a final check. If the total exceeds `MAX_CONTEXT_TOKENS`, it truncates to keep only the most recent messages that fit, working backwards from the end. This is a safety net that should rarely trigger given the conservative `SUMMARIZATION_THRESHOLD` (8K), but prevents context overflow if:
+- Token estimation is significantly off
+- Individual messages are unexpectedly large
+- Summary text grows larger than expected
 
 ### Why These Numbers?
 
@@ -569,7 +575,9 @@ buildContextWindow(interviewId)
   ├─ Log token breakdown via console.log
   │
   ├─ Total < SUMMARIZATION_THRESHOLD (8000)?
-  │   YES → Return all messages with insights (no split)
+  │   YES → Assemble all messages with insights
+  │         Apply enforceMaxTokens()
+  │         Return
   │   NO  → Continue ↓
   │
   ├─ Split into three buckets:
@@ -578,14 +586,20 @@ buildContextWindow(interviewId)
   │   - old = messages between already_summarized and recent
   │
   ├─ Check: old.length >= SUMMARIZATION_BATCH_SIZE (5)?
-  │   NO  → Use existing summary (if any), return all old + recent messages
+  │   NO  → Use existing summary (if any), assemble all old + recent messages
+  │         Apply enforceMaxTokens()
+  │         Return
   │   YES → Continue ↓
   │
   ├─ Call LLM to summarize old messages
   │   SUCCESS → Create InterviewSummary (messageCount = already + old.length)
-  │             Return summary + recent messages
+  │             Assemble summary + recent messages
+  │             Apply enforceMaxTokens()
+  │             Return
   │   FAIL    → Truncate old to last 5 messages
-  │             Return truncated old + recent (no summary record)
+  │             Assemble truncated old + recent (no summary record)
+  │             Apply enforceMaxTokens()
+  │             Return
   │
   └─ Return { systemPrompt, messages }
 ```
@@ -719,6 +733,7 @@ Must cover all scenarios:
 - ✅ Insight injection (placement before last message, role 'assistant')
 - ✅ Token estimation accuracy
 - ✅ Token logging output
+- ✅ Hard token limit enforcement (truncates to most recent messages when over MAX_CONTEXT_TOKENS)
 
 ### Integration Tests (conversation.service.test.ts)
 

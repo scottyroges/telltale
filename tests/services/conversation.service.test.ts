@@ -8,6 +8,13 @@ vi.mock("@/lib/llm", () => ({
   llmProvider: { generateResponse: mockGenerateResponse },
 }));
 
+const mockBuildContextWindow = vi.hoisted(() => vi.fn());
+vi.mock("@/services/context.service", () => ({
+  contextService: {
+    buildContextWindow: mockBuildContextWindow,
+  },
+}));
+
 const mockBookQuestionFindById = vi.hoisted(() => vi.fn());
 const mockBookQuestionUpdateStatus = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/book-question.repository", () => ({
@@ -97,6 +104,17 @@ describe("conversationService", () => {
       mockBookQuestionFindById.mockResolvedValue(bookQuestion);
       mockQuestionFindById.mockResolvedValue(question);
       mockInterviewCreate.mockResolvedValue(interview);
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [
+          {
+            role: "user",
+            content: expect.stringContaining(
+              "Tell me about your earliest memories",
+            ),
+          },
+        ],
+      });
       mockGenerateResponse.mockResolvedValue({
         content: '{"response":"Welcome! Tell me about your earliest memories.","insights":[]}',
       });
@@ -118,6 +136,18 @@ describe("conversationService", () => {
         questionId: "q1",
       });
 
+      // Topic message persisted first
+      expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
+        interviewId: "int1",
+        role: "USER",
+        content: expect.stringContaining(
+          "Tell me about your earliest memories",
+        ),
+      });
+
+      // Context service called after topic message persisted
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
+
       expect(mockGenerateResponse).toHaveBeenCalledWith(
         expect.any(String),
         [
@@ -132,14 +162,7 @@ describe("conversationService", () => {
 
       // Persists both the synthetic user message and the assistant response
       expect(mockMessageCreate).toHaveBeenCalledTimes(2);
-      expect(mockMessageCreate).toHaveBeenCalledWith({
-        interviewId: "int1",
-        role: "USER",
-        content: expect.stringContaining(
-          "Tell me about your earliest memories",
-        ),
-      });
-      expect(mockMessageCreate).toHaveBeenCalledWith({
+      expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",
         role: "ASSISTANT",
         content: "Welcome! Tell me about your earliest memories.",
@@ -178,6 +201,10 @@ describe("conversationService", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "topic message" }],
+      });
       mockGenerateResponse.mockResolvedValue({
         content: '{"response":"Welcome!","insights":[{"type":"ENTITY","content":"sister Maria — older, bossy"},{"type":"EMOTION","content":"nostalgia for childhood home"}]}',
       });
@@ -187,6 +214,7 @@ describe("conversationService", () => {
 
       await conversationService.startInterview("bq1");
 
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([
         { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — older, bossy" },
         { bookId: "b1", interviewId: "int1", type: "EMOTION", content: "nostalgia for childhood home" },
@@ -219,6 +247,10 @@ describe("conversationService", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "topic message" }],
+      });
       mockGenerateResponse.mockResolvedValue({
         content: '{"response":"Welcome!","insights":[]}',
       });
@@ -228,6 +260,7 @@ describe("conversationService", () => {
 
       await conversationService.startInterview("bq1");
 
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
     });
 
@@ -260,29 +293,14 @@ describe("conversationService", () => {
   describe("sendMessage", () => {
     it("persists user message, calls LLM with history, and returns response", async () => {
       mockMessageCreate.mockResolvedValue({});
-      mockMessageFindByInterviewId.mockResolvedValue([
-        {
-          id: "m1",
-          interviewId: "int1",
-          role: "USER",
-          content: "topic message",
-          createdAt: new Date("2024-01-01T00:00:00Z"),
-        },
-        {
-          id: "m2",
-          interviewId: "int1",
-          role: "ASSISTANT",
-          content: "opening question",
-          createdAt: new Date("2024-01-01T00:00:01Z"),
-        },
-        {
-          id: "m3",
-          interviewId: "int1",
-          role: "USER",
-          content: "my story",
-          createdAt: new Date("2024-01-01T00:00:02Z"),
-        },
-      ]);
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [
+          { role: "user", content: "topic message" },
+          { role: "assistant", content: "opening question" },
+          { role: "user", content: "my story" },
+        ],
+      });
       mockGenerateResponse.mockResolvedValue({
         content: '{"response":"That\'s fascinating! Tell me more.","insights":[]}',
       });
@@ -293,15 +311,14 @@ describe("conversationService", () => {
       expect(result).toEqual({ content: "That's fascinating! Tell me more." });
 
       // Persists user message first
-      expect(mockMessageCreate).toHaveBeenCalledWith({
+      expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
         interviewId: "int1",
         role: "USER",
         content: "my story",
       });
 
-      // Loads history and insights
-      expect(mockMessageFindByInterviewId).toHaveBeenCalledWith("int1");
-      expect(mockInsightFindByInterviewId).toHaveBeenCalledWith("int1");
+      // Context service builds context window
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
 
       // Maps roles to lowercase for LLM
       expect(mockGenerateResponse).toHaveBeenCalledWith(
@@ -314,7 +331,7 @@ describe("conversationService", () => {
       );
 
       // Persists assistant response (plain text, not raw JSON)
-      expect(mockMessageCreate).toHaveBeenCalledWith({
+      expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",
         role: "ASSISTANT",
         content: "That's fascinating! Tell me more.",
@@ -323,80 +340,27 @@ describe("conversationService", () => {
 
     it("filters out SYSTEM messages from LLM history", async () => {
       mockMessageCreate.mockResolvedValue({});
-      mockMessageFindByInterviewId.mockResolvedValue([
-        {
-          id: "m1",
-          interviewId: "int1",
-          role: "SYSTEM",
-          content: "system note",
-          createdAt: new Date("2024-01-01T00:00:00Z"),
-        },
-        {
-          id: "m2",
-          interviewId: "int1",
-          role: "USER",
-          content: "hello",
-          createdAt: new Date("2024-01-01T00:00:01Z"),
-        },
-      ]);
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "hello" }],
+      });
       mockGenerateResponse.mockResolvedValue({ content: '{"response":"hi","insights":[]}' });
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       await conversationService.sendMessage("int1", "b1", "hello");
 
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
       expect(mockGenerateResponse).toHaveBeenCalledWith(expect.any(String), [
         { role: "user", content: "hello" },
       ]);
     });
 
-    it("injects prior insights as a user message before conversation history", async () => {
-      mockInsightFindByInterviewId.mockResolvedValue([
-        {
-          id: "ins1",
-          bookId: "b1",
-          interviewId: "int1",
-          type: "ENTITY",
-          content: "sister Maria — older, bossy",
-          explored: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ]);
-      mockMessageFindByInterviewId.mockResolvedValue([
-        {
-          id: "m1",
-          interviewId: "int1",
-          role: "USER",
-          content: "hello",
-          createdAt: new Date(),
-        },
-      ]);
-      mockMessageCreate.mockResolvedValue({});
-      mockGenerateResponse.mockResolvedValue({ content: '{"response":"Tell me more","insights":[]}' });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
-
-      await conversationService.sendMessage("int1", "b1", "hello");
-
-      expect(mockGenerateResponse).toHaveBeenCalledWith(
-        expect.any(String),
-        [
-          { role: "user", content: expect.stringContaining("sister Maria — older, bossy") },
-          { role: "user", content: "hello" },
-        ],
-      );
-    });
-
     it("persists extracted insights via insightRepository.createMany", async () => {
-      mockMessageFindByInterviewId.mockResolvedValue([
-        {
-          id: "m1",
-          interviewId: "int1",
-          role: "USER",
-          content: "I had a sister named Maria",
-          createdAt: new Date(),
-        },
-      ]);
       mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "I had a sister named Maria" }],
+      });
       mockGenerateResponse.mockResolvedValue({
         content: '{"response":"Tell me more about Maria.","insights":[{"type":"ENTITY","content":"sister Maria — mentioned in passing"}]}',
       });
@@ -404,22 +368,18 @@ describe("conversationService", () => {
 
       await conversationService.sendMessage("int1", "b1", "I had a sister named Maria");
 
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([
         { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — mentioned in passing" },
       ]);
     });
 
     it("handles parse failure gracefully — falls back to raw text, no insights persisted", async () => {
-      mockMessageFindByInterviewId.mockResolvedValue([
-        {
-          id: "m1",
-          interviewId: "int1",
-          role: "USER",
-          content: "hello",
-          createdAt: new Date(),
-        },
-      ]);
       mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "hello" }],
+      });
       // Both initial response and retry return unparseable plain text
       mockGenerateResponse.mockResolvedValue({ content: "This is just plain text, not JSON." });
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
@@ -427,8 +387,9 @@ describe("conversationService", () => {
       const result = await conversationService.sendMessage("int1", "b1", "hello");
 
       expect(result).toEqual({ content: "This is just plain text, not JSON." });
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
-      expect(mockMessageCreate).toHaveBeenCalledWith({
+      expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",
         role: "ASSISTANT",
         content: "This is just plain text, not JSON.",
