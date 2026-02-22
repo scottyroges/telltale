@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
-import ResetPasswordPage from "./page";
+import { ResetPasswordForm } from "./reset-password-form";
 
 // Mock router
 const mockPush = vi.fn();
@@ -21,13 +21,13 @@ vi.mock("@/lib/auth-client", () => ({
   },
 }));
 
-describe("ResetPasswordPage", () => {
+describe("ResetPasswordForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("renders password inputs", () => {
-    render(<ResetPasswordPage />);
+    render(<ResetPasswordForm />);
 
     expect(screen.getByLabelText(/new password/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe("ResetPasswordPage", () => {
     const user = userEvent.setup();
     mockResetPassword.mockResolvedValueOnce({});
 
-    render(<ResetPasswordPage />);
+    render(<ResetPasswordForm />);
 
     await user.type(screen.getByLabelText(/new password/i), "newpassword123");
     await user.type(screen.getByLabelText(/confirm password/i), "newpassword123");
@@ -53,7 +53,7 @@ describe("ResetPasswordPage", () => {
   it("validates passwords match before submit", async () => {
     const user = userEvent.setup();
 
-    render(<ResetPasswordPage />);
+    render(<ResetPasswordForm />);
 
     await user.type(screen.getByLabelText(/new password/i), "password123");
     await user.type(screen.getByLabelText(/confirm password/i), "different");
@@ -66,7 +66,7 @@ describe("ResetPasswordPage", () => {
   it("validates password length before submit", async () => {
     const user = userEvent.setup();
 
-    render(<ResetPasswordPage />);
+    render(<ResetPasswordForm />);
 
     await user.type(screen.getByLabelText(/new password/i), "short");
     await user.type(screen.getByLabelText(/confirm password/i), "short");
@@ -80,7 +80,7 @@ describe("ResetPasswordPage", () => {
     const user = userEvent.setup();
     mockResetPassword.mockRejectedValueOnce({ message: "Token has expired" });
 
-    render(<ResetPasswordPage />);
+    render(<ResetPasswordForm />);
 
     await user.type(screen.getByLabelText(/new password/i), "password123");
     await user.type(screen.getByLabelText(/confirm password/i), "password123");
@@ -93,7 +93,7 @@ describe("ResetPasswordPage", () => {
     const user = userEvent.setup();
     mockResetPassword.mockResolvedValueOnce({});
 
-    render(<ResetPasswordPage />);
+    render(<ResetPasswordForm />);
 
     await user.type(screen.getByLabelText(/new password/i), "newpassword123");
     await user.type(screen.getByLabelText(/confirm password/i), "newpassword123");
