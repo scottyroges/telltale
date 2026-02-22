@@ -14,9 +14,9 @@
 
 - **docs/roadmap.md** — Full project roadmap, Phases 0-7, with acceptance criteria per phase
 
-## Active Plans (Phase 1: Core Conversation)
+## Active Plans
 
-(none)
+- **phase-1-enhancements.md** — Post-testing improvements to Phase 1 features (token-based summarization, TBD)
 
 ## Completed Plans
 

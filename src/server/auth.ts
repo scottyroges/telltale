@@ -20,6 +20,22 @@ function getBaseUrl(): string {
 
 const baseUrl = getBaseUrl();
 
+// Generate trusted origins: support both www and non-www versions
+function getTrustedOrigins(url: string): string[] {
+  const origins = [url];
+
+  // Add www variant if base URL doesn't have it
+  if (!url.includes("www.")) {
+    origins.push(url.replace("://", "://www."));
+  }
+  // Add non-www variant if base URL has www
+  if (url.includes("://www.")) {
+    origins.push(url.replace("://www.", "://"));
+  }
+
+  return origins;
+}
+
 const socialProviders = {
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
@@ -29,7 +45,7 @@ const socialProviders = {
 
 export const auth = betterAuth({
   baseURL: baseUrl,
-  trustedOrigins: [baseUrl],
+  trustedOrigins: getTrustedOrigins(baseUrl),
   database: { db, type: "postgres" as const },
   socialProviders,
   emailAndPassword: {
