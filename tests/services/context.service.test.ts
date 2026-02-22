@@ -579,8 +579,9 @@ describe("contextService", () => {
     // Should keep the most recent messages (last messages in the array)
     // The last message should be the most recent user message (m5)
     const lastMessage = result.messages[result.messages.length - 1];
-    expect(lastMessage.content).toBe(largeContent);
-    expect(lastMessage.role).toBe("user");
+    expect(lastMessage).toBeDefined();
+    expect(lastMessage!.content).toBe(largeContent);
+    expect(lastMessage!.role).toBe("user");
 
     // Should log warning about truncation
     expect(consoleSpy).toHaveBeenCalledWith(
