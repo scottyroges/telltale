@@ -251,6 +251,48 @@ function assembleIncremental(
   };
 }
 
+function enforceMaxTokens(context: ContextWindow): ContextWindow {
+  const systemPromptTokens = estimateTokens(context.systemPrompt);
+  const messagesTokens = estimateTokens(
+    context.messages.map((m) => m.content).join("\n"),
+  );
+  const totalTokens = systemPromptTokens + messagesTokens;
+
+  // Under hard limit: return as-is
+  if (totalTokens <= MAX_CONTEXT_TOKENS) {
+    return context;
+  }
+
+  console.warn(
+    `[Context] Exceeded MAX_CONTEXT_TOKENS (${totalTokens} > ${MAX_CONTEXT_TOKENS}), applying aggressive truncation`,
+  );
+
+  // Over hard limit: keep only the most recent messages that fit
+  const messages: LLMMessage[] = [];
+  let runningTotal = systemPromptTokens;
+
+  // Work backwards from the most recent message
+  for (let i = context.messages.length - 1; i >= 0; i--) {
+    const msg = context.messages[i]!;
+    const msgTokens = estimateTokens(msg.content);
+
+    if (runningTotal + msgTokens > MAX_CONTEXT_TOKENS) {
+      console.warn(
+        `[Context] Truncated to ${messages.length} most recent messages`,
+      );
+      break;
+    }
+
+    messages.unshift(msg);
+    runningTotal += msgTokens;
+  }
+
+  return {
+    systemPrompt: context.systemPrompt,
+    messages,
+  };
+}
+
 export const contextService = {
   async buildContextWindow(interviewId: string): Promise<ContextWindow> {
     // Load all required data
@@ -288,7 +330,8 @@ export const contextService = {
 
     // Under threshold: return all messages
     if (tokenBreakdown.total < SUMMARIZATION_THRESHOLD) {
-      return assembleUnderThreshold(conversationMessages, insights);
+      const context = assembleUnderThreshold(conversationMessages, insights);
+      return enforceMaxTokens(context);
     }
 
     // Over threshold: split into buckets
@@ -299,16 +342,18 @@ export const contextService = {
 
     // Enough old messages: trigger summarization
     if (buckets.old.length >= SUMMARIZATION_BATCH_SIZE) {
-      return await assembleSummarized(
+      const context = await assembleSummarized(
         interviewId,
         conversationMessages,
         buckets,
         insights,
         existingSummary,
       );
+      return enforceMaxTokens(context);
     }
 
     // Not enough old messages: incremental assembly
-    return assembleIncremental(buckets, insights, existingSummary);
+    const context = assembleIncremental(buckets, insights, existingSummary);
+    return enforceMaxTokens(context);
   },
 };

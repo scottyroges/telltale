@@ -5,15 +5,7 @@ import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
 import { insightRepository } from "@/repositories/insight.repository";
 import { parseInterviewerResponse, parseWithRetry } from "@/services/response-parser";
-import { INTERVIEWER_SYSTEM_PROMPT } from "@/prompts/interviewer";
-import type { LLMMessage } from "@/domain/llm-provider";
-import type { Message } from "@/domain/message";
-import type { Insight } from "@/domain/insight";
-
-function buildInsightContextMessage(insights: Insight[]): string {
-  const notes = insights.map(i => `- ${i.type}: ${i.content}`).join("\n");
-  return `[Previous interview notes]\n${notes}`;
-}
+import { contextService } from "@/services/context.service";
 
 export const conversationService = {
   async startInterview(bookQuestionId: string) {
@@ -37,18 +29,22 @@ export const conversationService = {
 
     const topicMessage = `The topic for this conversation is: ${question.prompt}. Please greet the storyteller warmly and ask an opening question about this topic.`;
 
-    const response = await llmProvider.generateResponse(
-      INTERVIEWER_SYSTEM_PROMPT,
-      [{ role: "user", content: topicMessage }],
-    );
-
-    const parsed = parseInterviewerResponse(response.content);
-
+    // Persist topic message before building context
     await messageRepository.create({
       interviewId: interview.id,
       role: "USER",
       content: topicMessage,
     });
+
+    // Build context window
+    const context = await contextService.buildContextWindow(interview.id);
+
+    const response = await llmProvider.generateResponse(
+      context.systemPrompt,
+      context.messages,
+    );
+
+    const parsed = parseInterviewerResponse(response.content);
 
     await messageRepository.create({
       interviewId: interview.id,
@@ -77,45 +73,16 @@ export const conversationService = {
       content,
     });
 
-    const [history, insights] = await Promise.all([
-      messageRepository.findByInterviewId(interviewId),
-      insightRepository.findByInterviewId(interviewId),
-    ]);
+    const context = await contextService.buildContextWindow(interviewId);
 
-    const messages: LLMMessage[] = [];
-
-    // Convert all history to LLM format
-    const historyMessages = history
-      .filter((msg: Message) => msg.role === "USER" || msg.role === "ASSISTANT")
-      .map((msg: Message) => ({
-        role: msg.role.toLowerCase() as "user" | "assistant",
-        content: msg.content,
-      }));
-
-    // Add all messages except the last one (most recent user message)
-    if (historyMessages.length > 0) {
-      messages.push(...historyMessages.slice(0, -1));
-    }
-
-    // Inject insights right before the last message
-    if (insights.length > 0) {
-      messages.push({
-        role: "user",
-        content: buildInsightContextMessage(insights),
-      });
-    }
-
-    // Add the final user message
-    if (historyMessages.length > 0) {
-      const lastMessage = historyMessages[historyMessages.length - 1]!;
-      messages.push(lastMessage);
-    }
-
-    const response = await llmProvider.generateResponse(INTERVIEWER_SYSTEM_PROMPT, messages);
+    const response = await llmProvider.generateResponse(
+      context.systemPrompt,
+      context.messages,
+    );
 
     const parsed = await parseWithRetry(response.content, async (correctionPrompt) => {
-      const retry = await llmProvider.generateResponse(INTERVIEWER_SYSTEM_PROMPT, [
-        ...messages,
+      const retry = await llmProvider.generateResponse(context.systemPrompt, [
+        ...context.messages,
         { role: "assistant", content: response.content },
         { role: "user", content: correctionPrompt },
       ]);

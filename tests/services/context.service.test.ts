@@ -246,7 +246,7 @@ describe("contextService", () => {
   });
 
   it("falls back to truncation when summarization fails", async () => {
-    const largeContent = "x".repeat(8000);
+    const largeContent = "x".repeat(4000); // 1000 tokens each, 10k total - under 16k hard limit
     const messages = Array.from({ length: 10 }, (_, i) => ({
       id: `m${i + 1}`,
       interviewId: "int1",
@@ -281,7 +281,7 @@ describe("contextService", () => {
   });
 
   it("includes existing summary in fallback when summarization fails", async () => {
-    const largeContent = "x".repeat(8000);
+    const largeContent = "x".repeat(4000); // 1000 tokens each - keep under 16k hard limit
     // Create 15 messages: alreadySummarized=5, old=5 (indices 5-9), recent=5 (indices 10-14)
     const messages = Array.from({ length: 15 }, (_, i) => ({
       id: `m${i + 1}`,
