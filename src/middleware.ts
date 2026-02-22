@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
-const publicRoutes = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
+const publicRoutes = ["/", "/login", "/signup", "/signup/check-email", "/forgot-password", "/reset-password"];
 
 function isPublicRoute(pathname: string): boolean {
   if (publicRoutes.includes(pathname)) return true;

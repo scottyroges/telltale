@@ -78,6 +78,34 @@ await authClient.signUp.email({
 - `emailVerification.sendOnSignUp: true`
 - Email provider configured (e.g., Resend)
 
+### Email/Password Sign In
+
+```typescript
+await authClient.signIn.email({
+  email: "john@example.com",
+  password: "securepassword",
+  callbackURL: "/dashboard",
+});
+```
+
+**Error handling:**
+```typescript
+try {
+  await authClient.signIn.email({ email, password, callbackURL });
+  router.push("/dashboard");
+} catch (err) {
+  const authError = err as { code?: string; message?: string };
+
+  if (authError.code === "INVALID_CREDENTIALS") {
+    setError("Invalid email or password");
+  } else if (authError.code === "EMAIL_NOT_VERIFIED") {
+    setError("Please verify your email first. Check your inbox for a verification link.");
+  } else {
+    setError(authError.message || "Something went wrong");
+  }
+}
+```
+
 ### OAuth Sign In
 
 ```typescript

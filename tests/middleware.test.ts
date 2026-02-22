@@ -76,6 +76,14 @@ describe("middleware", () => {
     expect(response.status).toBe(200);
   });
 
+  it("allows unauthenticated users to access /signup/check-email", () => {
+    mockGetSessionCookie.mockReturnValue(null);
+
+    const response = middleware(createRequest("/signup/check-email"));
+
+    expect(response.status).toBe(200);
+  });
+
   it("allows unauthenticated users to access /forgot-password", () => {
     mockGetSessionCookie.mockReturnValue(null);
 

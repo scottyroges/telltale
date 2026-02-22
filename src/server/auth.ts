@@ -20,16 +20,18 @@ function getBaseUrl(): string {
 
 const baseUrl = getBaseUrl();
 
+const socialProviders = {
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  },
+};
+
 export const auth = betterAuth({
   baseURL: baseUrl,
   trustedOrigins: [baseUrl],
   database: { db, type: "postgres" as const },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    },
-  },
+  socialProviders,
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
