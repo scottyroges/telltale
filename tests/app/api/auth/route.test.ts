@@ -8,6 +8,8 @@ vi.mock("@/lib/db", () => ({
 
 vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
 vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-client-secret");
+vi.stubEnv("RESEND_API_KEY", "test-resend-key");
+vi.stubEnv("EMAIL_FROM", "test@example.com");
 
 describe("auth API route", () => {
   it("exports GET and POST handlers", async () => {

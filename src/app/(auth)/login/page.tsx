@@ -19,6 +19,7 @@ export default async function LoginPage({
 
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : undefined;
+  const message = typeof params.message === "string" ? params.message : undefined;
 
   return (
     <div className={styles.card}>
@@ -28,7 +29,15 @@ export default async function LoginPage({
           Something went wrong. Please try again.
         </p>
       )}
+      {message === "password-reset" && (
+        <div className={styles.success}>
+          Password reset successful. You can now sign in with your new password.
+        </div>
+      )}
       <GoogleSignInButton />
+      <p className={styles.footer}>
+        Don&apos;t have an account? <a href="/signup" className={styles.link}>Sign up</a>
+      </p>
     </div>
   );
 }

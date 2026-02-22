@@ -286,3 +286,52 @@ describe("myService", () => {
 - Mocks must be set up before importing the module
 - Dynamic import in `beforeEach` ensures fresh module state per test
 - `vi.clearAllMocks()` resets mock call counts between tests
+
+### Environment Variable Stubs for Transitive Dependencies
+
+When modifying `src/server/auth.ts`, remember that it's imported by the tRPC context, which is imported by every router test. Any new dependencies in `auth.ts` that validate environment variables will break ALL router tests.
+
+**Pattern:**
+
+If you add a dependency to `auth.ts` that requires env vars (e.g., `@/lib/email`), you must add env stubs to:
+- All router tests (`tests/server/routers/*.test.ts`)
+- Auth route test (`tests/app/api/auth/route.test.ts`)
+
+```typescript
+// @vitest-environment node
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
+const { db } = (await import("../../helpers/mock-db")).createMockDb();
+vi.mock("@/lib/db", () => ({ db }));
+
+vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
+vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-client-secret");
+vi.stubEnv("RESEND_API_KEY", "test-resend-key");
+vi.stubEnv("EMAIL_FROM", "test@example.com");
+// ^ Add stubs for any env vars required by auth.ts dependencies
+```
+
+**For tests that directly import `auth.ts`:**
+
+Mock modules with environment validation instead of stubbing vars:
+
+```typescript
+// tests/server/auth.test.ts
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/db", () => ({ db: {} }));
+vi.mock("@/lib/email", () => ({
+  sendEmail: vi.fn(),
+}));
+
+vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
+vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-client-secret");
+// No need for RESEND_API_KEY or EMAIL_FROM - the module is mocked
+```
+
+**Why:**
+- `auth.ts` → tRPC context → every router test
+- Environment validation happens at module load time
+- Mocking the module prevents instantiation entirely
+- Stubbing env vars satisfies validation when module must load

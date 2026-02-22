@@ -67,4 +67,28 @@ describe("middleware", () => {
 
     expect(response.status).toBe(200);
   });
+
+  it("allows unauthenticated users to access /signup", () => {
+    mockGetSessionCookie.mockReturnValue(null);
+
+    const response = middleware(createRequest("/signup"));
+
+    expect(response.status).toBe(200);
+  });
+
+  it("allows unauthenticated users to access /forgot-password", () => {
+    mockGetSessionCookie.mockReturnValue(null);
+
+    const response = middleware(createRequest("/forgot-password"));
+
+    expect(response.status).toBe(200);
+  });
+
+  it("allows unauthenticated users to access /reset-password", () => {
+    mockGetSessionCookie.mockReturnValue(null);
+
+    const response = middleware(createRequest("/reset-password"));
+
+    expect(response.status).toBe(200);
+  });
 });
