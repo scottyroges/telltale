@@ -34,3 +34,44 @@
     border-color: #991b1b;
   }
 }
+
+.success {
+  font-size: 0.875rem;
+  color: #059669;
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  padding: 0.75rem;
+  border-radius: 4px;
+  width: 100%;
+  text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .success {
+    color: #86efac;
+    background: #0a1c14;
+    border-color: #166534;
+  }
+}
+
+.footer {
+  font-size: 0.875rem;
+  text-align: center;
+  color: var(--color-fg-muted);
+}
+
+.link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.message {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-fg);
+  text-align: center;
+}
