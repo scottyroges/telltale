@@ -182,6 +182,120 @@ Items will be added to this list as issues are discovered during testing. Each i
 
 ---
 
+### 6. Sign-In User Feedback
+
+**Current behavior:**
+- Sign-in forms (email/password and Google OAuth) don't show any loading state during authentication
+- No indication to user that their click was registered
+- No feedback while waiting for server response
+- Form just sits idle until redirect or error occurs
+
+**Problem:**
+- Users don't know if their sign-in attempt is processing
+- On slow connections, appears broken or unresponsive
+- No feedback creates uncertainty - did my click work?
+- Common UX pattern that users expect during async operations
+
+**Desired behavior:**
+- Show loading state on sign-in button when clicked
+- Disable form inputs during authentication
+- Display loading spinner or "Signing in..." text
+- Provide immediate visual feedback that action is processing
+- On error, show clear error message and reset form to usable state
+
+**Implementation notes:**
+- Track loading state in sign-in components (`useState` or form library state)
+- Disable button and show spinner during `signIn.email()` or `signIn.social()` calls
+- Consider using the button's disabled state + loading variant
+- Ensure loading state resets on error
+- Could add optimistic UI (e.g., "Redirecting..." before actual redirect)
+- Test both success and error paths to ensure state resets properly
+
+**Acceptance criteria:**
+- [ ] Sign-in button shows loading state when clicked
+- [ ] Form inputs disabled during authentication
+- [ ] Clear visual indication that sign-in is processing
+- [ ] Loading state clears on error with error message shown
+- [ ] Works for both email/password and Google OAuth flows
+- [ ] No stuck loading states if request fails
+
+---
+
+### 7. Add Login/Sign-Up Links to Landing Page
+
+**Current behavior:**
+- Main landing page at telltalestories.com exists as a placeholder
+- No navigation or links to sign-in or sign-up pages
+- Users who land on the homepage have no clear path to authenticate
+
+**Problem:**
+- Even though it's a placeholder, users need a way to access the app
+- No call-to-action or next step for visitors
+- Have to manually navigate to /sign-in or /sign-up URLs
+- Poor first impression and user experience
+
+**Desired behavior:**
+- Add clear, prominent links/buttons to sign-in and sign-up pages
+- Could be a simple nav bar or hero section with CTAs
+- "Sign In" and "Sign Up" buttons/links that are easy to find
+- Simple but functional - doesn't need to be the final marketing page
+
+**Implementation notes:**
+- Update the landing page component (likely `app/page.tsx`)
+- Add navigation links in header or prominent CTAs in hero section
+- Use consistent button styling with auth pages
+- Could be as simple as: "Welcome to Telltale Stories" + "Sign In" / "Sign Up" buttons
+- Consider the logged-in state - redirect to dashboard if already authenticated
+
+**Acceptance criteria:**
+- [ ] "Sign In" link/button visible on landing page
+- [ ] "Sign Up" link/button visible on landing page
+- [ ] Links navigate to correct auth pages
+- [ ] Works on both desktop and mobile viewports
+- [ ] Logged-in users redirected to dashboard (optional, but nice to have)
+
+---
+
+### 8. Dashboard UI Cleanup
+
+**Current behavior:**
+- Dashboard exists and is functional
+- Current UI is rough/unpolished
+- Doesn't look good in its current state
+
+**Problem:**
+- Poor visual presentation undermines the app's credibility
+- Users' first impression after signing in is important
+- Current state is too rough even for early testing
+- Basic polish goes a long way for user confidence
+
+**Desired behavior:**
+- Clean up the dashboard layout and styling
+- Not a full redesign, just polish what's there
+- Better spacing, typography, visual hierarchy
+- Make it presentable and pleasant to use
+- Maintain functionality while improving appearance
+
+**Implementation notes:**
+- Review current dashboard component layout
+- Apply consistent spacing/padding
+- Improve typography (font sizes, weights, hierarchy)
+- Better visual separation between sections
+- Consider card-based layouts for book/interview lists
+- Use existing CSS Modules/Radix patterns from other pages
+- Focus on readability and clean presentation
+- Don't need to add new features, just polish existing UI
+
+**Acceptance criteria:**
+- [ ] Dashboard has clean, consistent spacing
+- [ ] Typography is readable with clear hierarchy
+- [ ] Visual elements are well-organized
+- [ ] Layout works on different screen sizes
+- [ ] Overall appearance is presentable and professional
+- [ ] No new functionality required, just visual polish
+
+---
+
 ## Future Items
 
 _(Add new enhancements below as they're discovered during testing)_

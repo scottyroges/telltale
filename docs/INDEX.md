@@ -48,6 +48,7 @@
 
 ## Ideas (Deferred)
 
+- **docs/ideas/admin-ui.md** — Admin UI for question library, user management, system monitoring; use scripts for now
 - **docs/ideas/depth-score.md** — Interview depth/richness metric, deferred until real conversations inform the design
 
 ## Decision Records
