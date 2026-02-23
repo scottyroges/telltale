@@ -255,43 +255,7 @@ USER: (message 5)
 
 ---
 
-### Example 4: Window Starting to Slide (8 Messages)
-
-**Scenario:** Conversation has grown to 8 messages, now over threshold
-
-**State:**
-- Total messages: 8
-- Total tokens: ~9,500 (over 8K threshold)
-- Recent window: walk backward, accumulate ~5 messages within 2000 tokens
-- Buckets: recent=[4,5,6,7,8], old=[1,2,3], already_summarized=none
-
-**Behavior:**
-- Over threshold → split into buckets
-- recent = last ~5 messages that fit token budget [4-8]
-- old = messages before recent [1-3]
-- Calculate: old tokens = ~1200 tokens
-- Check: `oldTokens = 1200 < 3000` → **don't summarize yet** (need 3000 tokens)
-- Returns: `{ systemPrompt, messages: [1,2,3,4,5,6,7,8 with insights] }`
-
-**What gets sent to LLM:**
-```
-SYSTEM: You are a skilled life story interviewer...
-
-USER: (message 1)
-ASSISTANT: (message 2)
-USER: (message 3)
-ASSISTANT: (message 4)
-USER: (message 5)
-ASSISTANT: (message 6)
-USER: (message 7)
-ASSISTANT: (message 8 - insights injected before this)
-```
-
-**Note:** Still sending all messages verbatim because old bucket hasn't filled yet.
-
----
-
-### Example 5: First Summary (10 Messages)
+### Example 4: Not Yet Ready to Summarize (10 Messages)
 
 **Scenario:** Conversation reaches 10 messages (typical length ~400 tokens each)
 
@@ -305,14 +269,54 @@ ASSISTANT: (message 8 - insights injected before this)
 - Split into buckets
 - recent = last ~5 messages within token budget [6-10]
 - old = [1-5]
-- Calculate: old tokens = ~2000 tokens (5 messages × ~400 tokens)
+- Calculate: oldTokens = ~2000 tokens (5 messages × ~400 tokens)
 - Check: `oldTokens = 2000 < 3000` → **don't summarize yet**
+- Use existing summary (none), send all messages verbatim
+- Returns: `{ systemPrompt, messages: [1,2,3,4,5,6,7,8,9,10 with insights] }`
+
+**What gets sent to LLM:**
+```
+SYSTEM: You are a skilled life story interviewer...
+
+USER: (message 1)
+ASSISTANT: (message 2)
+USER: (message 3)
+ASSISTANT: (message 4)
+USER: (message 5)
+ASSISTANT: (message 6)
+USER: (message 7)
+ASSISTANT: (message 8)
+USER: (message 9)
+
+ASSISTANT: [Previous interview notes]
+- ENTITY: Teresa (sister) — played under oak tree
+- DETAIL: Hardware store mentioned but not explored
+
+USER: (message 10)
+```
 
 **Note:** With typical 400-token messages, you'd need ~7-8 messages in old bucket to hit 3000 tokens. This example would need 3 more messages before triggering summarization.
-- Summarize messages 1-5 into prose
-- Create InterviewSummary with `messageCount: 5`
-- After summarization: recent=[6-10], old=[], already_summarized=summary(1-5, count=5)
-- Returns: `{ systemPrompt, messages: [summary, 6,7,8,9,10 with insights] }`
+
+---
+
+### Example 5: First Summary Triggered (13 Messages)
+
+**Scenario:** Conversation at 13 messages (~400 tokens each)
+
+**State:**
+- Total messages: 13
+- Buckets: recent=[9,10,11,12,13], old=[1,2,3,4,5,6,7,8], already_summarized=none
+
+**Behavior:**
+- Split into buckets
+- recent = last ~5 messages within 2000 token budget [9-13]
+- old = messages 1-8 (before recent window)
+- Calculate: oldTokens = ~3200 tokens (8 messages × ~400 tokens)
+- Check: `oldTokens = 3200 >= 3000` → **SUMMARIZE!**
+- Summarize messages 1-8 into prose
+- Create InterviewSummary with `messageCount: 8`
+- After summarization: recent=[9-13], old=[], already_summarized=summary(1-8, count=8)
+- Returns: `{ systemPrompt, messages: [summary, 9,10,11,12,13 with insights] }`
 
 **What gets sent to LLM:**
 ```
@@ -321,18 +325,19 @@ SYSTEM: You are a skilled life story interviewer...
 ASSISTANT: To recap our earlier conversation: You grew up on Elm Street
 in Ohio in the 1960s. You described your house with the big oak tree in
 the front yard where you and your sister Teresa would play. You mentioned
-your father ran the hardware store on Main Street...
+your father ran the hardware store on Main Street, and how you'd visit
+after school...
 
-USER: (message 6)
-ASSISTANT: (message 7)
-USER: (message 8)
-ASSISTANT: (message 9)
+USER: (message 9)
+ASSISTANT: (message 10)
+USER: (message 11)
+ASSISTANT: (message 12)
 
 ASSISTANT: [Previous interview notes]
 - ENTITY: Teresa (sister) — played under oak tree
 - DETAIL: Hardware store mentioned but not explored
 
-USER: (message 10)
+USER: (message 13)
 ```
 
 **Database:**
@@ -342,89 +347,50 @@ InterviewSummary {
   interviewId: "int_123"
   parentSummaryId: null      // First summary
   content: "You grew up on Elm Street in Ohio..."
-  messageCount: 5            // Covers messages 1-5
+  messageCount: 8            // Covers messages 1-8
 }
 ```
 
 ---
 
-### Example 6: Growing the Old Bucket (13 Messages)
+### Example 6: Second Summary (21 Messages)
 
-**Scenario:** Conversation at 13 messages (3 messages since last summary)
+**Scenario:** Conversation reaches 21 messages (~400 tokens each)
 
 **State:**
-- Total messages: 13
-- Buckets: recent=[9,10,11,12,13], old=[6,7,8], already_summarized=summary(1-5, count=5)
+- Total messages: 21
+- Buckets: recent=[17,18,19,20,21], old=[9,10,11,12,13,14,15,16], already_summarized=summary(1-8, count=8)
 
 **Behavior:**
 - Split into buckets
-- recent = [9-13]
-- already_summarized covers messages 1-5
-- old = messages 6-8 (between summarized and recent)
-- Check: `old.length = 3 < 5` → **don't summarize** (need 2 more)
-- Use existing summary
-- Returns: `{ systemPrompt, messages: [existing summary, 6,7,8,9,10,11,12,13 with insights] }`
-
-**What gets sent to LLM:**
-```
-SYSTEM: You are a skilled life story interviewer...
-
-ASSISTANT: To recap our earlier conversation: [summary of messages 1-5]
-
-USER: (message 6)
-ASSISTANT: (message 7)
-USER: (message 8)
-ASSISTANT: (message 9)
-USER: (message 10)
-ASSISTANT: (message 11)
-USER: (message 12)
-
-ASSISTANT: [Previous interview notes]
-- ...
-
-USER: (message 13)
-```
-
-**Note:** Messages 6-8 are in old bucket (not summarized yet), but still sent verbatim because we don't have enough for a batch.
-
----
-
-### Example 7: Second Summary (15 Messages)
-
-**Scenario:** Conversation reaches 15 messages
-
-**State:**
-- Total messages: 15
-- Buckets: recent=[11,12,13,14,15], old=[6,7,8,9,10], already_summarized=summary(1-5, count=5)
-
-**Behavior:**
-- Split into buckets
-- recent = [11-15]
-- old = [6-10]
-- Check: `old.length = 5 >= 5` → **SUMMARIZE!**
-- Summarize messages 6-10, incorporating previous summary
-- Create InterviewSummary with `messageCount: 10`, links to previous
-- After summarization: recent=[11-15], old=[], already_summarized=summary(1-10, count=10)
-- Returns: `{ systemPrompt, messages: [new summary, 11,12,13,14,15 with insights] }`
+- recent = last ~5 messages within 2000 token budget [17-21]
+- old = messages 9-16 (between already summarized and recent)
+- Calculate: oldTokens = ~3200 tokens (8 messages × ~400 tokens)
+- Check: `oldTokens = 3200 >= 3000` → **SUMMARIZE!**
+- Summarize messages 9-16, incorporating previous summary
+- Create InterviewSummary with `messageCount: 16`, links to previous
+- After summarization: recent=[17-21], old=[], already_summarized=summary(1-16, count=16)
+- Returns: `{ systemPrompt, messages: [new summary, 17,18,19,20,21 with insights] }`
 
 **What gets sent to LLM:**
 ```
 SYSTEM: You are a skilled life story interviewer...
 
 ASSISTANT: To recap our earlier conversation: [Updated summary incorporating
-messages 1-10. Includes the Ohio childhood, the hardware store stories, and
-the new details about your first day of school where you met Jimmy...]
+messages 1-16. Includes the Ohio childhood, the hardware store stories,
+your first day of school where you met Jimmy, and the summer you spent
+learning to ride a bike...]
 
-USER: (message 11)
-ASSISTANT: (message 12)
-USER: (message 13)
-ASSISTANT: (message 14)
+USER: (message 17)
+ASSISTANT: (message 18)
+USER: (message 19)
+ASSISTANT: (message 20)
 
 ASSISTANT: [Previous interview notes]
 - ENTITY: Jimmy (childhood best friend) — met on first day of school
-- EVENT: First day of school story
+- EVENT: Learning to ride a bike that summer
 
-USER: (message 15)
+USER: (message 21)
 ```
 
 **Database:**
@@ -434,31 +400,32 @@ InterviewSummary {
   interviewId: "int_123"
   parentSummaryId: "sum_1"   // Links to first summary
   content: "Updated summary..."
-  messageCount: 10           // Covers messages 1-10
+  messageCount: 16           // Covers messages 1-16
 }
 
 // sum_1 still exists (linked list pattern)
 InterviewSummary {
   id: "sum_1"
   parentSummaryId: null
-  messageCount: 5
+  messageCount: 8
 }
 ```
 
 ---
 
-### Example 8: Summarization Failure Fallback (15 Messages)
+### Example 7: Summarization Failure Fallback (21 Messages)
 
-**Scenario:** At 15 messages, summary should trigger but LLM fails
+**Scenario:** At 21 messages, summary should trigger but LLM fails
 
 **State:**
-- Total messages: 15
-- Buckets: recent=[11-15], old=[6-10], already_summarized=summary(1-5)
+- Total messages: 21
+- Buckets: recent=[17-21], old=[9-16], already_summarized=summary(1-8)
 - LLM summarization call fails (network error, timeout, etc.)
 
 **Behavior:**
 - Split into buckets normally
-- old.length = 5 → attempt summarization
+- Calculate: oldTokens = ~3200 tokens (8 messages × ~400 tokens)
+- Check: `oldTokens = 3200 >= 3000` → attempt summarization
 - Summarization **FAILS**
 - **Fallback:** Token-based truncation
   - Walk backward with 2x recent window budget (4000 tokens)
@@ -466,55 +433,62 @@ InterviewSummary {
   - Typically ~10 messages (if 400 tokens each)
   - Always include at least the most recent message
 - **Do NOT create InterviewSummary** (next turn will retry)
-- Returns: `{ systemPrompt, messages: [6,7,8,9,10,11,12,13,14,15 with insights] }`
+- Returns: `{ systemPrompt, messages: [existing summary(1-8), 12,13,14,15,16,17,18,19,20,21 with insights] }`
 
 **What gets sent to LLM:**
 ```
 SYSTEM: You are a skilled life story interviewer...
 
-USER: (message 6)
-ASSISTANT: (message 7)
-USER: (message 8)
-ASSISTANT: (message 9)
-USER: (message 10)
-ASSISTANT: (message 11)
+ASSISTANT: To recap our earlier conversation: [summary of messages 1-8]
+
 USER: (message 12)
 ASSISTANT: (message 13)
 USER: (message 14)
+ASSISTANT: (message 15)
+USER: (message 16)
+ASSISTANT: (message 17)
+USER: (message 18)
+ASSISTANT: (message 19)
+USER: (message 20)
 
 ASSISTANT: [Previous interview notes]
 - ...
 
-USER: (message 15)
+USER: (message 21)
 ```
 
 **Database:**
 - No new InterviewSummary created
-- Still only has sum_1 (messages 1-5)
-- Next turn at 16 messages:
-  - old = [6-11] (6 messages)
-  - Will retry summarization (old.length >= 5)
+- Still only has sum_1 (messages 1-8)
+- Next turn at 22 messages:
+  - old = messages 9-17 (9 messages × 400 = ~3600 tokens)
+  - Will retry summarization (oldTokens >= 3000)
 
 ---
 
-### Example 9: Continuing the Pattern (20 Messages)
+### Example 8: Continuing the Pattern (29 Messages)
 
-**Scenario:** Conversation continues to 20 messages
+**Scenario:** Conversation continues to 29 messages (~400 tokens each)
 
 **State:**
-- Total messages: 20
-- Buckets: recent=[16-20], old=[11-15], already_summarized=summary(1-10, count=10)
+- Total messages: 29
+- Buckets: recent=[25-29], old=[17-24], already_summarized=summary(1-16, count=16)
 
 **Behavior:**
-- old.length = 5 → SUMMARIZE messages 11-15
-- Create InterviewSummary with messageCount: 15
-- After: recent=[16-20], old=[], already_summarized=summary(1-15, count=15)
+- Split into buckets
+- recent = last ~5 messages within 2000 token budget [25-29]
+- old = messages 17-24 (between already summarized and recent)
+- Calculate: oldTokens = ~3200 tokens (8 messages × ~400 tokens)
+- Check: `oldTokens = 3200 >= 3000` → SUMMARIZE messages 17-24
+- Create InterviewSummary with messageCount: 24, links to previous
+- After: recent=[25-29], old=[], already_summarized=summary(1-24, count=24)
 
 **Pattern established (at 400 tokens/message):**
 - Every ~8 messages (3200 tokens), we create a new summary
 - Messages 1-8 → summarized at message 13
 - Messages 9-16 → summarized at message 21
-- Messages 17-24 → will be summarized at message 29
+- Messages 17-24 → summarized at message 29
+- Messages 25-32 → will be summarized at message 37
 - And so on...
 - **Note:** Frequency varies with message length — short messages summarize less often, long messages more often
 
@@ -768,19 +742,21 @@ Pattern continues every ~8 messages at 400 tokens/message (3200 tokens in old bu
 - Recent window adapts to content length
 
 ### Exactly at First Summary Trigger
-- 10 messages
-- recent=[6-10], old=[1-5], summarized=none
-- old.length = 5 → Create first summary
+- 13 messages (typical ~400 tokens each)
+- recent=[9-13], old=[1-8], summarized=none
+- oldTokens = 3200 >= 3000 → Create first summary
 
-### Messages Exactly Equal to Thresholds
-- When old.length exactly equals 5 → Summarize (>= trigger)
-- When recent has exactly 5 → Normal operation
+### Token Counts Exactly Equal to Thresholds
+- When oldTokens exactly equals 3000 → Summarize (>= trigger)
+- When recent exactly equals 2000 tokens → Normal operation
 
 ### LLM Timeout During Summarization
 - Summarization fails
-- Fall back to truncation (last 5 from old + 5 recent = 10 total)
+- Fall back to token-based truncation (2x recent window budget = 4000 tokens)
+- Walk backward, accumulate messages within 4000 token budget
+- Typically ~10 messages (if 400 tokens each)
 - Conversation continues without interruption
-- Next turn will retry (old bucket will be 6 messages)
+- Next turn will retry (old bucket will have more tokens)
 
 ### Very Long Individual Messages
 - Token estimation might underestimate
