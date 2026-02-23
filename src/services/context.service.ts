@@ -14,7 +14,7 @@ import type { Insight } from "@/domain/insight";
 const MAX_CONTEXT_TOKENS = 16000;
 const SUMMARIZATION_THRESHOLD = 8000;
 const RECENT_WINDOW_TOKENS = 2000; // Token budget for recent messages
-const SUMMARIZATION_BATCH_SIZE = 5;
+const OLD_BUCKET_TOKENS = 3000; // Token threshold to trigger summarization of old messages
 
 export interface ContextWindow {
   systemPrompt: string;
@@ -99,6 +99,8 @@ interface MessageBuckets {
   recent: Message[];
   old: Message[];
   alreadySummarizedCount: number;
+  recentTokens: number;
+  oldTokens: number;
 }
 
 function calculateTokenBreakdown(
@@ -180,7 +182,7 @@ function calculateMessageBuckets(
     alreadySummarized: alreadySummarizedCount,
   });
 
-  return { recent, old, alreadySummarizedCount };
+  return { recent, old, alreadySummarizedCount, recentTokens, oldTokens };
 }
 
 function assembleUnderThreshold(
@@ -385,8 +387,8 @@ export const contextService = {
       existingSummary,
     );
 
-    // Enough old messages: trigger summarization
-    if (buckets.old.length >= SUMMARIZATION_BATCH_SIZE) {
+    // Enough old tokens: trigger summarization
+    if (buckets.oldTokens >= OLD_BUCKET_TOKENS) {
       const context = await assembleSummarized(
         interviewId,
         conversationMessages,

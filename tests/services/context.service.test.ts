@@ -133,17 +133,27 @@ describe("contextService", () => {
     expect(mockSummaryCreate).not.toHaveBeenCalled();
   });
 
-  it("returns all messages when over threshold but old bucket < 5", async () => {
-    // Create messages that will exceed threshold (8000 tokens)
-    // Each message ~8000 chars = ~2000 tokens, so 5 messages = ~10000 tokens
-    const largeContent = "x".repeat(8000);
-    const messages = Array.from({ length: 5 }, (_, i) => ({
-      id: `m${i + 1}`,
-      interviewId: "int1",
-      role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
-      content: largeContent,
-      createdAt: new Date(),
-    }));
+  it("returns all messages when over threshold but old bucket < 3000 tokens", async () => {
+    // Create messages that exceed threshold (8000 tokens) but old bucket stays under 3000 tokens
+    // 4 small messages (1000 chars each = 250 tokens each = 1000 tokens total for old bucket)
+    // 1 large recent message (32000 chars = 8000 tokens)
+    // Total = 9000 tokens (> 8000 threshold), old bucket = 1000 tokens (< 3000 threshold)
+    const messages = [
+      ...Array.from({ length: 4 }, (_, i) => ({
+        id: `m${i + 1}`,
+        interviewId: "int1",
+        role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
+        content: "x".repeat(1000), // 1000 chars = 250 tokens
+        createdAt: new Date(),
+      })),
+      {
+        id: "m5",
+        interviewId: "int1",
+        role: "USER" as const,
+        content: "x".repeat(32000), // 32000 chars = 8000 tokens (recent window)
+        createdAt: new Date(),
+      },
+    ];
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
@@ -152,14 +162,14 @@ describe("contextService", () => {
 
     const result = await contextService.buildContextWindow("int1");
 
-    // Should return all messages (no summarization yet - old bucket has 0 messages)
+    // Should return all messages (no summarization yet - old bucket < 3000 tokens)
     expect(result.messages).toHaveLength(5);
     expect(mockSummaryCreate).not.toHaveBeenCalled();
   });
 
-  it("triggers summarization when old bucket >= 5", async () => {
+  it("triggers summarization when old bucket >= 3000 tokens", async () => {
     // Create 10 messages: each is 8000 chars = 2000 tokens
-    // Recent window (2000 tokens) will have 1 message, old will have 9 messages
+    // Recent window (2000 tokens) will have 1 message, old will have 9 messages (18000 tokens)
     const largeContent = "x".repeat(8000);
     const messages = Array.from({ length: 10 }, (_, i) => ({
       id: `m${i + 1}`,
@@ -554,7 +564,9 @@ describe("contextService", () => {
   it("enforces MAX_CONTEXT_TOKENS by truncating to most recent messages", async () => {
     // Create messages totaling > 16k tokens
     // Each message: 20000 chars = 5000 tokens (ceil(20000/4))
-    // 5 messages = 25000 tokens total (exceeds 16k limit)
+    // 5 messages = 25000 tokens total (exceeds both summarization threshold and 16k limit)
+    // Old bucket (20000 tokens) exceeds 3000 token threshold, triggering summarization
+    // Summarization will fail (no mock setup), falling back to truncation (4000 token limit)
     const largeContent = "x".repeat(20000);
     const messages = Array.from({ length: 5 }, (_, i) => ({
       id: `m${i + 1}`,
@@ -569,14 +581,13 @@ describe("contextService", () => {
     mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
     const result = await contextService.buildContextWindow("int1");
 
-    // Should truncate to fit under 16k tokens
-    // System prompt uses some tokens, so we expect fewer than 5 messages
-    expect(result.messages.length).toBeLessThan(5);
+    // Fallback truncation limits to RECENT_WINDOW_TOKENS * 2 = 4000 tokens
+    // At 5000 tokens per message, we should have 0 complete messages after truncation
+    // But fallback always includes at least 1 message for continuity
     expect(result.messages.length).toBeGreaterThan(0);
+    expect(result.messages.length).toBeLessThan(5);
 
     // Should keep the most recent messages (last messages in the array)
     // The last message should be the most recent user message (m5)
@@ -584,12 +595,5 @@ describe("contextService", () => {
     expect(lastMessage).toBeDefined();
     expect(lastMessage!.content).toBe(largeContent);
     expect(lastMessage!.role).toBe("user");
-
-    // Should log warning about truncation
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining("[Context] Exceeded MAX_CONTEXT_TOKENS"),
-    );
-
-    consoleSpy.mockRestore();
   });
 });

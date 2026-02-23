@@ -18,7 +18,7 @@ We use a **three-bucket sliding window** strategy optimized for long-form storyt
 
 ```
 [== already_summarized ==][== old (accumulating) ==][== recent (verbatim) ==]
-   (compressed in summary)    (waiting for batch)         (last 5 messages)
+   (compressed in summary)    (waiting for 3000 tokens)   (last 2000 tokens)
 ```
 
 ### The Three Buckets
@@ -31,7 +31,7 @@ We use a **three-bucket sliding window** strategy optimized for long-form storyt
 
 **2. Old (accumulating)**
 - Messages that aged out of recent
-- Accumulate until we have a batch (5 messages)
+- Accumulate until reaching 3000 tokens
 - Then get summarized and moved to already_summarized
 
 **3. Already Summarized (compressed)**
@@ -50,9 +50,9 @@ Oldest message in recent pops off
    ↓
 Moves to old bucket (accumulates)
    ↓
-When old bucket reaches 5 messages
+When old bucket reaches 3000 tokens
    ↓
-Summarize those 5 messages
+Summarize those messages
    ↓
 Move to already_summarized (via InterviewSummary record)
    ↓
@@ -67,7 +67,7 @@ Reset old bucket to empty
 MAX_CONTEXT_TOKENS = 16000             // Hard limit (enforced by truncation)
 SUMMARIZATION_THRESHOLD = 8000         // Trigger point for starting summarization
 RECENT_WINDOW_TOKENS = 2000            // Token budget for recent messages (dynamic count)
-SUMMARIZATION_BATCH_SIZE = 5           // Summarize when 5 messages accumulate
+OLD_BUCKET_TOKENS = 3000               // Token threshold to trigger summarization of old messages
 ```
 
 **Hard Limit Enforcement:**
@@ -85,10 +85,10 @@ After context assembly (whether under threshold, incremental, or summarized), `e
 - Short messages allow more in recent window; long messages mean fewer
 - Always includes at least the most recent message for continuity
 
-**SUMMARIZATION_BATCH_SIZE = 5**
-- Summarize frequently enough to keep context manageable
-- Large enough to create meaningful summaries (not just 1-2 messages)
-- Means we summarize every 5 messages after initial window fills
+**OLD_BUCKET_TOKENS = 3000**
+- Summarize when old bucket accumulates sufficient content
+- 1.5x the recent window size ensures meaningful summaries (not just 1-2 messages)
+- Typically 3-8 messages depending on message length (at ~400 tokens/message, ~7-8 messages)
 
 **SUMMARIZATION_THRESHOLD = 8000 tokens**
 - When total context exceeds this, we start the sliding window strategy
@@ -118,8 +118,11 @@ for (let i = allMessages.length - 1; i >= alreadySummarizedCount; i--) {
 const recentStartIndex = allMessages.length - recent.length;
 const oldMessages = allMessages.slice(alreadySummarizedCount, recentStartIndex);
 
+// Calculate old bucket token count
+const oldTokens = oldMessages.reduce((sum, msg) => sum + estimateTokens(msg.content), 0);
+
 // Should we summarize?
-if (oldMessages.length >= SUMMARIZATION_BATCH_SIZE) {
+if (oldTokens >= OLD_BUCKET_TOKENS) {
   // Yes - create new summary covering oldMessages
   // New messageCount = alreadySummarizedCount + oldMessages.length
 }
@@ -148,9 +151,10 @@ Using a fixed message count (e.g., "last 5 messages") creates two problems:
 **Token-based approach benefits:**
 - **Consistent budget:** Recent window always uses ~2000 tokens, never more, rarely much less
 - **Adaptive to content:** Short messages → more messages included; long messages → fewer included
-- **Better summarization triggers:** Old bucket fills based on actual token pressure, not arbitrary counts
+- **Better summarization triggers:** Old bucket summarizes at 3000 tokens, ensuring consistent batches regardless of message count
 - **Whole messages only:** Never splits a message mid-content — if a message doesn't fit, exclude it entirely
 - **Minimum guarantee:** Always includes at least the most recent message, even if it exceeds 2000 tokens (maintains continuity)
+- **Symmetric approach:** Both recent window (2000 tokens) and old bucket threshold (3000 tokens) use token-based logic
 
 **Example scenarios:**
 
@@ -265,7 +269,8 @@ USER: (message 5)
 - Over threshold → split into buckets
 - recent = last ~5 messages that fit token budget [4-8]
 - old = messages before recent [1-3]
-- Check: `old.length = 3 < 5` → **don't summarize yet** (need 5 to make a batch)
+- Calculate: old tokens = ~1200 tokens
+- Check: `oldTokens = 1200 < 3000` → **don't summarize yet** (need 3000 tokens)
 - Returns: `{ systemPrompt, messages: [1,2,3,4,5,6,7,8 with insights] }`
 
 **What gets sent to LLM:**
@@ -300,7 +305,10 @@ ASSISTANT: (message 8 - insights injected before this)
 - Split into buckets
 - recent = last ~5 messages within token budget [6-10]
 - old = [1-5]
-- Check: `old.length = 5 >= 5` → **SUMMARIZE!**
+- Calculate: old tokens = ~2000 tokens (5 messages × ~400 tokens)
+- Check: `oldTokens = 2000 < 3000` → **don't summarize yet**
+
+**Note:** With typical 400-token messages, you'd need ~7-8 messages in old bucket to hit 3000 tokens. This example would need 3 more messages before triggering summarization.
 - Summarize messages 1-5 into prose
 - Create InterviewSummary with `messageCount: 5`
 - After summarization: recent=[6-10], old=[], already_summarized=summary(1-5, count=5)
@@ -502,13 +510,13 @@ USER: (message 15)
 - Create InterviewSummary with messageCount: 15
 - After: recent=[16-20], old=[], already_summarized=summary(1-15, count=15)
 
-**Pattern established:**
-- Every 5 messages, we create a new summary
-- Messages 1-5 → summarized at message 10
-- Messages 6-10 → summarized at message 15
-- Messages 11-15 → summarized at message 20
-- Messages 16-20 → will be summarized at message 25
+**Pattern established (at 400 tokens/message):**
+- Every ~8 messages (3200 tokens), we create a new summary
+- Messages 1-8 → summarized at message 13
+- Messages 9-16 → summarized at message 21
+- Messages 17-24 → will be summarized at message 29
 - And so on...
+- **Note:** Frequency varies with message length — short messages summarize less often, long messages more often
 
 ---
 
@@ -631,7 +639,7 @@ summary and these new messages.
 **Trade-off:**
 - Efficiency: Don't re-summarize everything every time
 - Risk: Early summary errors compound (if sum_1 loses details, sum_2 won't recover them)
-- Acceptable: Token logging helps detect summary drift; small batch size (5) means less information loss per batch
+- Acceptable: Token logging helps detect summary drift; moderate batch size (3000 tokens, ~7-8 messages) balances frequency with meaningful summaries
 
 ---
 
@@ -661,7 +669,7 @@ buildContextWindow(interviewId)
   │   - already_summarized = existingSummary?.messageCount ?? 0
   │   - old = messages between already_summarized and recent
   │
-  ├─ Check: old.length >= SUMMARIZATION_BATCH_SIZE (5)?
+  ├─ Check: oldTokens >= OLD_BUCKET_TOKENS (3000)?
   │   NO  → Use existing summary (if any), assemble all old + recent messages
   │         Apply enforceMaxTokens()
   │         Return
@@ -697,32 +705,37 @@ Message 6 arrives: (over threshold, start bucketing)
     msg 4 (400 tok) → recent=[4,5,6]
     msg 3 (400 tok) → recent=[3,4,5,6]
     msg 2 (400 tok) → recent=[2,3,4,5,6] (2000 tokens total, stop)
-  recent=[2-6] (2000 tokens), old=[1], summarized=none
-  Action: None (old.length = 1 < 5)
+  recent=[2-6] (2000 tokens), old=[1] (400 tokens), summarized=none
+  Action: None (oldTokens = 400 < 3000)
 
-Messages 7-9 arrive:
-  Walk backward from msg 9, accumulate ~5 messages in 2000 tokens
-  recent=[5-9], old=[1,2,3,4], summarized=none
-  Action: None (old.length = 4 < 5)
-
-Message 10 arrives:
+Messages 7-10 arrive:
   Walk backward from msg 10, accumulate ~5 messages in 2000 tokens
-  recent=[6-10], old=[1,2,3,4,5], summarized=none
-  Action: SUMMARIZE! (old.length = 5 >= 5)
-  Result: recent=[6-10], old=[], summarized=sum_1(1-5, count=5)
+  recent=[6-10], old=[1,2,3,4,5] (2000 tokens), summarized=none
+  Action: None (oldTokens = 2000 < 3000)
 
-Messages 11-14 arrive:
-  Walk backward from msg 14, accumulate ~5 messages in 2000 tokens
-  recent=[10-14], old=[6,7,8,9], summarized=sum_1(count=5)
-  Action: None (old.length = 4 < 5)
+Messages 11-12 arrive:
+  Walk backward from msg 12, accumulate ~5 messages in 2000 tokens
+  recent=[8-12], old=[1,2,3,4,5,6,7] (2800 tokens), summarized=none
+  Action: None (oldTokens = 2800 < 3000)
 
-Message 15 arrives:
-  Walk backward from msg 15, accumulate ~5 messages in 2000 tokens
-  recent=[11-15], old=[6,7,8,9,10], summarized=sum_1(count=5)
-  Action: SUMMARIZE! (old.length = 5 >= 5)
-  Result: recent=[11-15], old=[], summarized=sum_2(1-10, count=10)
+Message 13 arrives:
+  Walk backward from msg 13, accumulate ~5 messages in 2000 tokens
+  recent=[9-13], old=[1,2,3,4,5,6,7,8] (3200 tokens), summarized=none
+  Action: SUMMARIZE! (oldTokens = 3200 >= 3000)
+  Result: recent=[9-13], old=[], summarized=sum_1(1-8, count=8)
 
-Pattern continues every ~5 messages (depending on message length)...
+Messages 14-20 arrive:
+  Walk backward from msg 20, accumulate ~5 messages in 2000 tokens
+  recent=[16-20], old=[9,10,11,12,13,14,15] (2800 tokens), summarized=sum_1(count=8)
+  Action: None (oldTokens = 2800 < 3000)
+
+Message 21 arrives:
+  Walk backward from msg 21, accumulate ~5 messages in 2000 tokens
+  recent=[17-21], old=[9,10,11,12,13,14,15,16] (3200 tokens), summarized=sum_1(count=8)
+  Action: SUMMARIZE! (oldTokens = 3200 >= 3000)
+  Result: recent=[17-21], old=[], summarized=sum_2(1-16, count=16)
+
+Pattern continues every ~8 messages at 400 tokens/message (3200 tokens in old bucket)...
 ```
 
 **Note:** If message lengths vary significantly, the number of messages in the recent window will vary accordingly. Token budget (2000) is fixed, message count is adaptive.
@@ -804,8 +817,8 @@ If summary quality degrades:
 
 ### Adjusting Thresholds
 Based on real usage:
-- If summaries are too lossy: Increase RECENT_WINDOW_TOKENS or SUMMARIZATION_BATCH_SIZE
-- If context is too expensive: Decrease RECENT_WINDOW_TOKENS
+- If summaries are too lossy: Increase RECENT_WINDOW_TOKENS or OLD_BUCKET_TOKENS (larger batches = more context per summary)
+- If context is too expensive: Decrease RECENT_WINDOW_TOKENS or decrease OLD_BUCKET_TOKENS (summarize more frequently)
 - If messages are consistently longer/shorter than expected: Adjust RECENT_WINDOW_TOKENS accordingly
 - Token breakdown logging and message bucket logging inform these decisions
 
@@ -861,12 +874,12 @@ Create conversations at key thresholds:
 ## Key Takeaways
 
 1. **Three buckets, not two:** already_summarized → old → recent
-2. **Token-based windowing:** Recent window uses 2000 token budget, not fixed message count — adapts to message length
+2. **Token-based windowing:** Both recent window (2000 tokens) and old bucket threshold (3000 tokens) use token-based budgets — adapts to message length
 3. **Messages flow through buckets:** Recent window is dynamic (based on tokens), messages age out to old
-4. **Batch summarization:** Only summarize when 5 messages accumulate in old bucket
-5. **Adaptive to content:** Token-based approach handles variable message lengths gracefully
+4. **Batch summarization:** Only summarize when old bucket reaches 3000 tokens (~7-8 typical messages)
+5. **Adaptive to content:** Token-based approach handles variable message lengths gracefully throughout the entire pipeline
 6. **Incremental summaries:** Build on previous summary, don't restart from scratch
 7. **Fail gracefully:** Token-based truncation fallback if summarization fails, retry next turn
 8. **Always inject insights:** Before last message, regardless of conversation length
-9. **Log everything:** Token breakdown and message bucket counts on every turn for observability
+9. **Log everything:** Token breakdown and message bucket counts (with token totals) on every turn for observability
 10. **Linked list tracking:** InterviewSummary.messageCount tells us what's already compressed
