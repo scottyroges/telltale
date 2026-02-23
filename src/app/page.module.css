@@ -63,3 +63,11 @@
 .secondaryButton:hover {
   background: var(--color-border);
 }
+
+@media (max-width: 640px) {
+  .actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 20rem;
+  }
+}
