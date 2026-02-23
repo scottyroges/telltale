@@ -48,6 +48,9 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Enhanced logging shows both message count and token count per bucket
 - Updated fallback logic to also use token-based budgeting (2x recent window = 4000 tokens)
 - All 15 existing tests updated and passing with new token-based logic
+- Replaced `SUMMARIZATION_BATCH_SIZE = 5` with `OLD_BUCKET_TOKENS = 3000` (3000 token threshold for old bucket)
+- Updated old bucket summarization trigger from message count to token count
+- Full token-based approach now applies to both recent window and old bucket threshold
 
 **Acceptance criteria:**
 - [x] Recent window determined by token count, not message count
