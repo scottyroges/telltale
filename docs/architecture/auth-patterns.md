@@ -6,6 +6,36 @@ This document covers authentication patterns and conventions used in the Telltal
 
 We use [Better Auth](https://www.better-auth.com/) with Kysely adapter and Next.js integration.
 
+### ⚠️ Critical: Error Handling Pattern
+
+**Better Auth returns `{ data, error }` instead of throwing exceptions.**
+
+```typescript
+// ❌ WRONG - This won't catch authentication errors
+try {
+  await authClient.signIn.email({ email, password, callbackURL });
+  router.push("/dashboard");
+} catch (err) {
+  setError("This won't execute on auth failure!");
+}
+
+// ✅ CORRECT - Check result.error
+const result = await authClient.signIn.email({ email, password, callbackURL });
+
+if (result.error) {
+  setError(result.error.message);
+} else {
+  router.push("/dashboard");
+}
+```
+
+This applies to **all** Better Auth client methods:
+- `authClient.signIn.email()`
+- `authClient.signUp.email()`
+- `authClient.resetPassword()`
+- `authClient.signOut()`
+- etc.
+
 ### Core Setup
 
 **Server configuration** (`src/server/auth.ts`):
@@ -81,30 +111,47 @@ await authClient.signUp.email({
 ### Email/Password Sign In
 
 ```typescript
-await authClient.signIn.email({
+const result = await authClient.signIn.email({
   email: "john@example.com",
   password: "securepassword",
   callbackURL: "/dashboard",
 });
+
+if (result.error) {
+  // Handle error
+} else {
+  // Success - redirect
+}
 ```
 
 **Error handling:**
-```typescript
-try {
-  await authClient.signIn.email({ email, password, callbackURL });
-  router.push("/dashboard");
-} catch (err) {
-  const authError = err as { code?: string; message?: string };
 
-  if (authError.code === "INVALID_CREDENTIALS") {
-    setError("Invalid email or password");
-  } else if (authError.code === "EMAIL_NOT_VERIFIED") {
+Better Auth returns `{ data, error }` instead of throwing exceptions. Always check `result.error`:
+
+```typescript
+const result = await authClient.signIn.email({ email, password, callbackURL });
+
+if (result.error) {
+  // Handle different error codes
+  if (result.error.code === "EMAIL_NOT_VERIFIED") {
     setError("Please verify your email first. Check your inbox for a verification link.");
+  } else if (result.error.message) {
+    setError(result.error.message);
   } else {
-    setError(authError.message || "Something went wrong");
+    setError("Sign-in failed. Please check your credentials and try again.");
   }
+} else {
+  // Success — redirect to dashboard
+  router.push("/dashboard");
 }
 ```
+
+**Common error codes:**
+- `INVALID_EMAIL_OR_PASSWORD` - Invalid credentials
+- `EMAIL_NOT_VERIFIED` - Email verification required
+- `USER_ALREADY_EXISTS` - Sign-up with existing email (signUp.email only)
+
+**Important:** Do NOT use try/catch to handle auth errors. Better Auth does not throw exceptions on authentication failures.
 
 ### OAuth Sign In
 

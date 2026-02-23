@@ -39,7 +39,7 @@ describe("SignUpForm", () => {
 
   it("calls authClient.signUp.email on submit", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockResolvedValueOnce({});
+    mockSignUpEmail.mockResolvedValueOnce({ data: {}, error: null });
 
     render(<SignUpForm />);
 
@@ -89,7 +89,10 @@ describe("SignUpForm", () => {
 
   it("shows error when user already exists", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockRejectedValueOnce({ code: "USER_ALREADY_EXISTS" });
+    mockSignUpEmail.mockResolvedValueOnce({
+      data: null,
+      error: { code: "USER_ALREADY_EXISTS", message: "User already exists" },
+    });
 
     render(<SignUpForm />);
 
@@ -104,7 +107,7 @@ describe("SignUpForm", () => {
 
   it("redirects to check-email page on success", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockResolvedValueOnce({});
+    mockSignUpEmail.mockResolvedValueOnce({ data: {}, error: null });
 
     render(<SignUpForm />);
 
@@ -121,7 +124,12 @@ describe("SignUpForm", () => {
 
   it("disables button while loading", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    mockSignUpEmail.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ data: {}, error: null }), 100),
+        ),
+    );
 
     render(<SignUpForm />);
 
@@ -135,5 +143,35 @@ describe("SignUpForm", () => {
 
     expect(button).toBeDisabled();
     expect(button).toHaveTextContent(/creating account/i);
+  });
+
+  it("disables all inputs while loading", async () => {
+    const user = userEvent.setup();
+    mockSignUpEmail.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ data: {}, error: null }), 100),
+        ),
+    );
+
+    render(<SignUpForm />);
+
+    const nameInput = screen.getByLabelText(/name/i);
+    const emailInput = screen.getByLabelText(/^email$/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
+    const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
+    const button = screen.getByRole("button", { name: /sign up/i });
+
+    await user.type(nameInput, "John Doe");
+    await user.type(emailInput, "john@example.com");
+    await user.type(passwordInput, "password123");
+    await user.type(confirmPasswordInput, "password123");
+    await user.click(button);
+
+    expect(nameInput).toBeDisabled();
+    expect(emailInput).toBeDisabled();
+    expect(passwordInput).toBeDisabled();
+    expect(confirmPasswordInput).toBeDisabled();
+    expect(button).toBeDisabled();
   });
 });

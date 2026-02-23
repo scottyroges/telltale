@@ -37,4 +37,20 @@ describe("GoogleSignInButton", () => {
       callbackURL: "/dashboard",
     });
   });
+
+  it("shows loading state after click", async () => {
+    const user = userEvent.setup();
+    mockSignInSocial.mockImplementation(() => {
+      // Simulate a delayed OAuth redirect
+      return new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    render(<GoogleSignInButton />);
+
+    const button = screen.getByRole("button", { name: /continue with google/i });
+    await user.click(button);
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent(/redirecting to google/i);
+  });
 });

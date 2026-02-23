@@ -36,7 +36,7 @@ describe("ResetPasswordForm", () => {
 
   it("calls authClient.resetPassword with token from URL", async () => {
     const user = userEvent.setup();
-    mockResetPassword.mockResolvedValueOnce({});
+    mockResetPassword.mockResolvedValueOnce({ data: {}, error: null });
 
     render(<ResetPasswordForm />);
 
@@ -78,7 +78,10 @@ describe("ResetPasswordForm", () => {
 
   it("shows error for invalid/expired token", async () => {
     const user = userEvent.setup();
-    mockResetPassword.mockRejectedValueOnce({ message: "Token has expired" });
+    mockResetPassword.mockResolvedValueOnce({
+      data: null,
+      error: { message: "Token has expired" },
+    });
 
     render(<ResetPasswordForm />);
 
@@ -91,7 +94,7 @@ describe("ResetPasswordForm", () => {
 
   it("redirects to login on success", async () => {
     const user = userEvent.setup();
-    mockResetPassword.mockResolvedValueOnce({});
+    mockResetPassword.mockResolvedValueOnce({ data: {}, error: null });
 
     render(<ResetPasswordForm />);
 

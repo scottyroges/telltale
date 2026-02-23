@@ -19,26 +19,33 @@ export function EmailSignInForm() {
     setLoading(true);
 
     try {
-      await authClient.signIn.email({
+      const result = await authClient.signIn.email({
         email,
         password,
         callbackURL: "/dashboard",
       });
 
-      // Success — redirect to dashboard
-      router.push("/dashboard");
-    } catch (err: unknown) {
-      const authError = err as { code?: string; message?: string };
-
-      if (authError.code === "INVALID_CREDENTIALS") {
-        setError("Invalid email or password");
-      } else if (authError.code === "EMAIL_NOT_VERIFIED") {
-        setError(
-          "Please verify your email first. Check your inbox for a verification link."
-        );
+      // Better Auth returns { data, error } instead of throwing
+      if (result.error) {
+        // Handle different error codes from Better Auth
+        if (result.error.code === "EMAIL_NOT_VERIFIED") {
+          setError(
+            "Please verify your email first. Check your inbox for a verification link."
+          );
+        } else if (result.error.message) {
+          setError(result.error.message);
+        } else {
+          // Fallback - always show some error so user knows what happened
+          setError("Sign-in failed. Please check your credentials and try again.");
+        }
       } else {
-        setError(authError.message || "Something went wrong");
+        // Success — redirect to dashboard
+        router.push("/dashboard");
       }
+    } catch (err: unknown) {
+      console.error("Sign-in error:", err);
+      // Fallback for unexpected errors
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -59,6 +66,7 @@ export function EmailSignInForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
+          disabled={loading}
           className={styles.input}
         />
       </div>
@@ -70,6 +78,7 @@ export function EmailSignInForm() {
         onChange={(e) => setPassword(e.target.value)}
         required
         autoComplete="current-password"
+        disabled={loading}
         className={styles.input}
       />
 

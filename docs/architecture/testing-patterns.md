@@ -29,6 +29,57 @@ import type { Message, InterviewStatus } from "@/domain";
 
 ## Frontend Testing Patterns
 
+### Mocking Better Auth Client
+
+Better Auth client methods return `{ data, error }` instead of throwing exceptions. Mock implementations must match this signature.
+
+**✅ Correct:**
+
+```typescript
+const mockSignInEmail = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/auth-client", () => ({
+  authClient: {
+    signIn: {
+      email: mockSignInEmail,
+    },
+  },
+}));
+
+// Success case
+mockSignInEmail.mockResolvedValueOnce({
+  data: {},
+  error: null
+});
+
+// Error case
+mockSignInEmail.mockResolvedValueOnce({
+  data: null,
+  error: {
+    code: "INVALID_EMAIL_OR_PASSWORD",
+    message: "Invalid email or password",
+    status: 401,
+  },
+});
+```
+
+**❌ Wrong:**
+
+```typescript
+// Don't use mockRejectedValue - Better Auth doesn't throw
+mockSignInEmail.mockRejectedValueOnce({
+  code: "INVALID_EMAIL_OR_PASSWORD"
+});
+
+// Don't return plain objects without data/error wrapper
+mockSignInEmail.mockResolvedValueOnce({ success: true });
+```
+
+**Why:**
+- Better Auth uses result objects, not exceptions
+- Production code checks `result.error`, not try/catch
+- Tests must match the actual API contract
+
 ### Test Visible Behavior
 
 Write tests that verify what users see and experience, not internal implementation details.

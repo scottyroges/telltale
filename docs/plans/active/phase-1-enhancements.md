@@ -191,7 +191,7 @@ Items will be added to this list as issues are discovered during testing. Each i
 
 ---
 
-### 6. Sign-In User Feedback
+### 6. Sign-In User Feedback ✅ COMPLETE
 
 **Current behavior:**
 - Sign-in forms (email/password and Google OAuth) don't show any loading state during authentication
@@ -220,13 +220,22 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Could add optimistic UI (e.g., "Redirecting..." before actual redirect)
 - Test both success and error paths to ensure state resets properly
 
+**Implementation completed:**
+- Added loading state to `EmailSignInForm` component (email/password flow)
+- Added loading state to `SignUpPage` component (email/password registration)
+- All form inputs (email, password, name) disabled during authentication
+- Google sign-in button shows "Redirecting to Google..." text during OAuth flow
+- Extended `PasswordInput` component to support `disabled` prop
+- Button shows loading state with "Signing in..." / "Creating account..." text
+- Added comprehensive test coverage for all loading states
+
 **Acceptance criteria:**
-- [ ] Sign-in button shows loading state when clicked
-- [ ] Form inputs disabled during authentication
-- [ ] Clear visual indication that sign-in is processing
-- [ ] Loading state clears on error with error message shown
-- [ ] Works for both email/password and Google OAuth flows
-- [ ] No stuck loading states if request fails
+- [x] Sign-in button shows loading state when clicked
+- [x] Form inputs disabled during authentication
+- [x] Clear visual indication that sign-in is processing
+- [x] Loading state clears on error with error message shown
+- [x] Works for both email/password and Google OAuth flows
+- [x] No stuck loading states if request fails
 
 ---
 

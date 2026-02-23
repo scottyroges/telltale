@@ -32,25 +32,32 @@ export function SignUpForm() {
     setLoading(true);
 
     try {
-      await authClient.signUp.email({
+      const result = await authClient.signUp.email({
         name,
         email,
         password,
         callbackURL: "/dashboard",
       });
 
-      // Success — redirect to check-email page
-      router.push(`/signup/check-email?email=${encodeURIComponent(email)}`);
-    } catch (err: unknown) {
-      const authError = err as { code?: string; message?: string };
-
-      if (authError.code === "USER_ALREADY_EXISTS") {
-        setError("An account with this email already exists");
-      } else if (authError.message?.includes("password")) {
-        setError("Password must be at least 8 characters");
+      // Better Auth returns { data, error } instead of throwing
+      if (result.error) {
+        // Handle different error codes from Better Auth
+        if (result.error.code === "USER_ALREADY_EXISTS") {
+          setError("An account with this email already exists");
+        } else if (result.error.message) {
+          setError(result.error.message);
+        } else {
+          // Fallback - always show some error
+          setError("Sign-up failed. Please try again.");
+        }
       } else {
-        setError(authError.message || "Something went wrong");
+        // Success — redirect to check-email page
+        router.push(`/signup/check-email?email=${encodeURIComponent(email)}`);
       }
+    } catch (err: unknown) {
+      console.error("Sign-up error:", err);
+      // Fallback for unexpected errors
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -70,6 +77,7 @@ export function SignUpForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
+          disabled={loading}
           className={styles.input}
         />
       </div>
@@ -84,6 +92,7 @@ export function SignUpForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          disabled={loading}
           className={styles.input}
         />
       </div>
@@ -95,6 +104,7 @@ export function SignUpForm() {
         onChange={(e) => setPassword(e.target.value)}
         required
         minLength={8}
+        disabled={loading}
         className={styles.input}
       />
 
@@ -105,6 +115,7 @@ export function SignUpForm() {
         onChange={(e) => setConfirmPassword(e.target.value)}
         required
         minLength={8}
+        disabled={loading}
         className={styles.input}
       />
 

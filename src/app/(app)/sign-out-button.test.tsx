@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 
 const { mockPush, mockSignOut } = vi.hoisted(() => ({
   mockPush: vi.fn(),
-  mockSignOut: vi.fn().mockResolvedValue(undefined),
+  mockSignOut: vi.fn().mockResolvedValue({ data: {}, error: null }),
 }));
 
 vi.mock("next/navigation", () => ({
