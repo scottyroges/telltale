@@ -100,6 +100,35 @@ describe("interviewRepository", () => {
     });
   });
 
+  describe("findByBookIdAndQuestionId", () => {
+    it("returns an interview when found", async () => {
+      const expected = {
+        id: "i1",
+        bookId: "b1",
+        questionId: "q1",
+        status: "ACTIVE",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      executeTakeFirst.mockResolvedValue(expected);
+
+      const result = await interviewRepository.findByBookIdAndQuestionId("b1", "q1");
+
+      expect(result).toEqual(expected);
+      expect(selectFrom).toHaveBeenCalledWith("interview");
+      expect(executeTakeFirst).toHaveBeenCalled();
+    });
+
+    it("returns null when not found", async () => {
+      executeTakeFirst.mockResolvedValue(undefined);
+
+      const result = await interviewRepository.findByBookIdAndQuestionId("b1", "q1");
+
+      expect(result).toBeNull();
+      expect(selectFrom).toHaveBeenCalledWith("interview");
+    });
+  });
+
   describe("updateStatus", () => {
     it("updates interview status", async () => {
       const expected = {

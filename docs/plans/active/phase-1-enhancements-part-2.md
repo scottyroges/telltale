@@ -452,7 +452,90 @@ Your story, your pace, your way.
 
 ## Future Items
 
-_(Add new enhancements below as they're discovered during testing)_
+### 10. User Approval System (Temporary Access Control)
+
+**Context:**
+- Currently in pre-launch/MVP phase without payment system
+- Claude API calls are expensive and will rack up costs quickly
+- Need to control who has access to the platform until we're ready to charge
+- This is a temporary measure until proper billing/payment is implemented
+
+**Current behavior:**
+- Any user who signs up via Google OAuth gets full access immediately
+- No approval process or access control
+- All users can start interviews and call Claude API endpoints
+- No way to limit access or manage beta users
+
+**Problem:**
+- **COST CONTROL** - Claude API calls are expensive
+- Can't control who accesses the product during development/testing
+- Risk of unauthorized users running up API bills
+- No way to manage a limited beta user group
+- Could get unexpected API charges from unknown users
+
+**Desired behavior:**
+- New users can sign up but are in "pending approval" state by default
+- Pending users cannot access interview features or any Claude API endpoints
+- Admin can approve/reject users (simple UI or even database flag)
+- Approved users get full access to the platform
+- Clear messaging to pending users: "Your account is pending approval"
+- Admin notification when new users sign up (optional)
+
+**Implementation notes:**
+- Add `approvalStatus` enum field to User model:
+  - `PENDING` (default for new signups)
+  - `APPROVED` (full access)
+  - `REJECTED` (blocked)
+- Add middleware or auth check to block unapproved users from:
+  - Interview pages (`/books/[bookId]/questions/[questionId]/interview`)
+  - Interview API endpoints (tRPC mutations that call Claude)
+  - Any other expensive API operations
+- Create admin UI to manage user approvals:
+  - List all users with approval status
+  - Approve/reject buttons
+  - Maybe at `/admin/users` route
+  - Simple table: email, name, created date, status, approve/reject actions
+- Add pending approval message for unapproved users:
+  - Show on dashboard: "Your account is pending approval. You'll receive access soon!"
+  - Maybe email notification when approved (optional)
+- Consider: Who is admin?
+  - Hardcoded email addresses in env var? (`ADMIN_EMAILS=scott@example.com`)
+  - Add `isAdmin` boolean to User model?
+  - For MVP, env var is probably fine
+- Consider: Should middleware redirect or show message?
+  - Redirect to `/pending-approval` page with clear message
+  - Or show inline on dashboard/book pages
+- Database migration for `approvalStatus` field
+- Default existing users to `APPROVED` in migration
+
+**Scope considerations:**
+- Block access to interviews/Claude API (high priority)
+- Block access to books/questions? (probably not needed - no API cost there)
+- Block access to entire dashboard? (probably overkill - let them see the UI)
+- Recommended: Just block the expensive operations (interviews + Claude API)
+
+**Future removal:**
+- When payment/billing is implemented, remove approval system
+- Or convert to different use case: trial vs paid, free tier limits, etc.
+- Make it easy to remove when no longer needed
+
+**Acceptance criteria:**
+- [ ] New users default to `PENDING` approval status
+- [ ] Unapproved users cannot access interview pages
+- [ ] Unapproved users cannot call interview/Claude API endpoints
+- [ ] Clear message shown to pending users
+- [ ] Admin UI to view all users and their approval status
+- [ ] Admin can approve/reject users with single click
+- [ ] Approved users get full access immediately
+- [ ] Database migration adds `approvalStatus` field
+- [ ] Existing users migrated to `APPROVED` status
+- [ ] Admin access controlled via env var or user flag
+- [ ] Test coverage for approval checks
+- [ ] Documentation on how to approve users
+
+---
+
+_(Add additional enhancements below as they're discovered during testing)_
 
 ---
 

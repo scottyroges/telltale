@@ -22,6 +22,18 @@ export const conversationService = {
       throw new Error(`Question not found: ${bookQuestion.questionId}`);
     }
 
+    // Check if interview already exists for this book + question
+    const existingInterview = await interviewRepository.findByBookIdAndQuestionId(
+      bookQuestion.bookId,
+      bookQuestion.questionId,
+    );
+
+    if (existingInterview) {
+      // Resume existing interview - return its ID without creating a new one
+      return { interviewId: existingInterview.id };
+    }
+
+    // No existing interview found - create a new one
     const interview = await interviewRepository.create({
       bookId: bookQuestion.bookId,
       questionId: bookQuestion.questionId,
