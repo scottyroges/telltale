@@ -221,7 +221,7 @@ Items will be added to this list as issues are discovered during testing. Each i
 
 ---
 
-### 7. Add Login/Sign-Up Links to Landing Page
+### 7. Add Login/Sign-Up Links to Landing Page ✅ COMPLETE
 
 **Current behavior:**
 - Main landing page at telltalestories.com exists as a placeholder
@@ -247,12 +247,19 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Could be as simple as: "Welcome to Telltale Stories" + "Sign In" / "Sign Up" buttons
 - Consider the logged-in state - redirect to dashboard if already authenticated
 
+**Implementation completed:**
+- Added Sign Up (primary button) and Sign In (secondary button) links below hero text
+- Implemented session check to redirect authenticated users to dashboard
+- Applied responsive design with flex layout (stacks vertically on mobile)
+- Used CSS custom properties for theming consistency
+- Also fixed TypeScript import in `scripts/add-question.ts` (Database → DB type)
+
 **Acceptance criteria:**
-- [ ] "Sign In" link/button visible on landing page
-- [ ] "Sign Up" link/button visible on landing page
-- [ ] Links navigate to correct auth pages
-- [ ] Works on both desktop and mobile viewports
-- [ ] Logged-in users redirected to dashboard (optional, but nice to have)
+- [x] "Sign In" link/button visible on landing page
+- [x] "Sign Up" link/button visible on landing page
+- [x] Links navigate to correct auth pages
+- [x] Works on both desktop and mobile viewports
+- [x] Logged-in users redirected to dashboard
 
 ---
 

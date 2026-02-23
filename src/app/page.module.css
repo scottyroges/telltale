@@ -21,3 +21,53 @@
   max-width: 36rem;
   line-height: 1.6;
 }
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.primaryButton {
+  display: inline-block;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.primaryButton:hover {
+  opacity: 0.9;
+}
+
+.secondaryButton {
+  display: inline-block;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  color: var(--color-fg);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.secondaryButton:hover {
+  background: var(--color-border);
+}
+
+@media (max-width: 640px) {
+  .actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 20rem;
+  }
+}
