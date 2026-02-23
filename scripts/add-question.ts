@@ -16,7 +16,7 @@
 import { Kysely, PostgresDialect } from "kysely";
 import { Pool } from "pg";
 import { createId } from "@paralleldrive/cuid2";
-import type { Database } from "@/lib/db";
+import type { DB } from "@/db/types";
 import type { Question } from "@/domain/question";
 
 interface QuestionInput {
@@ -134,7 +134,7 @@ const DEFAULT_QUESTIONS: QuestionInput[] = [
 /**
  * Create database connection (local or production)
  */
-function createDb(isProd: boolean): Kysely<Database> {
+function createDb(isProd: boolean): Kysely<DB> {
   const connectionString = isProd
     ? process.env.PROD_DATABASE_URL
     : process.env.DATABASE_URL;
@@ -146,7 +146,7 @@ function createDb(isProd: boolean): Kysely<Database> {
 
   console.log(`🔌 Connecting to ${isProd ? 'PRODUCTION' : 'local'} database...`);
 
-  return new Kysely<Database>({
+  return new Kysely<DB>({
     dialect: new PostgresDialect({
       pool: new Pool({
         connectionString,
@@ -159,7 +159,7 @@ function createDb(isProd: boolean): Kysely<Database> {
 /**
  * Create question repository instance with custom db
  */
-function createQuestionRepository(db: Kysely<Database>) {
+function createQuestionRepository(db: Kysely<DB>) {
   const columns = [
     "id",
     "category",
@@ -207,7 +207,7 @@ function parseArgs(): { customQuestion: QuestionInput | null; isProd: boolean } 
       prompt = args[i + 1];
       i++;
     } else if (args[i] === "--order" && args[i + 1]) {
-      orderIndex = parseInt(args[i + 1], 10);
+      orderIndex = parseInt(args[i + 1]!, 10);
       i++;
     } else if (args[i] === "--prod") {
       isProd = true;
