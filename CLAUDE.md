@@ -11,6 +11,7 @@ AI-powered life story platform — conversational AI that draws out rich, deep s
 - **Test Coverage:** `npm run test:coverage`
 - **Test E2E:** `npm run test:e2e` (Playwright)
 - **Lint:** `npm run lint`
+- **Typecheck:** `npm run typecheck`
 
 ## Backend Extraction Rules
 
