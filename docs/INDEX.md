@@ -8,6 +8,7 @@
 - **System architecture & mental models:** docs/architecture/
 - **Active work plans:** docs/plans/active/
 - **Completed work plans:** docs/plans/completed/
+- **Known issues & bugs:** docs/known-issues.md
 - **Ideas & deferred concepts:** docs/ideas/
 
 ## Roadmap
@@ -16,7 +17,7 @@
 
 ## Active Plans
 
-- **phase-1-enhancements-part-2.md** — Second round of Phase 1 improvements (question removal UI, TBD)
+- **phase-1-enhancements-part-2.md** — Second round of Phase 1 improvements (question removal UI, chat readability, interview layout/scroll fixes, back navigation, duplicate interview bug, interview completion/exit strategy, personalize with user name, conversation steering control, usage guidance/helper text)
 
 ## Completed Plans
 
@@ -51,6 +52,7 @@
 
 - **docs/ideas/admin-ui.md** — Admin UI for question library, user management, system monitoring; use scripts for now
 - **docs/ideas/depth-score.md** — Interview depth/richness metric, deferred until real conversations inform the design
+- **docs/ideas/interview-ui-alternatives.md** — Alternative UI approaches: word processor-focused interface, inline comment/annotation interface
 
 ## Decision Records
 
