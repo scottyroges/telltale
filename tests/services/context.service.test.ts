@@ -158,7 +158,8 @@ describe("contextService", () => {
   });
 
   it("triggers summarization when old bucket >= 5", async () => {
-    // Create 10 messages: old bucket will have 5 (messages 0-4), recent has 5 (messages 5-9)
+    // Create 10 messages: each is 8000 chars = 2000 tokens
+    // Recent window (2000 tokens) will have 1 message, old will have 9 messages
     const largeContent = "x".repeat(8000);
     const messages = Array.from({ length: 10 }, (_, i) => ({
       id: `m${i + 1}`,
@@ -178,25 +179,26 @@ describe("contextService", () => {
 
     const result = await contextService.buildContextWindow("int1");
 
-    // Should create summary
+    // Should create summary with 9 old messages
     expect(mockSummaryCreate).toHaveBeenCalledWith({
       interviewId: "int1",
       parentSummaryId: undefined,
       content: "Summary of old messages",
-      messageCount: 5,
+      messageCount: 9,
     });
 
-    // Should return summary + recent 5 messages
+    // Should return summary + recent 1 message
     expect(result.messages[0]).toEqual({
       role: "assistant",
       content: "Summary of old messages",
     });
-    expect(result.messages).toHaveLength(6); // 1 summary + 5 recent
+    expect(result.messages).toHaveLength(2); // 1 summary + 1 recent
   });
 
   it("incorporates existing summary when creating new summary", async () => {
     const largeContent = "x".repeat(8000);
-    // Create 15 messages: alreadySummarized=5, old=5 (indices 5-9), recent=5 (indices 10-14)
+    // Create 15 messages: each is 8000 chars = 2000 tokens
+    // alreadySummarized=5, recent (2000 tokens) = 1 message, old = 9 messages (indices 5-13)
     const messages = Array.from({ length: 15 }, (_, i) => ({
       id: `m${i + 1}`,
       interviewId: "int1",
@@ -241,12 +243,12 @@ describe("contextService", () => {
       interviewId: "int1",
       parentSummaryId: "sum1",
       content: "Updated summary with new content",
-      messageCount: 10, // 5 (existing) + 5 (new old messages, indices 5-9)
+      messageCount: 14, // 5 (existing) + 9 (new old messages, indices 5-13)
     });
   });
 
   it("falls back to truncation when summarization fails", async () => {
-    const largeContent = "x".repeat(4000); // 1000 tokens each, 10k total - under 16k hard limit
+    const largeContent = "x".repeat(4000); // 1000 tokens each
     const messages = Array.from({ length: 10 }, (_, i) => ({
       id: `m${i + 1}`,
       interviewId: "int1",
@@ -274,15 +276,15 @@ describe("contextService", () => {
     // Should NOT create summary
     expect(mockSummaryCreate).not.toHaveBeenCalled();
 
-    // Should return last 10 messages (5 old + 5 recent)
-    expect(result.messages).toHaveLength(10);
+    // Should return last 4 messages (fallback budget = 4000 tokens, each message = 1000 tokens)
+    expect(result.messages).toHaveLength(4);
 
     consoleSpy.mockRestore();
   });
 
   it("includes existing summary in fallback when summarization fails", async () => {
-    const largeContent = "x".repeat(4000); // 1000 tokens each - keep under 16k hard limit
-    // Create 15 messages: alreadySummarized=5, old=5 (indices 5-9), recent=5 (indices 10-14)
+    const largeContent = "x".repeat(4000); // 1000 tokens each
+    // Create 15 messages
     const messages = Array.from({ length: 15 }, (_, i) => ({
       id: `m${i + 1}`,
       interviewId: "int1",
@@ -316,8 +318,8 @@ describe("contextService", () => {
       content: "Previous summary",
     });
 
-    // Should include last 10 messages (fallback) + summary
-    expect(result.messages).toHaveLength(11);
+    // Should include summary + last 4 messages (fallback budget = 4000 tokens, each message = 1000 tokens)
+    expect(result.messages).toHaveLength(5);
 
     consoleSpy.mockRestore();
   });

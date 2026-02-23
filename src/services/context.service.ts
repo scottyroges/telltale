@@ -13,7 +13,7 @@ import type { Insight } from "@/domain/insight";
 
 const MAX_CONTEXT_TOKENS = 16000;
 const SUMMARIZATION_THRESHOLD = 8000;
-const RECENT_WINDOW_SIZE = 5;
+const RECENT_WINDOW_TOKENS = 2000; // Token budget for recent messages
 const SUMMARIZATION_BATCH_SIZE = 5;
 
 export interface ContextWindow {
@@ -145,12 +145,40 @@ function calculateMessageBuckets(
     ReturnType<typeof interviewSummaryRepository.findLatestByInterviewId>
   >,
 ): MessageBuckets {
-  const recent = conversationMessages.slice(-RECENT_WINDOW_SIZE);
   const alreadySummarizedCount = existingSummary?.messageCount ?? 0;
-  const old = conversationMessages.slice(
-    alreadySummarizedCount,
-    -RECENT_WINDOW_SIZE,
+
+  // Walk backward from the latest message, accumulating tokens for recent window
+  const recent: Message[] = [];
+  let recentTokens = 0;
+
+  for (let i = conversationMessages.length - 1; i >= alreadySummarizedCount; i--) {
+    const msg = conversationMessages[i]!;
+    const msgTokens = estimateTokens(msg.content);
+
+    // Always include at least the most recent message, even if it exceeds the budget
+    // For subsequent messages, only add if they fit within the token budget
+    if (recent.length > 0 && recentTokens + msgTokens > RECENT_WINDOW_TOKENS) {
+      break;
+    }
+
+    recent.unshift(msg); // Add to front since we're walking backward
+    recentTokens += msgTokens;
+  }
+
+  // Old messages = everything between already summarized and recent window
+  const recentStartIndex = conversationMessages.length - recent.length;
+  const old = conversationMessages.slice(alreadySummarizedCount, recentStartIndex);
+
+  const oldTokens = old.reduce(
+    (sum, msg) => sum + estimateTokens(msg.content),
+    0,
   );
+
+  console.log("[Context] Message buckets:", {
+    recent: { count: recent.length, tokens: recentTokens },
+    old: { count: old.length, tokens: oldTokens },
+    alreadySummarized: alreadySummarizedCount,
+  });
 
   return { recent, old, alreadySummarizedCount };
 }
@@ -204,10 +232,27 @@ async function assembleSummarized(
       error,
     );
 
-    // Fallback: keep last 5 from old + 5 recent = 10 messages
-    const fallbackMessages = conversationMessages.slice(
-      -RECENT_WINDOW_SIZE * 2,
-    );
+    // Fallback: keep recent messages that fit within double the recent window token budget
+    const fallbackTokenBudget = RECENT_WINDOW_TOKENS * 2;
+    const fallbackMessages: Message[] = [];
+    let fallbackTokens = 0;
+
+    for (let i = conversationMessages.length - 1; i >= 0; i--) {
+      const msg = conversationMessages[i]!;
+      const msgTokens = estimateTokens(msg.content);
+
+      // Always include at least the most recent message
+      if (
+        fallbackMessages.length > 0 &&
+        fallbackTokens + msgTokens > fallbackTokenBudget
+      ) {
+        break;
+      }
+
+      fallbackMessages.unshift(msg);
+      fallbackTokens += msgTokens;
+    }
+
     const messages: LLMMessage[] = [];
 
     // Include existing summary if available
