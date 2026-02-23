@@ -35,6 +35,7 @@
   - Completed plans that reference `src/services/prompt.ts` should NOT be updated retroactively — they are historical records
 - **Email provider (1.7 PR 1):** `src/lib/email.ts` abstracts email sending (Resend) — server-only guard, env var validation
 - **Auth pages (1.7):** Signup, forgot-password, reset-password, email-sign-in-form at `src/app/(auth)/` — colocated tests, CSS modules, multi-method login layout
+- **Dashboard UI patterns (Enhancement 8):** Card-based layout with styled borders, definition lists for structured data, status badges, responsive breakpoints at 640px, animated hover states on CTAs
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk

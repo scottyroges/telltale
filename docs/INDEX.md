@@ -16,10 +16,11 @@
 
 ## Active Plans
 
-- **phase-1-enhancements.md** — Post-testing improvements to Phase 1 features (token-based summarization, TBD)
+- **phase-1-enhancements-part-2.md** — Second round of Phase 1 improvements (question removal UI, TBD)
 
 ## Completed Plans
 
+- **docs/plans/completed/phase-1-enhancements.md** — First round of Phase 1 improvements (token-based summarization, password visibility, Google icon, SSL modes, loading states, dashboard polish)
 - **docs/plans/completed/1.7-email-apple-auth.md** — Email/password authentication, sign-up/sign-in flows, password reset (3 PRs)
 - **docs/plans/completed/1.6-context-window-management.md** — Summarization, context assembly, insight injection, hard token limit enforcement (3 PRs)
 - **docs/plans/completed/1.5-insight-extraction.md** — Inline insight extraction, JSON response parsing, retry logic, getInsights endpoints (ADR 014, ADR 016)
