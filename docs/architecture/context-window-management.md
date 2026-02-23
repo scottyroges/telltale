@@ -24,8 +24,9 @@ We use a **three-bucket sliding window** strategy optimized for long-form storyt
 ### The Three Buckets
 
 **1. Recent (verbatim)**
-- Last 5 messages, kept word-for-word
-- Fixed window size
+- Messages that fit within 2000 tokens, kept word-for-word
+- Dynamic window size based on token budget (not message count)
+- Always includes at least the most recent message (even if it exceeds budget)
 - High fidelity for immediate context
 
 **2. Old (accumulating)**
@@ -65,7 +66,7 @@ Reset old bucket to empty
 ```typescript
 MAX_CONTEXT_TOKENS = 16000             // Hard limit (enforced by truncation)
 SUMMARIZATION_THRESHOLD = 8000         // Trigger point for starting summarization
-RECENT_WINDOW_SIZE = 5                 // Keep last 5 messages verbatim
+RECENT_WINDOW_TOKENS = 2000            // Token budget for recent messages (dynamic count)
 SUMMARIZATION_BATCH_SIZE = 5           // Summarize when 5 messages accumulate
 ```
 
@@ -77,10 +78,12 @@ After context assembly (whether under threshold, incremental, or summarized), `e
 
 ### Why These Numbers?
 
-**RECENT_WINDOW_SIZE = 5**
-- Optimized for long-form storytelling
-- User messages contain rich, detailed narratives
-- 5 recent messages provide strong immediate context without bloating token count
+**RECENT_WINDOW_TOKENS = 2000**
+- Optimized for long-form storytelling with variable message lengths
+- Provides consistent token budget regardless of whether messages are short or verbose
+- ~5 typical messages fit within 2000 tokens (at ~400 tokens each)
+- Short messages allow more in recent window; long messages mean fewer
+- Always includes at least the most recent message for continuity
 
 **SUMMARIZATION_BATCH_SIZE = 5**
 - Summarize frequently enough to keep context manageable
@@ -94,10 +97,26 @@ After context assembly (whether under threshold, incremental, or summarized), `e
 ### Trigger Logic
 
 ```typescript
-// Split messages into buckets
-const recentMessages = allMessages.slice(-RECENT_WINDOW_SIZE);  // Last 5
-const alreadySummarizedCount = existingSummary?.messageCount ?? 0;
-const oldMessages = allMessages.slice(alreadySummarizedCount, -RECENT_WINDOW_SIZE);
+// Walk backward from latest message, accumulating tokens for recent window
+const recent: Message[] = [];
+let recentTokens = 0;
+
+for (let i = allMessages.length - 1; i >= alreadySummarizedCount; i--) {
+  const msg = allMessages[i];
+  const msgTokens = estimateTokens(msg.content);
+
+  // Always include at least the most recent message
+  if (recent.length > 0 && recentTokens + msgTokens > RECENT_WINDOW_TOKENS) {
+    break;
+  }
+
+  recent.unshift(msg);
+  recentTokens += msgTokens;
+}
+
+// Old messages = everything between already summarized and recent window
+const recentStartIndex = allMessages.length - recent.length;
+const oldMessages = allMessages.slice(alreadySummarizedCount, recentStartIndex);
 
 // Should we summarize?
 if (oldMessages.length >= SUMMARIZATION_BATCH_SIZE) {
@@ -105,6 +124,53 @@ if (oldMessages.length >= SUMMARIZATION_BATCH_SIZE) {
   // New messageCount = alreadySummarizedCount + oldMessages.length
 }
 ```
+
+## Token-Based Windowing
+
+**Why tokens instead of message count?**
+
+In long-form storytelling, message length varies dramatically:
+- A short confirmation: "Yes, that's exactly right" (~5 tokens)
+- A rich narrative: Multi-paragraph story about childhood (~800 tokens)
+
+Using a fixed message count (e.g., "last 5 messages") creates two problems:
+
+**Problem 1: Underutilizing the budget**
+- If the last 5 messages are short (~100 tokens each = 500 total)
+- We could have included 10-15 messages within our 2000 token budget
+- Context is unnecessarily truncated
+
+**Problem 2: Exceeding the budget**
+- If the last 5 messages are verbose (~600 tokens each = 3000 total)
+- We blow past our intended window size
+- Summarization triggers later than expected
+
+**Token-based approach benefits:**
+- **Consistent budget:** Recent window always uses ~2000 tokens, never more, rarely much less
+- **Adaptive to content:** Short messages → more messages included; long messages → fewer included
+- **Better summarization triggers:** Old bucket fills based on actual token pressure, not arbitrary counts
+- **Whole messages only:** Never splits a message mid-content — if a message doesn't fit, exclude it entirely
+- **Minimum guarantee:** Always includes at least the most recent message, even if it exceeds 2000 tokens (maintains continuity)
+
+**Example scenarios:**
+
+```typescript
+// Scenario A: Short messages (100 tokens each)
+recent = last 20 messages (2000 tokens total)  // Adaptive!
+
+// Scenario B: Typical messages (400 tokens each)
+recent = last 5 messages (2000 tokens total)   // Expected case
+
+// Scenario C: Long messages (800 tokens each)
+recent = last 2 messages (1600 tokens total)   // Still within budget
+
+// Scenario D: One giant message (3000 tokens)
+recent = last 1 message (3000 tokens)          // Exceeds budget, but guaranteed
+```
+
+The system walks backward from the most recent message, accumulating tokens until the budget is exhausted. This ensures recent context adapts to the actual content, not a fixed count.
+
+---
 
 ## Examples
 
@@ -153,11 +219,12 @@ USER: The topic for this conversation is: childhood memories.
 
 ### Example 3: Short Conversation (5 Messages)
 
-**Scenario:** Conversation has 5 messages
+**Scenario:** Conversation has 5 typical-length messages (~400 tokens each)
 
 **State:**
 - Total messages: 5
 - Total tokens: ~3,000 (under 8K threshold)
+- Recent window: all 5 messages fit within 2000 token budget
 - Buckets: recent=[1,2,3,4,5], old=[], already_summarized=none
 
 **Behavior:**
@@ -191,11 +258,12 @@ USER: (message 5)
 **State:**
 - Total messages: 8
 - Total tokens: ~9,500 (over 8K threshold)
+- Recent window: walk backward, accumulate ~5 messages within 2000 tokens
 - Buckets: recent=[4,5,6,7,8], old=[1,2,3], already_summarized=none
 
 **Behavior:**
 - Over threshold → split into buckets
-- recent = last 5 messages [4-8]
+- recent = last ~5 messages that fit token budget [4-8]
 - old = messages before recent [1-3]
 - Check: `old.length = 3 < 5` → **don't summarize yet** (need 5 to make a batch)
 - Returns: `{ systemPrompt, messages: [1,2,3,4,5,6,7,8 with insights] }`
@@ -220,16 +288,17 @@ ASSISTANT: (message 8 - insights injected before this)
 
 ### Example 5: First Summary (10 Messages)
 
-**Scenario:** Conversation reaches 10 messages
+**Scenario:** Conversation reaches 10 messages (typical length ~400 tokens each)
 
 **State:**
 - Total messages: 10
 - Total tokens: ~11,000
+- Recent window: walk backward, ~5 messages fit within 2000 tokens
 - Buckets: recent=[6,7,8,9,10], old=[1,2,3,4,5], already_summarized=none
 
 **Behavior:**
 - Split into buckets
-- recent = [6-10]
+- recent = last ~5 messages within token budget [6-10]
 - old = [1-5]
 - Check: `old.length = 5 >= 5` → **SUMMARIZE!**
 - Summarize messages 1-5 into prose
@@ -383,10 +452,11 @@ InterviewSummary {
 - Split into buckets normally
 - old.length = 5 → attempt summarization
 - Summarization **FAILS**
-- **Fallback:** Truncate old bucket
-  - Keep last `SUMMARIZATION_BATCH_SIZE` from old = last 5 from old = [6-10]
-  - Keep all recent = [11-15]
-  - Total sent: 10 messages (5 + 5)
+- **Fallback:** Token-based truncation
+  - Walk backward with 2x recent window budget (4000 tokens)
+  - Accumulate messages that fit within budget
+  - Typically ~10 messages (if 400 tokens each)
+  - Always include at least the most recent message
 - **Do NOT create InterviewSummary** (next turn will retry)
 - Returns: `{ systemPrompt, messages: [6,7,8,9,10,11,12,13,14,15 with insights] }`
 
@@ -464,8 +534,14 @@ function estimateTokens(text: string): number {
 - All insights (~20-50 tokens each)
 
 **Logging:**
-Every turn logs the token breakdown:
+Every turn logs both token breakdown and message buckets:
 ```typescript
+console.log('[Context] Message buckets:', {
+  recent: { count: 5, tokens: 2012 },
+  old: { count: 3, tokens: 1204 },
+  alreadySummarized: 5
+});
+
 console.log('[Context] Token breakdown:', {
   systemPrompt: 512,
   summary: 287,
@@ -581,7 +657,7 @@ buildContextWindow(interviewId)
   │   NO  → Continue ↓
   │
   ├─ Split into three buckets:
-  │   - recent = last 5 messages
+  │   - recent = walk backward from latest, accumulate messages within 2000 token budget
   │   - already_summarized = existingSummary?.messageCount ?? 0
   │   - old = messages between already_summarized and recent
   │
@@ -596,8 +672,9 @@ buildContextWindow(interviewId)
   │             Assemble summary + recent messages
   │             Apply enforceMaxTokens()
   │             Return
-  │   FAIL    → Truncate old to last 5 messages
-  │             Assemble truncated old + recent (no summary record)
+  │   FAIL    → Token-based fallback truncation (2x recent window budget = 4000 tokens)
+  │             Walk backward, accumulate messages within fallback budget
+  │             Assemble truncated messages (no summary record)
   │             Apply enforceMaxTokens()
   │             Return
   │
@@ -606,35 +683,49 @@ buildContextWindow(interviewId)
 
 ### Message Flow (Detailed)
 
-```
-Messages 1-5:
-  recent=[1,2,3,4,5], old=[], summarized=none
-  Action: None (under threshold or old bucket not full)
+**Assumption:** Typical messages are ~400 tokens each, so ~5 fit in 2000 token budget.
 
-Message 6 arrives:
-  recent=[2,3,4,5,6], old=[1], summarized=none
+```
+Messages 1-5: (under threshold)
+  recent=[1,2,3,4,5] (all fit in 2000 tokens), old=[], summarized=none
+  Action: None (under threshold)
+
+Message 6 arrives: (over threshold, start bucketing)
+  Walk backward from msg 6, accumulate tokens:
+    msg 6 (400 tok) → recent=[6]
+    msg 5 (400 tok) → recent=[5,6]
+    msg 4 (400 tok) → recent=[4,5,6]
+    msg 3 (400 tok) → recent=[3,4,5,6]
+    msg 2 (400 tok) → recent=[2,3,4,5,6] (2000 tokens total, stop)
+  recent=[2-6] (2000 tokens), old=[1], summarized=none
   Action: None (old.length = 1 < 5)
 
-Message 7-9 arrive:
-  recent=[5,6,7,8,9], old=[1,2,3,4], summarized=none
+Messages 7-9 arrive:
+  Walk backward from msg 9, accumulate ~5 messages in 2000 tokens
+  recent=[5-9], old=[1,2,3,4], summarized=none
   Action: None (old.length = 4 < 5)
 
 Message 10 arrives:
-  recent=[6,7,8,9,10], old=[1,2,3,4,5], summarized=none
+  Walk backward from msg 10, accumulate ~5 messages in 2000 tokens
+  recent=[6-10], old=[1,2,3,4,5], summarized=none
   Action: SUMMARIZE! (old.length = 5 >= 5)
   Result: recent=[6-10], old=[], summarized=sum_1(1-5, count=5)
 
-Message 11-14 arrive:
-  recent=[10,11,12,13,14], old=[6,7,8,9], summarized=sum_1(count=5)
+Messages 11-14 arrive:
+  Walk backward from msg 14, accumulate ~5 messages in 2000 tokens
+  recent=[10-14], old=[6,7,8,9], summarized=sum_1(count=5)
   Action: None (old.length = 4 < 5)
 
 Message 15 arrives:
-  recent=[11,12,13,14,15], old=[6,7,8,9,10], summarized=sum_1(count=5)
+  Walk backward from msg 15, accumulate ~5 messages in 2000 tokens
+  recent=[11-15], old=[6,7,8,9,10], summarized=sum_1(count=5)
   Action: SUMMARIZE! (old.length = 5 >= 5)
   Result: recent=[11-15], old=[], summarized=sum_2(1-10, count=10)
 
-Pattern continues every 5 messages...
+Pattern continues every ~5 messages (depending on message length)...
 ```
+
+**Note:** If message lengths vary significantly, the number of messages in the recent window will vary accordingly. Token budget (2000) is fixed, message count is adaptive.
 
 ---
 
@@ -645,15 +736,23 @@ Pattern continues every 5 messages...
 - Returns empty array
 - Defensive handling (shouldn't happen in practice)
 
-### Exactly at Window Size
-- 5 messages total
+### Exactly at Window Size (Typical Messages)
+- 5 messages total (~400 tokens each = 2000 tokens)
+- All 5 fit in recent window budget
 - recent=[1-5], old=[], summarized=none
 - No summarization (nothing in old bucket)
 
 ### Just Over Window Size
-- 6 messages total
+- 6 messages total (~400 tokens each)
+- Walk backward: last 5 messages fit in 2000 token budget
 - recent=[2-6], old=[1], summarized=none
 - No summarization (old bucket not full)
+
+### Variable Message Lengths
+- 3 long messages (800 tokens each)
+- Walk backward: last 2 messages = 1600 tokens (fits), 3rd message would exceed
+- recent=[2-3], old=[1], summarized=none
+- Recent window adapts to content length
 
 ### Exactly at First Summary Trigger
 - 10 messages
@@ -705,10 +804,10 @@ If summary quality degrades:
 
 ### Adjusting Thresholds
 Based on real usage:
-- If summaries are too lossy: Increase RECENT_WINDOW_SIZE or SUMMARIZATION_BATCH_SIZE
-- If context is too expensive: Decrease window sizes
-- If user messages are shorter than expected: Increase RECENT_WINDOW_SIZE
-- Token breakdown logging informs these decisions
+- If summaries are too lossy: Increase RECENT_WINDOW_TOKENS or SUMMARIZATION_BATCH_SIZE
+- If context is too expensive: Decrease RECENT_WINDOW_TOKENS
+- If messages are consistently longer/shorter than expected: Adjust RECENT_WINDOW_TOKENS accordingly
+- Token breakdown logging and message bucket logging inform these decisions
 
 ### Parallel Conversations
 If user has multiple active interviews:
@@ -732,8 +831,10 @@ Must cover all scenarios:
 - ✅ Summarization failure (truncation fallback, no summary record created)
 - ✅ Insight injection (placement before last message, role 'assistant')
 - ✅ Token estimation accuracy
-- ✅ Token logging output
+- ✅ Token logging output (including message bucket counts and token totals)
 - ✅ Hard token limit enforcement (truncates to most recent messages when over MAX_CONTEXT_TOKENS)
+- ✅ Token-based recent window (dynamic message count based on content length)
+- ✅ Token-based fallback (accumulates messages within 2x token budget when summarization fails)
 
 ### Integration Tests (conversation.service.test.ts)
 
@@ -746,11 +847,13 @@ Mock `contextService` and verify:
 ### Manual Verification
 
 Create conversations at key thresholds:
-- 5 messages (all recent)
-- 10 messages (first summary trigger)
-- 15 messages (second summary trigger)
+- Varied message lengths (short vs. long narratives)
+- 5 typical messages (all recent, ~2000 tokens)
+- 10 typical messages (first summary trigger)
+- 15 typical messages (second summary trigger)
 - Verify AI references details from early messages despite summarization
-- Check token logs match expectations
+- Check token logs match expectations (message bucket counts + token totals)
+- Verify recent window adapts to message length (more short messages, fewer long messages)
 - Verify InterviewSummary records created correctly
 
 ---
@@ -758,11 +861,12 @@ Create conversations at key thresholds:
 ## Key Takeaways
 
 1. **Three buckets, not two:** already_summarized → old → recent
-2. **Messages flow through buckets:** recent window is fixed at 5, messages age out to old
-3. **Batch summarization:** Only summarize when 5 messages accumulate in old bucket
-4. **Small windows for rich content:** 5 message window optimized for long-form storytelling
-5. **Incremental summaries:** Build on previous summary, don't restart from scratch
-6. **Fail gracefully:** Truncate if summarization fails, retry next turn
-7. **Always inject insights:** Before last message, regardless of conversation length
-8. **Log everything:** Token breakdown on every turn for observability
-9. **Linked list tracking:** InterviewSummary.messageCount tells us what's already compressed
+2. **Token-based windowing:** Recent window uses 2000 token budget, not fixed message count — adapts to message length
+3. **Messages flow through buckets:** Recent window is dynamic (based on tokens), messages age out to old
+4. **Batch summarization:** Only summarize when 5 messages accumulate in old bucket
+5. **Adaptive to content:** Token-based approach handles variable message lengths gracefully
+6. **Incremental summaries:** Build on previous summary, don't restart from scratch
+7. **Fail gracefully:** Token-based truncation fallback if summarization fails, retry next turn
+8. **Always inject insights:** Before last message, regardless of conversation length
+9. **Log everything:** Token breakdown and message bucket counts on every turn for observability
+10. **Linked list tracking:** InterviewSummary.messageCount tells us what's already compressed
