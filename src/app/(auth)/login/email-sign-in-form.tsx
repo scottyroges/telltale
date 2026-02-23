@@ -59,6 +59,7 @@ export function EmailSignInForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
+          disabled={loading}
           className={styles.input}
         />
       </div>
@@ -70,6 +71,7 @@ export function EmailSignInForm() {
         onChange={(e) => setPassword(e.target.value)}
         required
         autoComplete="current-password"
+        disabled={loading}
         className={styles.input}
       />
 

@@ -117,6 +117,27 @@ describe("EmailSignInForm", () => {
     expect(button).toHaveTextContent(/signing in/i);
   });
 
+  it("disables all inputs while loading", async () => {
+    const user = userEvent.setup();
+    mockSignInEmail.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 100)),
+    );
+
+    render(<EmailSignInForm />);
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText("Password");
+    const button = screen.getByRole("button", { name: /sign in/i });
+
+    await user.type(emailInput, "john@example.com");
+    await user.type(passwordInput, "password123");
+    await user.click(button);
+
+    expect(emailInput).toBeDisabled();
+    expect(passwordInput).toBeDisabled();
+    expect(button).toBeDisabled();
+  });
+
   it("redirects to dashboard on successful sign-in", async () => {
     const user = userEvent.setup();
     mockSignInEmail.mockResolvedValueOnce({});

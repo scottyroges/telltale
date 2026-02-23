@@ -117,4 +117,23 @@ describe("PasswordInput", () => {
     const passwordInput = screen.getByLabelText("Password");
     expect(passwordInput).toHaveAttribute("autoComplete", "current-password");
   });
+
+  it("disables input and toggle button when disabled prop is true", () => {
+    const mockOnChange = vi.fn();
+    render(
+      <PasswordInput
+        id="test-password"
+        label="Password"
+        value=""
+        onChange={mockOnChange}
+        disabled
+      />
+    );
+
+    const passwordInput = screen.getByLabelText("Password");
+    const toggleButton = screen.getByLabelText("Show password");
+
+    expect(passwordInput).toBeDisabled();
+    expect(toggleButton).toBeDisabled();
+  });
 });

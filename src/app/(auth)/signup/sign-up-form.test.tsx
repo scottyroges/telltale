@@ -136,4 +136,29 @@ describe("SignUpForm", () => {
     expect(button).toBeDisabled();
     expect(button).toHaveTextContent(/creating account/i);
   });
+
+  it("disables all inputs while loading", async () => {
+    const user = userEvent.setup();
+    mockSignUpEmail.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+
+    render(<SignUpForm />);
+
+    const nameInput = screen.getByLabelText(/name/i);
+    const emailInput = screen.getByLabelText(/^email$/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
+    const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
+    const button = screen.getByRole("button", { name: /sign up/i });
+
+    await user.type(nameInput, "John Doe");
+    await user.type(emailInput, "john@example.com");
+    await user.type(passwordInput, "password123");
+    await user.type(confirmPasswordInput, "password123");
+    await user.click(button);
+
+    expect(nameInput).toBeDisabled();
+    expect(emailInput).toBeDisabled();
+    expect(passwordInput).toBeDisabled();
+    expect(confirmPasswordInput).toBeDisabled();
+    expect(button).toBeDisabled();
+  });
 });

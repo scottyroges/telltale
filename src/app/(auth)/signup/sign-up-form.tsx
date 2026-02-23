@@ -70,6 +70,7 @@ export function SignUpForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
+          disabled={loading}
           className={styles.input}
         />
       </div>
@@ -84,6 +85,7 @@ export function SignUpForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          disabled={loading}
           className={styles.input}
         />
       </div>
@@ -95,6 +97,7 @@ export function SignUpForm() {
         onChange={(e) => setPassword(e.target.value)}
         required
         minLength={8}
+        disabled={loading}
         className={styles.input}
       />
 
@@ -105,6 +108,7 @@ export function SignUpForm() {
         onChange={(e) => setConfirmPassword(e.target.value)}
         required
         minLength={8}
+        disabled={loading}
         className={styles.input}
       />
 
