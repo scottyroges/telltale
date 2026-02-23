@@ -175,7 +175,7 @@ Items will be added to this list as issues are discovered during testing. Each i
 
 ---
 
-### 5. Fix Duplicate Interview Creation (Critical Bug)
+### 5. Fix Duplicate Interview Creation (Critical Bug) ✅ DONE
 
 **Current behavior:**
 - When clicking on a question that already has an in-progress interview, a NEW interview is created
@@ -208,14 +208,22 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Add proper error handling and logging
 
 **Acceptance criteria:**
-- [ ] Clicking a question resumes existing interview if one exists
-- [ ] No duplicate interviews created for the same question
-- [ ] All previous messages load when resuming an interview
-- [ ] New interview only created when none exists
-- [ ] Database constraint prevents duplicate interviews
-- [ ] Cleanup script for existing duplicate interviews (if needed)
-- [ ] Test coverage for both resume and new interview scenarios
-- [ ] Error handling if interview lookup fails
+- [x] Clicking a question resumes existing interview if one exists
+- [x] No duplicate interviews created for the same question
+- [x] All previous messages load when resuming an interview
+- [x] New interview only created when none exists
+- [x] Database constraint prevents duplicate interviews
+- [x] Cleanup script for existing duplicate interviews (if needed)
+- [x] Test coverage for both resume and new interview scenarios
+- [x] Error handling if interview lookup fails
+
+**Implementation:**
+- Added `findByBookIdAndQuestionId()` repository method to check for existing interviews
+- Updated `startInterview()` service to check for existing interview before creating new one
+- Added unique constraint `@@unique([bookId, questionId])` at database level
+- Migration includes cleanup logic that preserves most recent interview when duplicates exist
+- Comprehensive test coverage for both resume and new interview scenarios
+- Follow-up refactor: removed unused `openingMessage` from return value
 
 ---
 
@@ -452,7 +460,90 @@ Your story, your pace, your way.
 
 ## Future Items
 
-_(Add new enhancements below as they're discovered during testing)_
+### 10. User Approval System (Temporary Access Control)
+
+**Context:**
+- Currently in pre-launch/MVP phase without payment system
+- Claude API calls are expensive and will rack up costs quickly
+- Need to control who has access to the platform until we're ready to charge
+- This is a temporary measure until proper billing/payment is implemented
+
+**Current behavior:**
+- Any user who signs up via Google OAuth gets full access immediately
+- No approval process or access control
+- All users can start interviews and call Claude API endpoints
+- No way to limit access or manage beta users
+
+**Problem:**
+- **COST CONTROL** - Claude API calls are expensive
+- Can't control who accesses the product during development/testing
+- Risk of unauthorized users running up API bills
+- No way to manage a limited beta user group
+- Could get unexpected API charges from unknown users
+
+**Desired behavior:**
+- New users can sign up but are in "pending approval" state by default
+- Pending users cannot access interview features or any Claude API endpoints
+- Admin can approve/reject users (simple UI or even database flag)
+- Approved users get full access to the platform
+- Clear messaging to pending users: "Your account is pending approval"
+- Admin notification when new users sign up (optional)
+
+**Implementation notes:**
+- Add `approvalStatus` enum field to User model:
+  - `PENDING` (default for new signups)
+  - `APPROVED` (full access)
+  - `REJECTED` (blocked)
+- Add middleware or auth check to block unapproved users from:
+  - Interview pages (`/books/[bookId]/questions/[questionId]/interview`)
+  - Interview API endpoints (tRPC mutations that call Claude)
+  - Any other expensive API operations
+- Create admin UI to manage user approvals:
+  - List all users with approval status
+  - Approve/reject buttons
+  - Maybe at `/admin/users` route
+  - Simple table: email, name, created date, status, approve/reject actions
+- Add pending approval message for unapproved users:
+  - Show on dashboard: "Your account is pending approval. You'll receive access soon!"
+  - Maybe email notification when approved (optional)
+- Consider: Who is admin?
+  - Hardcoded email addresses in env var? (`ADMIN_EMAILS=scott@example.com`)
+  - Add `isAdmin` boolean to User model?
+  - For MVP, env var is probably fine
+- Consider: Should middleware redirect or show message?
+  - Redirect to `/pending-approval` page with clear message
+  - Or show inline on dashboard/book pages
+- Database migration for `approvalStatus` field
+- Default existing users to `APPROVED` in migration
+
+**Scope considerations:**
+- Block access to interviews/Claude API (high priority)
+- Block access to books/questions? (probably not needed - no API cost there)
+- Block access to entire dashboard? (probably overkill - let them see the UI)
+- Recommended: Just block the expensive operations (interviews + Claude API)
+
+**Future removal:**
+- When payment/billing is implemented, remove approval system
+- Or convert to different use case: trial vs paid, free tier limits, etc.
+- Make it easy to remove when no longer needed
+
+**Acceptance criteria:**
+- [ ] New users default to `PENDING` approval status
+- [ ] Unapproved users cannot access interview pages
+- [ ] Unapproved users cannot call interview/Claude API endpoints
+- [ ] Clear message shown to pending users
+- [ ] Admin UI to view all users and their approval status
+- [ ] Admin can approve/reject users with single click
+- [ ] Approved users get full access immediately
+- [ ] Database migration adds `approvalStatus` field
+- [ ] Existing users migrated to `APPROVED` status
+- [ ] Admin access controlled via env var or user flag
+- [ ] Test coverage for approval checks
+- [ ] Documentation on how to approve users
+
+---
+
+_(Add additional enhancements below as they're discovered during testing)_
 
 ---
 

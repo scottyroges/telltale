@@ -52,6 +52,21 @@ export const interviewRepository = {
       .execute();
   },
 
+  async findByBookIdAndQuestionId(
+    bookId: string,
+    questionId: string,
+  ): Promise<Interview | null> {
+    // SELECT <columns> FROM interview WHERE "bookId" = $1 AND "questionId" = $2
+    return (
+      (await db
+        .selectFrom("interview")
+        .where("bookId", "=", bookId)
+        .where("questionId", "=", questionId)
+        .select([...columns])
+        .executeTakeFirst()) ?? null
+    );
+  },
+
   async updateStatus(
     id: string,
     status: InterviewStatus,

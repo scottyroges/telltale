@@ -33,10 +33,12 @@ vi.mock("@/repositories/question.repository", () => ({
 
 const mockInterviewCreate = vi.hoisted(() => vi.fn());
 const mockInterviewUpdateStatus = vi.hoisted(() => vi.fn());
+const mockInterviewFindByBookIdAndQuestionId = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/interview.repository", () => ({
   interviewRepository: {
     create: mockInterviewCreate,
     updateStatus: mockInterviewUpdateStatus,
+    findByBookIdAndQuestionId: mockInterviewFindByBookIdAndQuestionId,
   },
 }));
 
@@ -74,7 +76,56 @@ describe("conversationService", () => {
   });
 
   describe("startInterview", () => {
-    it("creates interview and returns opening message", async () => {
+    it("resumes existing interview when one already exists", async () => {
+      const bookQuestion = {
+        id: "bq1",
+        bookId: "b1",
+        questionId: "q1",
+        orderIndex: 0,
+        status: "STARTED",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const question = {
+        id: "q1",
+        category: "childhood",
+        prompt: "Tell me about your earliest memories",
+        orderIndex: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const existingInterview = {
+        id: "existing-int1",
+        bookId: "b1",
+        questionId: "q1",
+        status: "ACTIVE",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockBookQuestionFindById.mockResolvedValue(bookQuestion);
+      mockQuestionFindById.mockResolvedValue(question);
+      mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(existingInterview);
+
+      const result = await conversationService.startInterview("bq1");
+
+      expect(result).toEqual({
+        interviewId: "existing-int1",
+      });
+
+      // Should check for existing interview
+      expect(mockInterviewFindByBookIdAndQuestionId).toHaveBeenCalledWith("b1", "q1");
+
+      // Should NOT create new interview
+      expect(mockInterviewCreate).not.toHaveBeenCalled();
+
+      // Should NOT call LLM or create messages
+      expect(mockMessageCreate).not.toHaveBeenCalled();
+      expect(mockGenerateResponse).not.toHaveBeenCalled();
+      expect(mockBuildContextWindow).not.toHaveBeenCalled();
+    });
+
+    it("creates interview and returns opening message when no existing interview", async () => {
       const bookQuestion = {
         id: "bq1",
         bookId: "b1",
@@ -103,6 +154,7 @@ describe("conversationService", () => {
 
       mockBookQuestionFindById.mockResolvedValue(bookQuestion);
       mockQuestionFindById.mockResolvedValue(question);
+      mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(null);
       mockInterviewCreate.mockResolvedValue(interview);
       mockBuildContextWindow.mockResolvedValue({
         systemPrompt: expect.any(String),
@@ -126,7 +178,6 @@ describe("conversationService", () => {
 
       expect(result).toEqual({
         interviewId: "int1",
-        openingMessage: "Welcome! Tell me about your earliest memories.",
       });
 
       expect(mockBookQuestionFindById).toHaveBeenCalledWith("bq1");
@@ -193,6 +244,7 @@ describe("conversationService", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(null);
       mockInterviewCreate.mockResolvedValue({
         id: "int1",
         bookId: "b1",
@@ -239,6 +291,7 @@ describe("conversationService", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(null);
       mockInterviewCreate.mockResolvedValue({
         id: "int1",
         bookId: "b1",
