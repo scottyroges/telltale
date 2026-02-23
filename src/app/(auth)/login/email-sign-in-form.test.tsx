@@ -31,7 +31,7 @@ describe("EmailSignInForm", () => {
     render(<EmailSignInForm />);
 
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
 
@@ -42,7 +42,7 @@ describe("EmailSignInForm", () => {
     render(<EmailSignInForm />);
 
     await user.type(screen.getByLabelText(/email/i), "john@example.com");
-    await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText("Password"), "password123");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(mockSignInEmail).toHaveBeenCalledWith({
@@ -59,7 +59,7 @@ describe("EmailSignInForm", () => {
     render(<EmailSignInForm />);
 
     await user.type(screen.getByLabelText(/email/i), "john@example.com");
-    await user.type(screen.getByLabelText(/password/i), "wrongpassword");
+    await user.type(screen.getByLabelText("Password"), "wrongpassword");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(
@@ -74,7 +74,7 @@ describe("EmailSignInForm", () => {
     render(<EmailSignInForm />);
 
     await user.type(screen.getByLabelText(/email/i), "john@example.com");
-    await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText("Password"), "password123");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(
@@ -91,7 +91,7 @@ describe("EmailSignInForm", () => {
     render(<EmailSignInForm />);
 
     await user.type(screen.getByLabelText(/email/i), "john@example.com");
-    await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText("Password"), "password123");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(
@@ -110,7 +110,7 @@ describe("EmailSignInForm", () => {
     const button = screen.getByRole("button", { name: /sign in/i });
 
     await user.type(screen.getByLabelText(/email/i), "john@example.com");
-    await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText("Password"), "password123");
     await user.click(button);
 
     expect(button).toBeDisabled();
@@ -124,7 +124,7 @@ describe("EmailSignInForm", () => {
     render(<EmailSignInForm />);
 
     await user.type(screen.getByLabelText(/email/i), "john@example.com");
-    await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText("Password"), "password123");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
     await vi.waitFor(() => {
