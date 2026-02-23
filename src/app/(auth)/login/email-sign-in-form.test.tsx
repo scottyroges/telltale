@@ -37,7 +37,7 @@ describe("EmailSignInForm", () => {
 
   it("calls authClient.signIn.email on submit with correct params", async () => {
     const user = userEvent.setup();
-    mockSignInEmail.mockResolvedValueOnce({});
+    mockSignInEmail.mockResolvedValueOnce({ data: {}, error: null });
 
     render(<EmailSignInForm />);
 
@@ -54,7 +54,14 @@ describe("EmailSignInForm", () => {
 
   it("shows error for invalid credentials", async () => {
     const user = userEvent.setup();
-    mockSignInEmail.mockRejectedValueOnce({ code: "INVALID_CREDENTIALS" });
+    mockSignInEmail.mockResolvedValueOnce({
+      data: null,
+      error: {
+        code: "INVALID_EMAIL_OR_PASSWORD",
+        message: "Invalid email or password",
+        status: 401,
+      },
+    });
 
     render(<EmailSignInForm />);
 
@@ -69,7 +76,13 @@ describe("EmailSignInForm", () => {
 
   it("shows error for unverified email", async () => {
     const user = userEvent.setup();
-    mockSignInEmail.mockRejectedValueOnce({ code: "EMAIL_NOT_VERIFIED" });
+    mockSignInEmail.mockResolvedValueOnce({
+      data: null,
+      error: {
+        code: "EMAIL_NOT_VERIFIED",
+        message: "Email not verified",
+      },
+    });
 
     render(<EmailSignInForm />);
 
@@ -84,8 +97,11 @@ describe("EmailSignInForm", () => {
 
   it("shows generic error for unknown errors", async () => {
     const user = userEvent.setup();
-    mockSignInEmail.mockRejectedValueOnce({
-      message: "Network error occurred",
+    mockSignInEmail.mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: "Network error occurred",
+      },
     });
 
     render(<EmailSignInForm />);
@@ -102,7 +118,10 @@ describe("EmailSignInForm", () => {
   it("disables button while loading", async () => {
     const user = userEvent.setup();
     mockSignInEmail.mockImplementation(
-      () => new Promise((resolve) => setTimeout(resolve, 100)),
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ data: {}, error: null }), 100),
+        ),
     );
 
     render(<EmailSignInForm />);
@@ -120,7 +139,10 @@ describe("EmailSignInForm", () => {
   it("disables all inputs while loading", async () => {
     const user = userEvent.setup();
     mockSignInEmail.mockImplementation(
-      () => new Promise((resolve) => setTimeout(resolve, 100)),
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ data: {}, error: null }), 100),
+        ),
     );
 
     render(<EmailSignInForm />);
@@ -140,7 +162,7 @@ describe("EmailSignInForm", () => {
 
   it("redirects to dashboard on successful sign-in", async () => {
     const user = userEvent.setup();
-    mockSignInEmail.mockResolvedValueOnce({});
+    mockSignInEmail.mockResolvedValueOnce({ data: {}, error: null });
 
     render(<EmailSignInForm />);
 

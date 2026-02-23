@@ -19,40 +19,33 @@ export function EmailSignInForm() {
     setLoading(true);
 
     try {
-      await authClient.signIn.email({
+      const result = await authClient.signIn.email({
         email,
         password,
         callbackURL: "/dashboard",
       });
 
-      // Success — redirect to dashboard
-      router.push("/dashboard");
+      // Better Auth returns { data, error } instead of throwing
+      if (result.error) {
+        // Handle different error codes from Better Auth
+        if (result.error.code === "EMAIL_NOT_VERIFIED") {
+          setError(
+            "Please verify your email first. Check your inbox for a verification link."
+          );
+        } else if (result.error.message) {
+          setError(result.error.message);
+        } else {
+          // Fallback - always show some error so user knows what happened
+          setError("Sign-in failed. Please check your credentials and try again.");
+        }
+      } else {
+        // Success — redirect to dashboard
+        router.push("/dashboard");
+      }
     } catch (err: unknown) {
       console.error("Sign-in error:", err);
-      const authError = err as {
-        code?: string;
-        message?: string;
-        error?: { status?: number; message?: string };
-        status?: number;
-      };
-
-      // Handle different error formats from Better Auth
-      if (authError.code === "INVALID_CREDENTIALS" || authError.status === 401) {
-        setError("Invalid email or password");
-      } else if (authError.code === "EMAIL_NOT_VERIFIED") {
-        setError(
-          "Please verify your email first. Check your inbox for a verification link."
-        );
-      } else if (authError.error?.status === 401) {
-        setError("Invalid email or password");
-      } else if (authError.message) {
-        setError(authError.message);
-      } else if (authError.error?.message) {
-        setError(authError.error.message);
-      } else {
-        // Fallback - always show some error so user knows what happened
-        setError("Sign-in failed. Please check your credentials and try again.");
-      }
+      // Fallback for unexpected errors
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }

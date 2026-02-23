@@ -32,35 +32,32 @@ export function SignUpForm() {
     setLoading(true);
 
     try {
-      await authClient.signUp.email({
+      const result = await authClient.signUp.email({
         name,
         email,
         password,
         callbackURL: "/dashboard",
       });
 
-      // Success — redirect to check-email page
-      router.push(`/signup/check-email?email=${encodeURIComponent(email)}`);
+      // Better Auth returns { data, error } instead of throwing
+      if (result.error) {
+        // Handle different error codes from Better Auth
+        if (result.error.code === "USER_ALREADY_EXISTS") {
+          setError("An account with this email already exists");
+        } else if (result.error.message) {
+          setError(result.error.message);
+        } else {
+          // Fallback - always show some error
+          setError("Sign-up failed. Please try again.");
+        }
+      } else {
+        // Success — redirect to check-email page
+        router.push(`/signup/check-email?email=${encodeURIComponent(email)}`);
+      }
     } catch (err: unknown) {
       console.error("Sign-up error:", err);
-      const authError = err as {
-        code?: string;
-        message?: string;
-        error?: { status?: number; message?: string };
-      };
-
-      if (authError.code === "USER_ALREADY_EXISTS") {
-        setError("An account with this email already exists");
-      } else if (authError.message?.includes("password")) {
-        setError("Password must be at least 8 characters");
-      } else if (authError.message) {
-        setError(authError.message);
-      } else if (authError.error?.message) {
-        setError(authError.error.message);
-      } else {
-        // Fallback - always show some error
-        setError("Sign-up failed. Please try again.");
-      }
+      // Fallback for unexpected errors
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }

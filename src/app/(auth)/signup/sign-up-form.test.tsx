@@ -39,7 +39,7 @@ describe("SignUpForm", () => {
 
   it("calls authClient.signUp.email on submit", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockResolvedValueOnce({});
+    mockSignUpEmail.mockResolvedValueOnce({ data: {}, error: null });
 
     render(<SignUpForm />);
 
@@ -89,7 +89,10 @@ describe("SignUpForm", () => {
 
   it("shows error when user already exists", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockRejectedValueOnce({ code: "USER_ALREADY_EXISTS" });
+    mockSignUpEmail.mockResolvedValueOnce({
+      data: null,
+      error: { code: "USER_ALREADY_EXISTS", message: "User already exists" },
+    });
 
     render(<SignUpForm />);
 
@@ -104,7 +107,7 @@ describe("SignUpForm", () => {
 
   it("redirects to check-email page on success", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockResolvedValueOnce({});
+    mockSignUpEmail.mockResolvedValueOnce({ data: {}, error: null });
 
     render(<SignUpForm />);
 
@@ -121,7 +124,12 @@ describe("SignUpForm", () => {
 
   it("disables button while loading", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    mockSignUpEmail.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ data: {}, error: null }), 100),
+        ),
+    );
 
     render(<SignUpForm />);
 
@@ -139,7 +147,12 @@ describe("SignUpForm", () => {
 
   it("disables all inputs while loading", async () => {
     const user = userEvent.setup();
-    mockSignUpEmail.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    mockSignUpEmail.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ data: {}, error: null }), 100),
+        ),
+    );
 
     render(<SignUpForm />);
 

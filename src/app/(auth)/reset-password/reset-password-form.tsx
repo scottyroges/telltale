@@ -47,21 +47,31 @@ export function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      await authClient.resetPassword({
+      const result = await authClient.resetPassword({
         newPassword: password,
         token,
       });
 
-      // Success — redirect to login with success message
-      router.push("/login?message=password-reset");
-    } catch (err: unknown) {
-      const authError = err as { code?: string; message?: string };
-
-      if (authError.message?.includes("expired") || authError.message?.includes("invalid")) {
-        setError("This reset link has expired or is invalid. Please request a new one.");
+      // Better Auth returns { data, error } instead of throwing
+      if (result.error) {
+        if (
+          result.error.message?.includes("expired") ||
+          result.error.message?.includes("invalid")
+        ) {
+          setError("This reset link has expired or is invalid. Please request a new one.");
+        } else if (result.error.message) {
+          setError(result.error.message);
+        } else {
+          setError("Something went wrong");
+        }
       } else {
-        setError(authError.message || "Something went wrong");
+        // Success — redirect to login with success message
+        router.push("/login?message=password-reset");
       }
+    } catch (err: unknown) {
+      console.error("Reset password error:", err);
+      // Fallback for unexpected errors
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }

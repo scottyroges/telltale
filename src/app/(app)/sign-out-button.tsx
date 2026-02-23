@@ -8,8 +8,23 @@ export function SignOutButton() {
   const router = useRouter();
 
   async function handleClick() {
-    await authClient.signOut();
-    router.push("/login");
+    try {
+      const result = await authClient.signOut();
+
+      // Better Auth returns { data, error } instead of throwing
+      if (result.error) {
+        console.error("Sign-out error:", result.error);
+        // Even if sign-out fails, redirect to login for security
+        router.push("/login");
+      } else {
+        // Success — redirect to login
+        router.push("/login");
+      }
+    } catch (err: unknown) {
+      console.error("Sign-out error:", err);
+      // Even if sign-out fails, redirect to login for security
+      router.push("/login");
+    }
   }
 
   return (
