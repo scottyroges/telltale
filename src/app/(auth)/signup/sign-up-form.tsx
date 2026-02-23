@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { PasswordInput } from "@/components/ui/password-input";
 import styles from "./sign-up-form.module.css";
 
 export function SignUpForm() {
@@ -87,35 +88,25 @@ export function SignUpForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="password" className={styles.label}>
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-          className={styles.input}
-        />
-      </div>
+      <PasswordInput
+        id="password"
+        label="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        minLength={8}
+        className={styles.input}
+      />
 
-      <div>
-        <label htmlFor="confirm-password" className={styles.label}>
-          Confirm Password
-        </label>
-        <input
-          id="confirm-password"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          minLength={8}
-          className={styles.input}
-        />
-      </div>
+      <PasswordInput
+        id="confirm-password"
+        label="Confirm Password"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+        required
+        minLength={8}
+        className={styles.input}
+      />
 
       <button type="submit" disabled={loading} className={styles.button}>
         {loading ? "Creating account..." : "Sign up"}

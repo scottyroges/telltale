@@ -49,7 +49,7 @@ Items will be added to this list as issues are discovered during testing. Each i
 
 ---
 
-### 2. Password Visibility Toggle
+### 2. Password Visibility Toggle ✅ COMPLETE
 
 **Current behavior:**
 - Password fields on sign-up and sign-in pages don't have a visibility toggle
@@ -71,12 +71,21 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Ensure icon is accessible (proper aria-label)
 - Common pattern: eye icon on the right side of the input field
 
+**Implementation completed:**
+- Created `PasswordInput` component (`src/components/ui/PasswordInput.tsx`) with built-in visibility toggle
+- Toggle button positioned absolutely on right side of input field
+- Icon state: Eye icon (password visible) / EyeOff icon (password hidden)
+- Button includes `aria-label` for screen reader accessibility (e.g., "Show password")
+- Replaced all password input fields in `EmailSignInForm`, `SignUpPage`, and `ResetPasswordPage`
+- Used CSS custom property `--color-border-subtle` for icon color consistency
+- Simplified className logic to avoid empty string edge case
+
 **Acceptance criteria:**
-- [ ] Eye icon present on all password fields
-- [ ] Clicking toggles password visibility
-- [ ] Icon indicates current state
-- [ ] Accessible to screen readers
-- [ ] Works on both desktop and mobile
+- [x] Eye icon present on all password fields
+- [x] Clicking toggles password visibility
+- [x] Icon indicates current state
+- [x] Accessible to screen readers
+- [x] Works on both desktop and mobile
 
 ---
 
