@@ -175,7 +175,7 @@ Items will be added to this list as issues are discovered during testing. Each i
 
 ---
 
-### 5. Fix Duplicate Interview Creation (Critical Bug)
+### 5. Fix Duplicate Interview Creation (Critical Bug) ✅ DONE
 
 **Current behavior:**
 - When clicking on a question that already has an in-progress interview, a NEW interview is created
@@ -208,14 +208,22 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Add proper error handling and logging
 
 **Acceptance criteria:**
-- [ ] Clicking a question resumes existing interview if one exists
-- [ ] No duplicate interviews created for the same question
-- [ ] All previous messages load when resuming an interview
-- [ ] New interview only created when none exists
-- [ ] Database constraint prevents duplicate interviews
-- [ ] Cleanup script for existing duplicate interviews (if needed)
-- [ ] Test coverage for both resume and new interview scenarios
-- [ ] Error handling if interview lookup fails
+- [x] Clicking a question resumes existing interview if one exists
+- [x] No duplicate interviews created for the same question
+- [x] All previous messages load when resuming an interview
+- [x] New interview only created when none exists
+- [x] Database constraint prevents duplicate interviews
+- [x] Cleanup script for existing duplicate interviews (if needed)
+- [x] Test coverage for both resume and new interview scenarios
+- [x] Error handling if interview lookup fails
+
+**Implementation:**
+- Added `findByBookIdAndQuestionId()` repository method to check for existing interviews
+- Updated `startInterview()` service to check for existing interview before creating new one
+- Added unique constraint `@@unique([bookId, questionId])` at database level
+- Migration includes cleanup logic that preserves most recent interview when duplicates exist
+- Comprehensive test coverage for both resume and new interview scenarios
+- Follow-up refactor: removed unused `openingMessage` from return value
 
 ---
 

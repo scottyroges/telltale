@@ -178,7 +178,6 @@ describe("conversationService", () => {
 
       expect(result).toEqual({
         interviewId: "int1",
-        openingMessage: "Welcome! Tell me about your earliest memories.",
       });
 
       expect(mockBookQuestionFindById).toHaveBeenCalledWith("bq1");

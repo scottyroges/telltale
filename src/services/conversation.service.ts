@@ -75,7 +75,7 @@ export const conversationService = {
 
     await bookQuestionRepository.updateStatus(bookQuestionId, "STARTED");
 
-    return { interviewId: interview.id, openingMessage: parsed.text };
+    return { interviewId: interview.id };
   },
 
   async sendMessage(interviewId: string, bookId: string, content: string) {
