@@ -42,14 +42,24 @@ export function SignUpForm() {
       // Success — redirect to check-email page
       router.push(`/signup/check-email?email=${encodeURIComponent(email)}`);
     } catch (err: unknown) {
-      const authError = err as { code?: string; message?: string };
+      console.error("Sign-up error:", err);
+      const authError = err as {
+        code?: string;
+        message?: string;
+        error?: { status?: number; message?: string };
+      };
 
       if (authError.code === "USER_ALREADY_EXISTS") {
         setError("An account with this email already exists");
       } else if (authError.message?.includes("password")) {
         setError("Password must be at least 8 characters");
+      } else if (authError.message) {
+        setError(authError.message);
+      } else if (authError.error?.message) {
+        setError(authError.error.message);
       } else {
-        setError(authError.message || "Something went wrong");
+        // Fallback - always show some error
+        setError("Sign-up failed. Please try again.");
       }
     } finally {
       setLoading(false);

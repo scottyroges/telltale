@@ -28,16 +28,30 @@ export function EmailSignInForm() {
       // Success — redirect to dashboard
       router.push("/dashboard");
     } catch (err: unknown) {
-      const authError = err as { code?: string; message?: string };
+      console.error("Sign-in error:", err);
+      const authError = err as {
+        code?: string;
+        message?: string;
+        error?: { status?: number; message?: string };
+        status?: number;
+      };
 
-      if (authError.code === "INVALID_CREDENTIALS") {
+      // Handle different error formats from Better Auth
+      if (authError.code === "INVALID_CREDENTIALS" || authError.status === 401) {
         setError("Invalid email or password");
       } else if (authError.code === "EMAIL_NOT_VERIFIED") {
         setError(
           "Please verify your email first. Check your inbox for a verification link."
         );
+      } else if (authError.error?.status === 401) {
+        setError("Invalid email or password");
+      } else if (authError.message) {
+        setError(authError.message);
+      } else if (authError.error?.message) {
+        setError(authError.error.message);
       } else {
-        setError(authError.message || "Something went wrong");
+        // Fallback - always show some error so user knows what happened
+        setError("Sign-in failed. Please check your credentials and try again.");
       }
     } finally {
       setLoading(false);
