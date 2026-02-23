@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { PasswordInput } from "@/components/ui/password-input";
 import styles from "./email-sign-in-form.module.css";
 
 export function EmailSignInForm() {
@@ -62,20 +63,15 @@ export function EmailSignInForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="password" className={styles.label}>
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-          className={styles.input}
-        />
-      </div>
+      <PasswordInput
+        id="password"
+        label="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        autoComplete="current-password"
+        className={styles.input}
+      />
 
       <button type="submit" disabled={loading} className={styles.button}>
         {loading ? "Signing in..." : "Sign in"}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { PasswordInput } from "@/components/ui/password-input";
 import styles from "../login/page.module.css";
 import formStyles from "../signup/sign-up-form.module.css";
 
@@ -73,35 +74,25 @@ export function ResetPasswordForm() {
       <form className={formStyles.form} onSubmit={handleSubmit}>
         {error && <div className={formStyles.error}>{error}</div>}
 
-        <div>
-          <label htmlFor="password" className={formStyles.label}>
-            New Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            className={formStyles.input}
-          />
-        </div>
+        <PasswordInput
+          id="password"
+          label="New Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={8}
+          className={formStyles.input}
+        />
 
-        <div>
-          <label htmlFor="confirm-password" className={formStyles.label}>
-            Confirm Password
-          </label>
-          <input
-            id="confirm-password"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            minLength={8}
-            className={formStyles.input}
-          />
-        </div>
+        <PasswordInput
+          id="confirm-password"
+          label="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          minLength={8}
+          className={formStyles.input}
+        />
 
         <button type="submit" disabled={loading || !token} className={formStyles.button}>
           {loading ? "Resetting..." : "Reset password"}
