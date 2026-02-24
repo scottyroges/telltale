@@ -10,6 +10,9 @@ import { Transcript } from "./transcript";
 import { InterviewInput } from "./interview-input";
 import styles from "./interview-session.module.css";
 
+const COMPLETION_MESSAGE =
+  "Interview marked as complete. You can review the conversation or return to the question list.";
+
 export type InterviewSessionProps = {
   interviewId: string;
   bookId: string;
@@ -29,15 +32,15 @@ export function InterviewSession({
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
+  const [isCompleted, setIsCompleted] = useState(status === "COMPLETE");
 
   const trpc = useTRPC();
 
   const completeMutation = useMutation(
     trpc.interview.complete.mutationOptions({
       onSuccess: () => {
-        setCompletionMessage(
-          "Interview marked as complete. You can review the conversation or return to the question list."
-        );
+        setIsCompleted(true);
+        setCompletionMessage(COMPLETION_MESSAGE);
       },
       onError: (error) => {
         console.error("Failed to complete interview:", error);
@@ -75,6 +78,11 @@ export function InterviewSession({
         };
         setMessages((prev) => [...prev, assistantMessage]);
         setIsWaitingForResponse(false);
+
+        if (response.shouldComplete) {
+          setIsCompleted(true);
+          setCompletionMessage(COMPLETION_MESSAGE);
+        }
       },
       onError: (error, _variables, context) => {
         console.error("Failed to send message:", error);
@@ -108,7 +116,7 @@ export function InterviewSession({
     }
   };
 
-  const isComplete = status === "COMPLETE";
+  const isComplete = isCompleted;
   const isInputDisabled = isWaitingForResponse || isComplete;
 
   return (

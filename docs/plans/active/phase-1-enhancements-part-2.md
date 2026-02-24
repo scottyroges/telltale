@@ -384,14 +384,14 @@ Items will be added to this list as issues are discovered during testing. Each i
 - [x] "End Interview" button visible in interview UI
 - [x] Clicking button marks interview as complete
 - [x] Confirmation message shown when interview marked complete
-- [ ] AI periodically asks if user wants to continue (every 3-4 exchanges)
+- [x] AI checks in at natural conversation seams to see if user wants to wrap up
 - [x] `completedAt` timestamp saved when interview completed
 - [ ] Completed interviews have visual indicator in question list
 - [ ] Completed interviews can be resumed if user wants to add more
 - [x] Database migration for `completedAt` field
 - [x] Test coverage for completion flow
 
-**Status:** In Progress (2 of 3 PRs complete)
+**Status:** In Progress (3 of 4 PRs complete)
 
 **Implementation:**
 - **PR 1:** Schema migration (`completedAt` nullable timestamp on Interview model)
@@ -401,7 +401,13 @@ Items will be added to this list as issues are discovered during testing. Each i
   - Shows `window.confirm()` dialog before marking complete
   - Success message displayed after completion
   - Error handling with user-visible message
-- **PR 3 (pending):** AI conversation checkpoints, completed interview visual indicators, resume capability
+- **PR 3:** AI-initiated interview completion via `shouldComplete` field in JSON response format
+  - System prompt updated: AI checks in at natural conversation seams (after a story arc completes, topic feels explored, natural pause); only sets `shouldComplete: true` after user explicitly agrees to wrap up
+  - Response parser: extracts `shouldComplete` boolean (defaults to `false` if missing or non-boolean)
+  - Conversation service: auto-completes interview via `interviewRepository.complete()` when `shouldComplete: true`
+  - Frontend: hides input and end-interview button, shows completion message when AI signals completion
+  - Test coverage across all layers (prompt, parser, service, component)
+- **PR 4 (pending):** Completed interview visual indicators, resume capability
 
 ---
 

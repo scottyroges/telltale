@@ -367,7 +367,7 @@ describe("conversationService", () => {
 
       const result = await conversationService.sendMessage("int1", "b1", "my story");
 
-      expect(result).toEqual({ content: "That's fascinating! Tell me more." });
+      expect(result).toEqual({ content: "That's fascinating! Tell me more.", shouldComplete: false });
 
       // Persists user message first
       expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
@@ -433,6 +433,65 @@ describe("conversationService", () => {
       ]);
     });
 
+    it("auto-completes interview when shouldComplete is true", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "yes, let's wrap up" }],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Thank you for sharing!","insights":[],"shouldComplete":true}',
+      });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+      mockInterviewComplete.mockResolvedValue({});
+
+      const result = await conversationService.sendMessage("int1", "b1", "yes, let's wrap up");
+
+      expect(result).toEqual({ content: "Thank you for sharing!", shouldComplete: true });
+      expect(mockInterviewComplete).toHaveBeenCalledWith("int1");
+    });
+
+    it("propagates error when interviewRepository.complete() fails during auto-completion", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "yes, let's wrap up" }],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Thank you for sharing!","insights":[],"shouldComplete":true}',
+      });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+      mockInterviewComplete.mockRejectedValue(new Error("DB connection lost"));
+
+      await expect(
+        conversationService.sendMessage("int1", "b1", "yes, let's wrap up"),
+      ).rejects.toThrow("DB connection lost");
+
+      // Assistant message should still have been persisted before complete() was called
+      expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
+        interviewId: "int1",
+        role: "ASSISTANT",
+        content: "Thank you for sharing!",
+      });
+    });
+
+    it("does not complete interview when shouldComplete is false", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "tell me more" }],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Tell me more about that.","insights":[],"shouldComplete":false}',
+      });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+
+      const result = await conversationService.sendMessage("int1", "b1", "tell me more");
+
+      expect(result).toEqual({ content: "Tell me more about that.", shouldComplete: false });
+      expect(mockInterviewComplete).not.toHaveBeenCalled();
+    });
+
     it("handles parse failure gracefully — falls back to raw text, no insights persisted", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
@@ -445,7 +504,7 @@ describe("conversationService", () => {
 
       const result = await conversationService.sendMessage("int1", "b1", "hello");
 
-      expect(result).toEqual({ content: "This is just plain text, not JSON." });
+      expect(result).toEqual({ content: "This is just plain text, not JSON.", shouldComplete: false });
       expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
       expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {

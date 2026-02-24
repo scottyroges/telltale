@@ -57,7 +57,7 @@ src/
 │   ├── context.service        # Context window assembly + summarization
 │   ├── story.service          # Story CRUD + lifecycle
 │   ├── synthesis.service      # Conversation → polished narrative
-│   ├── response-parser        # Parse structured LLM output (response text + insights)
+│   ├── response-parser        # Parse structured LLM output (response text, insights, completion signal)
 │   ├── book.service           # Book assembly + export
 │   ├── admin.service          # User approval management
 │   └── audio.service          # Transcription + TTS (Phase 2)

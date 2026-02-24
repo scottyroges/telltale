@@ -66,7 +66,7 @@ describe("InterviewSession", () => {
 
     // Default mocks return mutation options with no-op mutationFn
     mockSendMessageMutationOptions.mockImplementation((opts) => ({
-      mutationFn: async () => ({ content: "Default response" }),
+      mutationFn: async () => ({ content: "Default response", shouldComplete: false }),
       ...opts,
     }));
     mockCompleteMutationOptions.mockImplementation((opts) => ({
@@ -351,6 +351,79 @@ describe("InterviewSession", () => {
 
     const backLink = screen.getByRole("link", { name: /questions/i });
     expect(backLink).toHaveAttribute("href", "/book/different-book-456/interviews");
+  });
+
+  describe("AI-initiated completion", () => {
+    it("shows completion message and hides input when shouldComplete is true", async () => {
+      const user = userEvent.setup();
+
+      mockSendMessageMutationOptions.mockReset();
+      mockSendMessageMutationOptions.mockImplementation((opts) => ({
+        mutationFn: async () => ({ content: "Thank you for sharing!", shouldComplete: true }),
+        ...opts,
+      }));
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const textarea = screen.getByPlaceholderText("Share your story...");
+      await user.type(textarea, "Yes, let's wrap up.");
+      await user.keyboard("{Enter}");
+
+      // AI response should appear
+      await waitFor(() => {
+        expect(screen.getByText("Thank you for sharing!")).toBeInTheDocument();
+      });
+
+      // Completion message should appear
+      await waitFor(() => {
+        expect(screen.getByText(/interview marked as complete/i)).toBeInTheDocument();
+      });
+
+      // Input should be hidden
+      expect(screen.queryByPlaceholderText("Share your story...")).not.toBeInTheDocument();
+
+      // End Interview button should be hidden
+      expect(screen.queryByRole("button", { name: /end interview/i })).not.toBeInTheDocument();
+    });
+
+    it("does not show completion message when shouldComplete is false", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const textarea = screen.getByPlaceholderText("Share your story...");
+      await user.type(textarea, "Tell me more.");
+      await user.keyboard("{Enter}");
+
+      // AI response should appear
+      await waitFor(() => {
+        expect(screen.getByText("Default response")).toBeInTheDocument();
+      });
+
+      // No completion message
+      expect(screen.queryByText(/interview marked as complete/i)).not.toBeInTheDocument();
+
+      // Input should still be visible
+      expect(screen.getByPlaceholderText("Share your story...")).toBeInTheDocument();
+    });
   });
 
   describe("End Interview button", () => {
