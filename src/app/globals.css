@@ -15,6 +15,7 @@
   --color-primary: #2563eb;
   --color-primary-fg: #fff;
   --color-success: #16a34a;
+  --color-destructive: #dc2626;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -26,6 +27,7 @@
     --color-primary: #3b82f6;
     --color-primary-fg: #fff;
     --color-success: #22c55e;
+    --color-destructive: #ef4444;
   }
 }
 
