@@ -55,6 +55,11 @@ export const approvedProcedure = protectedProcedure.use(
       });
     }
 
-    return next({ ctx });
+    return next({
+      ctx: {
+        ...ctx,
+        userName: user.name,
+      },
+    });
   }
 );

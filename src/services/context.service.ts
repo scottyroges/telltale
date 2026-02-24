@@ -5,7 +5,7 @@ import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
 import { insightRepository } from "@/repositories/insight.repository";
 import { interviewSummaryRepository } from "@/repositories/interview-summary.repository";
-import { INTERVIEWER_SYSTEM_PROMPT } from "@/prompts/interviewer";
+import { getInterviewerSystemPrompt } from "@/prompts/interviewer";
 import { SUMMARIZATION_PROMPT } from "@/prompts/summarization";
 import type { LLMMessage } from "@/domain/llm-provider";
 import type { Message } from "@/domain/message";
@@ -109,8 +109,9 @@ function calculateTokenBreakdown(
     ReturnType<typeof interviewSummaryRepository.findLatestByInterviewId>
   >,
   insights: Insight[],
+  systemPrompt: string,
 ): TokenBreakdown {
-  const systemPromptTokens = estimateTokens(INTERVIEWER_SYSTEM_PROMPT);
+  const systemPromptTokens = estimateTokens(systemPrompt);
   const summaryTokens = existingSummary
     ? estimateTokens(existingSummary.content)
     : 0;
@@ -188,9 +189,10 @@ function calculateMessageBuckets(
 function assembleUnderThreshold(
   conversationMessages: Message[],
   insights: Insight[],
+  systemPrompt: string,
 ): ContextWindow {
   return {
-    systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+    systemPrompt,
     messages: assembleMessagesWithInsights(conversationMessages, insights),
   };
 }
@@ -203,6 +205,7 @@ async function assembleSummarized(
   existingSummary: Awaited<
     ReturnType<typeof interviewSummaryRepository.findLatestByInterviewId>
   >,
+  systemPrompt: string,
 ): Promise<ContextWindow> {
   try {
     const newSummaryContent = await summarizeMessages(
@@ -225,7 +228,7 @@ async function assembleSummarized(
     );
 
     return {
-      systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+      systemPrompt,
       messages,
     };
   } catch (error) {
@@ -268,7 +271,7 @@ async function assembleSummarized(
     messages.push(...assembleMessagesWithInsights(fallbackMessages, insights));
 
     return {
-      systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+      systemPrompt,
       messages,
     };
   }
@@ -280,6 +283,7 @@ function assembleIncremental(
   existingSummary: Awaited<
     ReturnType<typeof interviewSummaryRepository.findLatestByInterviewId>
   >,
+  systemPrompt: string,
 ): ContextWindow {
   const messages: LLMMessage[] = [];
 
@@ -293,7 +297,7 @@ function assembleIncremental(
   messages.push(...assembleMessagesWithInsights(combinedMessages, insights));
 
   return {
-    systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+    systemPrompt,
     messages,
   };
 }
@@ -341,7 +345,7 @@ function enforceMaxTokens(context: ContextWindow): ContextWindow {
 }
 
 export const contextService = {
-  async buildContextWindow(interviewId: string): Promise<ContextWindow> {
+  async buildContextWindow(interviewId: string, userName: string): Promise<ContextWindow> {
     // Load all required data
     const [interview, allMessages, insights, existingSummary] =
       await Promise.all([
@@ -355,6 +359,8 @@ export const contextService = {
       throw new Error(`Interview not found: ${interviewId}`);
     }
 
+    const systemPrompt = getInterviewerSystemPrompt(userName);
+
     // Filter to USER + ASSISTANT only (exclude SYSTEM)
     const conversationMessages = allMessages.filter(
       (msg) => msg.role === "USER" || msg.role === "ASSISTANT",
@@ -363,7 +369,7 @@ export const contextService = {
     // If no messages, return empty context
     if (conversationMessages.length === 0) {
       return {
-        systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+        systemPrompt,
         messages: [],
       };
     }
@@ -373,11 +379,12 @@ export const contextService = {
       conversationMessages,
       existingSummary,
       insights,
+      systemPrompt,
     );
 
     // Under threshold: return all messages
     if (tokenBreakdown.total < SUMMARIZATION_THRESHOLD) {
-      const context = assembleUnderThreshold(conversationMessages, insights);
+      const context = assembleUnderThreshold(conversationMessages, insights, systemPrompt);
       return enforceMaxTokens(context);
     }
 
@@ -395,12 +402,13 @@ export const contextService = {
         buckets,
         insights,
         existingSummary,
+        systemPrompt,
       );
       return enforceMaxTokens(context);
     }
 
     // Not enough old messages: incremental assembly
-    const context = assembleIncremental(buckets, insights, existingSummary);
+    const context = assembleIncremental(buckets, insights, existingSummary, systemPrompt);
     return enforceMaxTokens(context);
   },
 };

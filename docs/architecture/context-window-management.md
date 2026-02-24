@@ -510,7 +510,7 @@ function estimateTokens(text: string): number {
 - ~10-20% error is acceptable (thresholds are conservative)
 
 **What we estimate:**
-- System prompt (~500 tokens)
+- System prompt (~500 tokens base, slightly more when personalized with user's name)
 - Summary (if exists, ~200-500 tokens)
 - All messages in context (~varies by content)
 - All insights (~20-50 tokens each)
@@ -622,9 +622,10 @@ summary and these new messages.
 ### buildContextWindow Decision Tree
 
 ```
-buildContextWindow(interviewId)
+buildContextWindow(interviewId, userName)
   │
   ├─ Load interview → null? → throw Error("Interview not found")
+  ├─ Build personalized system prompt (includes user's name if provided)
   ├─ Load messages (filter USER/ASSISTANT only)
   ├─ Load insights
   ├─ Load latest summary (if exists)

@@ -13,7 +13,7 @@ export const interviewRouter = router({
     .input(z.object({ bookQuestionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await verifyBookQuestionOwnership(input.bookQuestionId, ctx.userId);
-      return conversationService.startInterview(input.bookQuestionId);
+      return conversationService.startInterview(input.bookQuestionId, ctx.userName);
     }),
 
   getById: approvedProcedure
@@ -36,7 +36,7 @@ export const interviewRouter = router({
           message: "Cannot send messages to completed interviews",
         });
       }
-      return conversationService.sendMessage(input.interviewId, interview.bookId, input.content);
+      return conversationService.sendMessage(input.interviewId, interview.bookId, input.content, ctx.userName);
     }),
 
   getMessages: approvedProcedure
