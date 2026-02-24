@@ -17,14 +17,18 @@
   border-radius: 1rem;
   white-space: pre-wrap;
   word-wrap: break-word;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .messageUser .messageContent {
   background-color: var(--color-primary);
   color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .messageAssistant .messageContent {
-  background-color: var(--color-muted);
-  color: var(--color-fg);
+  background-color: var(--color-message-assistant-bg);
+  color: var(--color-message-assistant-text);
+  border: 1px solid var(--color-message-assistant-border);
 }

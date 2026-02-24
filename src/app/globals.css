@@ -16,6 +16,11 @@
   --color-primary-fg: #fff;
   --color-success: #16a34a;
   --color-destructive: #dc2626;
+  --color-message-assistant-bg: #ebebeb;
+  --color-message-assistant-text: #1a1a1a;
+  --color-message-assistant-border: #d4d4d4;
+  --color-message-thinking-bg: #ebebeb;
+  --color-message-thinking-text: #1a1a1a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,6 +33,11 @@
     --color-primary-fg: #fff;
     --color-success: #22c55e;
     --color-destructive: #ef4444;
+    --color-message-assistant-bg: #1a1a1a;
+    --color-message-assistant-text: #e8e8e8;
+    --color-message-assistant-border: #2a2a2a;
+    --color-message-thinking-bg: #1a1a1a;
+    --color-message-thinking-text: #e8e8e8;
   }
 }
 
