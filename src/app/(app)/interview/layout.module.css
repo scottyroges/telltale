@@ -1,0 +1,12 @@
+.container {
+  /* Negate parent layout padding to create full-bleed layout */
+  margin: -2rem -1.5rem;
+
+  /* Fill available space as flex child */
+  flex: 1;
+  min-height: 0;
+
+  /* Flex container for session */
+  display: flex;
+  flex-direction: column;
+}

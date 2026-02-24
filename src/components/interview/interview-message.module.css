@@ -26,5 +26,5 @@
 
 .messageAssistant .messageContent {
   background-color: var(--color-muted);
-  color: var(--color-text);
+  color: var(--color-fg);
 }

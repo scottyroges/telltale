@@ -1,22 +1,30 @@
 .sessionContainer {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  max-width: 900px;
-  margin: 0 auto;
-  background-color: var(--color-background);
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  --interview-max-width: 900px;
 }
 
 .header {
+  position: sticky;
+  top: 0;
   padding: 1.5rem;
   border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-background);
+  background-color: var(--color-bg);
+  /* z-index ensures header stays above transcript content when scrolling.
+     Future: if adding modals/overlays, consider a z-index scale (e.g., header: 10, modal: 100) */
+  z-index: 1;
+  max-width: var(--interview-max-width);
+  margin: 0 auto;
+  width: 100%;
 }
 
 .questionPrompt {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-fg);
   margin: 0;
 }
 

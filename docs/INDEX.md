@@ -50,6 +50,8 @@
 
 ## Ideas (Deferred)
 
+- **docs/ideas/story-creation-flow.md** — End-to-end vision: interviews → story tagging → completeness assessment → book outline → narrative generation → export/print
+- **docs/ideas/story-flow-critique.md** — Critical analysis of story creation flow: potential issues, alternative approaches, phased value delivery
 - **docs/ideas/admin-ui.md** — Admin UI for question library, user management, system monitoring; use scripts for now
 - **docs/ideas/depth-score.md** — Interview depth/richness metric, deferred until real conversations inform the design
 - **docs/ideas/interview-ui-alternatives.md** — Alternative UI approaches: word processor-focused interface, inline comment/annotation interface
@@ -75,3 +77,4 @@
 - **016** — LLM structured output reliability: defensive parsing + single retry (vs. tool use / function calling)
 - **017** — Observability stack: Axiom + Sentry + Better Stack + PostHog (vs. Datadog, Grafana Cloud)
 - **018** — Insight context placement: near end vs. beginning (vs. both positions, system prompt injection, split old/recent)
+- **019** — App-shell layout with container scroll (vs. viewport scroll, viewport units for interview only)
