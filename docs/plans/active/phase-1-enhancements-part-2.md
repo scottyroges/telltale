@@ -381,15 +381,27 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Update interview queries to filter/sort by completion status
 
 **Acceptance criteria:**
-- [ ] "End Interview" button visible in interview UI
-- [ ] Clicking button marks interview as complete
-- [ ] Confirmation message shown when interview marked complete
+- [x] "End Interview" button visible in interview UI
+- [x] Clicking button marks interview as complete
+- [x] Confirmation message shown when interview marked complete
 - [ ] AI periodically asks if user wants to continue (every 3-4 exchanges)
-- [ ] `completedAt` timestamp saved when interview completed
+- [x] `completedAt` timestamp saved when interview completed
 - [ ] Completed interviews have visual indicator in question list
 - [ ] Completed interviews can be resumed if user wants to add more
-- [ ] Database migration for `completedAt` field
-- [ ] Test coverage for completion flow
+- [x] Database migration for `completedAt` field
+- [x] Test coverage for completion flow
+
+**Status:** In Progress (2 of 3 PRs complete)
+
+**Implementation:**
+- **PR 1:** Schema migration (`completedAt` nullable timestamp on Interview model)
+- **PR 2:** "End Interview" button UI with confirmation dialog, success message, and comprehensive test coverage (9 test cases)
+  - Button visible only when status is ACTIVE
+  - Disabled while mutation pending or waiting for AI response
+  - Shows `window.confirm()` dialog before marking complete
+  - Success message displayed after completion
+  - Error handling with user-visible message
+- **PR 3 (pending):** AI conversation checkpoints, completed interview visual indicators, resume capability
 
 ---
 

@@ -21,15 +21,42 @@
   width: 100%;
 }
 
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
 .back {
   display: inline-block;
   font-size: 0.875rem;
   color: var(--color-muted);
-  margin-bottom: 0.5rem;
 }
 
 .back:hover {
   color: var(--color-fg);
+}
+
+.completeButton {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background-color: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.completeButton:hover:not(:disabled) {
+  color: var(--color-fg);
+  border-color: var(--color-fg);
+}
+
+.completeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .questionPrompt {
@@ -37,6 +64,19 @@
   font-weight: 600;
   color: var(--color-fg);
   margin: 0;
+}
+
+.completionMessage {
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 1.5rem;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  max-width: var(--interview-max-width);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .errorMessage {

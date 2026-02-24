@@ -5,15 +5,19 @@ import { InterviewSession } from "@/components/interview/interview-session";
 import type { Message } from "@/domain/message";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const { mockMutationOptions } = vi.hoisted(() => ({
-  mockMutationOptions: vi.fn(),
+const { mockSendMessageMutationOptions, mockCompleteMutationOptions } = vi.hoisted(() => ({
+  mockSendMessageMutationOptions: vi.fn(),
+  mockCompleteMutationOptions: vi.fn(),
 }));
 
 vi.mock("@/lib/trpc/client", () => ({
   useTRPC: () => ({
     interview: {
       sendMessage: {
-        mutationOptions: mockMutationOptions,
+        mutationOptions: mockSendMessageMutationOptions,
+      },
+      complete: {
+        mutationOptions: mockCompleteMutationOptions,
       },
     },
   }),
@@ -52,14 +56,21 @@ describe("InterviewSession", () => {
   ];
 
   beforeEach(() => {
-    mockMutationOptions.mockReset();
+    mockSendMessageMutationOptions.mockReset();
+    mockCompleteMutationOptions.mockReset();
     vi.clearAllMocks();
     // Mock scrollTo
     HTMLElement.prototype.scrollTo = vi.fn();
+    // Mock window.confirm
+    global.confirm = vi.fn(() => true);
 
-    // Default mock returns mutation options with a no-op mutationFn
-    mockMutationOptions.mockImplementation((opts) => ({
+    // Default mocks return mutation options with no-op mutationFn
+    mockSendMessageMutationOptions.mockImplementation((opts) => ({
       mutationFn: async () => ({ content: "Default response" }),
+      ...opts,
+    }));
+    mockCompleteMutationOptions.mockImplementation((opts) => ({
+      mutationFn: async () => ({ status: "COMPLETE" }),
       ...opts,
     }));
   });
@@ -121,8 +132,8 @@ describe("InterviewSession", () => {
     const user = userEvent.setup();
 
     // Mock mutation to fail
-    mockMutationOptions.mockReset();
-    mockMutationOptions.mockImplementation((opts) => ({
+    mockSendMessageMutationOptions.mockReset();
+    mockSendMessageMutationOptions.mockImplementation((opts) => ({
       ...opts,
       mutationFn: async () => {
         throw new Error("Network error");
@@ -158,8 +169,8 @@ describe("InterviewSession", () => {
 
     // First mutation fails
     let callCount = 0;
-    mockMutationOptions.mockReset();
-    mockMutationOptions.mockImplementation((opts) => ({
+    mockSendMessageMutationOptions.mockReset();
+    mockSendMessageMutationOptions.mockImplementation((opts) => ({
       ...opts,
       mutationFn: async () => {
         callCount++;
@@ -255,7 +266,7 @@ describe("InterviewSession", () => {
     const user = userEvent.setup();
 
     // Make mutation hang to keep waiting state
-    mockMutationOptions.mockImplementationOnce((opts) => ({
+    mockSendMessageMutationOptions.mockImplementationOnce((opts) => ({
       mutationFn: () => new Promise(() => {}), // Never resolves
       ...opts,
     }));
@@ -340,5 +351,239 @@ describe("InterviewSession", () => {
 
     const backLink = screen.getByRole("link", { name: /questions/i });
     expect(backLink).toHaveAttribute("href", "/book/different-book-456/interviews");
+  });
+
+  describe("End Interview button", () => {
+    it("shows End Interview button when status is ACTIVE", () => {
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.getByRole("button", { name: /end interview/i })).toBeInTheDocument();
+    });
+
+    it("hides End Interview button when status is COMPLETE", () => {
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="COMPLETE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.queryByRole("button", { name: /end interview/i })).not.toBeInTheDocument();
+    });
+
+    it("shows confirmation dialog when End Interview is clicked", async () => {
+      const user = userEvent.setup();
+      const mockConfirm = vi.fn(() => false);
+      global.confirm = mockConfirm;
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const endButton = screen.getByRole("button", { name: /end interview/i });
+      await user.click(endButton);
+
+      expect(mockConfirm).toHaveBeenCalledWith(
+        expect.stringContaining("Are you sure you want to end this interview?")
+      );
+    });
+
+    it("calls complete mutation when confirmed", async () => {
+      const user = userEvent.setup();
+      const mockConfirm = vi.fn(() => true);
+      global.confirm = mockConfirm;
+
+      const mockMutate = vi.fn();
+      mockCompleteMutationOptions.mockImplementation((opts) => ({
+        mutationFn: async () => ({ status: "COMPLETE" }),
+        ...opts,
+      }));
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const endButton = screen.getByRole("button", { name: /end interview/i });
+      await user.click(endButton);
+
+      // Mutation should be called
+      expect(mockConfirm).toHaveBeenCalled();
+    });
+
+    it("shows success message after completion", async () => {
+      const user = userEvent.setup();
+      global.confirm = vi.fn(() => true);
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const endButton = screen.getByRole("button", { name: /end interview/i });
+      await user.click(endButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/interview marked as complete/i)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("disables End Interview button while mutation is pending", async () => {
+      const user = userEvent.setup();
+      global.confirm = vi.fn(() => true);
+
+      // Make mutation hang to keep pending state
+      mockCompleteMutationOptions.mockImplementation((opts) => ({
+        mutationFn: () => new Promise(() => {}), // Never resolves
+        ...opts,
+      }));
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const endButton = screen.getByRole("button", { name: /end interview/i });
+      await user.click(endButton);
+
+      // Button should be disabled while pending
+      await waitFor(() => {
+        expect(endButton).toBeDisabled();
+      });
+    });
+
+    it("disables End Interview button while waiting for AI response", async () => {
+      const user = userEvent.setup();
+
+      // Make sendMessage hang to keep waiting state
+      mockSendMessageMutationOptions.mockImplementation((opts) => ({
+        mutationFn: () => new Promise(() => {}), // Never resolves
+        ...opts,
+      }));
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      // Send a message to trigger waiting state
+      const textarea = screen.getByPlaceholderText("Share your story...");
+      await user.type(textarea, "Test");
+      await user.keyboard("{Enter}");
+
+      // End Interview button should be disabled while waiting
+      await waitFor(() => {
+        const endButton = screen.getByRole("button", { name: /end interview/i });
+        expect(endButton).toBeDisabled();
+      });
+    });
+
+    it("does not call mutation when confirmation is cancelled", async () => {
+      const user = userEvent.setup();
+      const mockConfirm = vi.fn(() => false);
+      global.confirm = mockConfirm;
+
+      const mockMutate = vi.fn();
+      mockCompleteMutationOptions.mockImplementation((opts) => ({
+        mutationFn: mockMutate,
+        ...opts,
+      }));
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const endButton = screen.getByRole("button", { name: /end interview/i });
+      await user.click(endButton);
+
+      // Mutation should not be called
+      expect(mockMutate).not.toHaveBeenCalled();
+    });
+
+    it("shows error message when completion fails", async () => {
+      const user = userEvent.setup();
+      global.confirm = vi.fn(() => true);
+
+      // Mock mutation to fail
+      mockCompleteMutationOptions.mockImplementation((opts) => ({
+        ...opts,
+        mutationFn: async () => {
+          throw new Error("Network error");
+        },
+      }));
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const endButton = screen.getByRole("button", { name: /end interview/i });
+      await user.click(endButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/failed to mark interview as complete/i)
+        ).toBeInTheDocument();
+      });
+    });
   });
 });
