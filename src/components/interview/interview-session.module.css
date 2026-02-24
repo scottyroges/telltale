@@ -21,6 +21,17 @@
   width: 100%;
 }
 
+.back {
+  display: inline-block;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  margin-bottom: 0.5rem;
+}
+
+.back:hover {
+  color: var(--color-fg);
+}
+
 .questionPrompt {
   font-size: 1.25rem;
   font-weight: 600;

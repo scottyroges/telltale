@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import Link from "next/link";
 import type { InterviewStatus } from "@/domain/interview";
 import type { Message } from "@/domain/message";
 import { useTRPC } from "@/lib/trpc/client";
@@ -19,6 +20,7 @@ export type InterviewSessionProps = {
 
 export function InterviewSession({
   interviewId,
+  bookId,
   questionPrompt,
   status,
   initialMessages,
@@ -86,6 +88,9 @@ export function InterviewSession({
   return (
     <div className={styles.sessionContainer}>
       <div className={styles.header}>
+        <Link href={`/book/${bookId}/interviews`} className={styles.back}>
+          &larr; Questions
+        </Link>
         <h1 className={styles.questionPrompt}>{questionPrompt}</h1>
       </div>
       <Transcript messages={messages} isWaitingForResponse={isWaitingForResponse} />

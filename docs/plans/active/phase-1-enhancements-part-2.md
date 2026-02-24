@@ -251,11 +251,13 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Style consistently with rest of the app
 
 **Acceptance criteria:**
-- [ ] Back/navigation button visible in interview header
-- [ ] Clicking returns user to the question list for the current book
-- [ ] Navigation works on mobile and desktop
-- [ ] Clear visual indicator that it's a navigation element
-- [ ] Consistent with app-wide navigation patterns
+- [x] Back/navigation button visible in interview header
+- [x] Clicking returns user to the question list for the current book
+- [x] Navigation works on mobile and desktop
+- [x] Clear visual indicator that it's a navigation element
+- [x] Consistent with app-wide navigation patterns
+
+**Status:** Complete (PR pending)
 
 ---
 
@@ -541,8 +543,6 @@ Your story, your pace, your way.
 - [ ] A/B test different copy variations (optional)
 
 ---
-
-## Future Items
 
 ### 10. User Approval System (Temporary Access Control)
 
