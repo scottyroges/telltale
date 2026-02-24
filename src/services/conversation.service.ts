@@ -8,7 +8,7 @@ import { parseInterviewerResponse, parseWithRetry } from "@/services/response-pa
 import { contextService } from "@/services/context.service";
 
 export const conversationService = {
-  async startInterview(bookQuestionId: string) {
+  async startInterview(bookQuestionId: string, userName: string) {
     const bookQuestion =
       await bookQuestionRepository.findById(bookQuestionId);
     if (!bookQuestion) {
@@ -49,7 +49,7 @@ export const conversationService = {
     });
 
     // Build context window
-    const context = await contextService.buildContextWindow(interview.id);
+    const context = await contextService.buildContextWindow(interview.id, userName);
 
     const response = await llmProvider.generateResponse(
       context.systemPrompt,
@@ -78,14 +78,14 @@ export const conversationService = {
     return { interviewId: interview.id };
   },
 
-  async sendMessage(interviewId: string, bookId: string, content: string) {
+  async sendMessage(interviewId: string, bookId: string, content: string, userName: string) {
     await messageRepository.create({
       interviewId,
       role: "USER",
       content,
     });
 
-    const context = await contextService.buildContextWindow(interviewId);
+    const context = await contextService.buildContextWindow(interviewId, userName);
 
     const response = await llmProvider.generateResponse(
       context.systemPrompt,

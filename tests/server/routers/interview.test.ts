@@ -141,7 +141,7 @@ describe("interview router", () => {
       });
       expect(mockBqFindById).toHaveBeenCalledWith("bq-1");
       expect(mockBookFindById).toHaveBeenCalledWith("book-1");
-      expect(mockStartInterview).toHaveBeenCalledWith("bq-1");
+      expect(mockStartInterview).toHaveBeenCalledWith("bq-1", "Test User");
     });
 
     it("throws NOT_FOUND for missing bookQuestionId", async () => {
@@ -214,6 +214,7 @@ describe("interview router", () => {
         "interview-1",
         "book-1",
         "I grew up in a small town.",
+        "Test User",
       );
     });
 

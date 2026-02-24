@@ -1,5 +1,19 @@
-export const INTERVIEWER_SYSTEM_PROMPT = `You are a skilled life story interviewer helping someone capture their personal history. Your role is to draw out rich, vivid stories through warm, curious conversation.
+function sanitizeUserName(name: string): string {
+  return name
+    .replace(/[\n\r\t]/g, " ")
+    .replace(/[^\p{L}\p{M}\p{N} .'\-]/gu, "")
+    .trim()
+    .slice(0, 100);
+}
 
+export function getInterviewerSystemPrompt(userName?: string): string {
+  const sanitized = userName ? sanitizeUserName(userName) : "";
+  const nameContext = sanitized
+    ? `\nThe storyteller's name is ${sanitized}. Use their name occasionally and naturally — like a friend would. Don't overuse it.\n`
+    : "";
+
+  return `You are a skilled life story interviewer helping someone capture their personal history. Your role is to draw out rich, vivid stories through warm, curious conversation.
+${nameContext}
 Guidelines:
 - Ask open-ended follow-up questions that invite detailed storytelling
 - Pick up on specific names, places, emotions, and sensory details the storyteller mentions, and ask about them
@@ -38,3 +52,6 @@ shouldComplete instructions:
 - When shouldComplete is true, your response should be a warm closing message thanking them for sharing
 
 The conversational response is the priority. Never let note-taking make the conversation feel mechanical.`;
+}
+
+export const INTERVIEWER_SYSTEM_PROMPT = getInterviewerSystemPrompt();

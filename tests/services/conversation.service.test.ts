@@ -110,7 +110,7 @@ describe("conversationService", () => {
       mockQuestionFindById.mockResolvedValue(question);
       mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(existingInterview);
 
-      const result = await conversationService.startInterview("bq1");
+      const result = await conversationService.startInterview("bq1", "Sarah");
 
       expect(result).toEqual({
         interviewId: "existing-int1",
@@ -178,7 +178,7 @@ describe("conversationService", () => {
       mockBookQuestionUpdateStatus.mockResolvedValue({});
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      const result = await conversationService.startInterview("bq1");
+      const result = await conversationService.startInterview("bq1", "Sarah");
 
       expect(result).toEqual({
         interviewId: "int1",
@@ -201,7 +201,7 @@ describe("conversationService", () => {
       });
 
       // Context service called after topic message persisted
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
 
       expect(mockGenerateResponse).toHaveBeenCalledWith(
         expect.any(String),
@@ -269,9 +269,9 @@ describe("conversationService", () => {
       mockBookQuestionUpdateStatus.mockResolvedValue({});
       mockInsightCreateMany.mockResolvedValue({ count: 2 });
 
-      await conversationService.startInterview("bq1");
+      await conversationService.startInterview("bq1", "Sarah");
 
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([
         { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — older, bossy" },
         { bookId: "b1", interviewId: "int1", type: "EMOTION", content: "nostalgia for childhood home" },
@@ -317,9 +317,9 @@ describe("conversationService", () => {
       mockBookQuestionUpdateStatus.mockResolvedValue({});
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      await conversationService.startInterview("bq1");
+      await conversationService.startInterview("bq1", "Sarah");
 
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
     });
 
@@ -327,7 +327,7 @@ describe("conversationService", () => {
       mockBookQuestionFindById.mockResolvedValue(null);
 
       await expect(
-        conversationService.startInterview("bq-missing"),
+        conversationService.startInterview("bq-missing", "Sarah"),
       ).rejects.toThrow("BookQuestion not found: bq-missing");
     });
 
@@ -344,7 +344,7 @@ describe("conversationService", () => {
       mockQuestionFindById.mockResolvedValue(null);
 
       await expect(
-        conversationService.startInterview("bq1"),
+        conversationService.startInterview("bq1", "Sarah"),
       ).rejects.toThrow("Question not found: q-missing");
     });
   });
@@ -365,7 +365,7 @@ describe("conversationService", () => {
       });
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      const result = await conversationService.sendMessage("int1", "b1", "my story");
+      const result = await conversationService.sendMessage("int1", "b1", "my story", "Sarah");
 
       expect(result).toEqual({ content: "That's fascinating! Tell me more.", shouldComplete: false });
 
@@ -377,7 +377,7 @@ describe("conversationService", () => {
       });
 
       // Context service builds context window
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
 
       // Maps roles to lowercase for LLM
       expect(mockGenerateResponse).toHaveBeenCalledWith(
@@ -406,9 +406,9 @@ describe("conversationService", () => {
       mockGenerateResponse.mockResolvedValue({ content: '{"response":"hi","insights":[]}' });
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      await conversationService.sendMessage("int1", "b1", "hello");
+      await conversationService.sendMessage("int1", "b1", "hello", "Sarah");
 
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
       expect(mockGenerateResponse).toHaveBeenCalledWith(expect.any(String), [
         { role: "user", content: "hello" },
       ]);
@@ -425,9 +425,9 @@ describe("conversationService", () => {
       });
       mockInsightCreateMany.mockResolvedValue({ count: 1 });
 
-      await conversationService.sendMessage("int1", "b1", "I had a sister named Maria");
+      await conversationService.sendMessage("int1", "b1", "I had a sister named Maria", "Sarah");
 
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([
         { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — mentioned in passing" },
       ]);
@@ -445,7 +445,7 @@ describe("conversationService", () => {
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
       mockInterviewComplete.mockResolvedValue({});
 
-      const result = await conversationService.sendMessage("int1", "b1", "yes, let's wrap up");
+      const result = await conversationService.sendMessage("int1", "b1", "yes, let's wrap up", "Sarah");
 
       expect(result).toEqual({ content: "Thank you for sharing!", shouldComplete: true });
       expect(mockInterviewComplete).toHaveBeenCalledWith("int1");
@@ -464,7 +464,7 @@ describe("conversationService", () => {
       mockInterviewComplete.mockRejectedValue(new Error("DB connection lost"));
 
       await expect(
-        conversationService.sendMessage("int1", "b1", "yes, let's wrap up"),
+        conversationService.sendMessage("int1", "b1", "yes, let's wrap up", "Sarah"),
       ).rejects.toThrow("DB connection lost");
 
       // Assistant message should still have been persisted before complete() was called
@@ -486,7 +486,7 @@ describe("conversationService", () => {
       });
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      const result = await conversationService.sendMessage("int1", "b1", "tell me more");
+      const result = await conversationService.sendMessage("int1", "b1", "tell me more", "Sarah");
 
       expect(result).toEqual({ content: "Tell me more about that.", shouldComplete: false });
       expect(mockInterviewComplete).not.toHaveBeenCalled();
@@ -502,10 +502,10 @@ describe("conversationService", () => {
       mockGenerateResponse.mockResolvedValue({ content: "This is just plain text, not JSON." });
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      const result = await conversationService.sendMessage("int1", "b1", "hello");
+      const result = await conversationService.sendMessage("int1", "b1", "hello", "Sarah");
 
       expect(result).toEqual({ content: "This is just plain text, not JSON.", shouldComplete: false });
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1");
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
       expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",

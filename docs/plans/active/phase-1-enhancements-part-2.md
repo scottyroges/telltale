@@ -444,12 +444,24 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Consider: What if user hasn't provided a name? (Graceful fallback)
 
 **Acceptance criteria:**
-- [ ] User name captured during sign up (or profile)
-- [ ] User name passed to conversation context
-- [ ] AI uses name naturally in responses (not too frequent)
-- [ ] Name usage feels warm and personal, not robotic
-- [ ] Graceful handling if name is missing
-- [ ] Test coverage for context with/without name
+- [x] User name captured during sign up (or profile)
+- [x] User name passed to conversation context
+- [x] AI uses name naturally in responses (not too frequent)
+- [x] Name usage feels warm and personal, not robotic
+- [x] Graceful handling if name is missing
+- [x] Test coverage for context with/without name
+- [x] Prompt injection protection for user-supplied names
+
+**Status:** Complete (PR pending)
+
+**Implementation:**
+- System prompt converted from static constant (`INTERVIEWER_SYSTEM_PROMPT`) to dynamic function (`getInterviewerSystemPrompt(userName?)`) in `src/prompts/interviewer.ts`
+- Name context injected before Guidelines section: "The storyteller's name is {name}. Use their name occasionally and naturally -- like a friend would."
+- `sanitizeUserName()` protects against prompt injection: strips newlines, removes non-name characters (preserves Unicode letters, accents, hyphens, apostrophes), truncates to 100 chars
+- User name flows from auth context: `approvedProcedure` adds `ctx.userName` from the user record, threaded through `conversationService` -> `contextService` -> `getInterviewerSystemPrompt()`
+- Backward-compatible: `INTERVIEWER_SYSTEM_PROMPT` constant still exported (calls function with no args) for existing tests
+- Graceful fallback: empty/whitespace-only names produce the default prompt with no name reference
+- Comprehensive test coverage: 8 new test cases covering name inclusion, sanitization (newlines, special chars, Unicode), truncation, and empty/missing name handling
 
 ---
 
