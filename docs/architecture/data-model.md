@@ -29,7 +29,13 @@ User
 ## Models
 
 ### User
-Standard Better Auth user model. Owns Books.
+Better Auth user model extended with approval and role management. Owns Books.
+
+Fields:
+- `approvalStatus` — Controls access to expensive operations (LLM API calls). Values: `PENDING` (default for new signups), `APPROVED` (full access), `REJECTED` (blocked from expensive ops).
+- `role` — User role. Values: `USER` (default), `ADMIN` (can approve/reject users via admin panel).
+
+New users default to `PENDING` status. They can sign in and browse content but cannot create interviews or send messages until approved by an admin. The migration backfills existing users to `APPROVED` status.
 
 ### Question
 Global prompt catalog — hardcoded starting points that kick off interviews. Has a `category` for search and organization (e.g., "childhood", "career", "relationships"). Not user-specific — shared across all users and books.

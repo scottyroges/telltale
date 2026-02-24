@@ -25,6 +25,13 @@ vi.mock("@/repositories/book-question.repository", () => ({
   },
 }));
 
+const mockUserFindById = vi.hoisted(() => vi.fn());
+vi.mock("@/repositories/user.repository", () => ({
+  userRepository: {
+    findById: mockUserFindById,
+  },
+}));
+
 const mockInterviewFindById = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/interview.repository", () => ({
   interviewRepository: {
@@ -50,6 +57,18 @@ vi.mock("@/services/conversation.service", () => ({
 }));
 
 const now = new Date();
+
+const approvedUser = {
+  id: "user-1",
+  name: "Test User",
+  email: "test@example.com",
+  emailVerified: true,
+  image: null,
+  approvalStatus: "APPROVED",
+  role: "USER",
+  createdAt: now,
+  updatedAt: now,
+};
 
 const ownBook = {
   id: "book-1",
@@ -92,6 +111,8 @@ describe("interview router", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Mock approved user for all tests
+    mockUserFindById.mockResolvedValue(approvedUser);
     const { createCallerFactory } = await import("@/server/trpc");
     const { appRouter } = await import("@/server/routers/_app");
     createCaller = (ctx) => createCallerFactory(appRouter)(ctx as never);

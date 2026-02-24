@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "@/server/trpc";
+import { router, protectedProcedure, approvedProcedure } from "@/server/trpc";
 import { conversationService } from "@/services/conversation.service";
 import {
   verifyBookOwnership,
@@ -9,21 +9,21 @@ import {
 } from "@/server/routers/ownership";
 
 export const interviewRouter = router({
-  start: protectedProcedure
+  start: approvedProcedure
     .input(z.object({ bookQuestionId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await verifyBookQuestionOwnership(input.bookQuestionId, ctx.userId);
       return conversationService.startInterview(input.bookQuestionId);
     }),
 
-  getById: protectedProcedure
+  getById: approvedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const interview = await verifyInterviewOwnership(input.id, ctx.userId);
       return interview;
     }),
 
-  sendMessage: protectedProcedure
+  sendMessage: approvedProcedure
     .input(z.object({ interviewId: z.string(), content: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const interview = await verifyInterviewOwnership(
@@ -39,21 +39,21 @@ export const interviewRouter = router({
       return conversationService.sendMessage(input.interviewId, interview.bookId, input.content);
     }),
 
-  getMessages: protectedProcedure
+  getMessages: approvedProcedure
     .input(z.object({ interviewId: z.string() }))
     .query(async ({ ctx, input }) => {
       await verifyInterviewOwnership(input.interviewId, ctx.userId);
       return conversationService.getInterviewMessages(input.interviewId);
     }),
 
-  getInsights: protectedProcedure
+  getInsights: approvedProcedure
     .input(z.object({ interviewId: z.string() }))
     .query(async ({ ctx, input }) => {
       await verifyInterviewOwnership(input.interviewId, ctx.userId);
       return conversationService.getInsights(input.interviewId);
     }),
 
-  getBookInsights: protectedProcedure
+  getBookInsights: approvedProcedure
     .input(z.object({ bookId: z.string() }))
     .query(async ({ ctx, input }) => {
       await verifyBookOwnership(input.bookId, ctx.userId);

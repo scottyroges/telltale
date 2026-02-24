@@ -338,6 +338,74 @@ describe("myService", () => {
 - Dynamic import in `beforeEach` ensures fresh module state per test
 - `vi.clearAllMocks()` resets mock call counts between tests
 
+### Testing approvedProcedure (User Approval Middleware)
+
+Routes using `approvedProcedure` require the user to have `APPROVED` status. Tests must mock `userRepository.findById` to return an approved user:
+
+```typescript
+// @vitest-environment node
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
+const mockUserFindById = vi.hoisted(() => vi.fn());
+vi.mock("@/repositories/user.repository", () => ({
+  userRepository: {
+    findById: mockUserFindById,
+  },
+}));
+
+describe("interview router", () => {
+  const approvedUser = {
+    id: "user-1",
+    name: "Test User",
+    email: "test@example.com",
+    emailVerified: true,
+    image: null,
+    approvalStatus: "APPROVED",
+    role: "USER",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    // Mock approved user for all tests
+    mockUserFindById.mockResolvedValue(approvedUser);
+    // ... other setup
+  });
+
+  it("allows approved users to start interview", async () => {
+    const result = await caller.interview.start({ bookQuestionId: "bq1" });
+    expect(result).toBeDefined();
+  });
+});
+```
+
+**Testing pending/rejected users:**
+
+```typescript
+it("blocks pending users from starting interview", async () => {
+  mockUserFindById.mockResolvedValue({
+    ...approvedUser,
+    approvalStatus: "PENDING",
+  });
+
+  await expect(
+    caller.interview.start({ bookQuestionId: "bq1" })
+  ).rejects.toMatchObject({
+    code: "FORBIDDEN",
+    message: "Your account is pending approval. Please contact support.",
+  });
+});
+```
+
+**Why:**
+- `approvedProcedure` extends `protectedProcedure` with an approval status check
+- The middleware queries `userRepository.findById` to check `approvalStatus`
+- Tests must mock the user lookup to control what status is returned
+- All interview routes use `approvedProcedure` to prevent unapproved users from making expensive LLM API calls
+
 ### Environment Variable Stubs for Transitive Dependencies
 
 When modifying `src/server/auth.ts`, remember that it's imported by the tRPC context, which is imported by every router test. Any new dependencies in `auth.ts` that validate environment variables will break ALL router tests.

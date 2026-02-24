@@ -38,7 +38,8 @@ src/
 │   │   ├── books/
 │   │   ├── books/new/
 │   │   ├── book/[bookId]/interviews/
-│   │   └── interview/[interviewId]/
+│   │   ├── interview/[interviewId]/
+│   │   └── admin/users/       # Admin panel (user approval)
 │   ├── api/auth/[...all]/     # Better Auth API handler
 │   └── api/trpc/[trpc]/      # tRPC HTTP handler
 │
@@ -58,6 +59,7 @@ src/
 │   ├── synthesis.service      # Conversation → polished narrative
 │   ├── response-parser        # Parse structured LLM output (response text + insights)
 │   ├── book.service           # Book assembly + export
+│   ├── admin.service          # User approval management
 │   └── audio.service          # Transcription + TTS (Phase 2)
 │
 ├── repositories/              # Database access layer
@@ -93,6 +95,11 @@ e2e/                               # Playwright E2E tests (critical user flows)
 **App Router (`app/`)** — Routing, layouts, page-level data fetching. No business logic.
 
 **tRPC Routers (`server/routers/`)** — Input validation via Zod, auth checks, delegation to services. Thin wrappers only. Ownership verification helpers in `server/routers/ownership/` enforce access control before delegating to services. The chain is always: resource → book → `book.userId === ctx.userId`. Helpers throw `NOT_FOUND` for missing resources (before checking ownership, to avoid leaking existence) and `FORBIDDEN` for cross-user access.
+
+Middleware procedures in `server/trpc.ts`:
+- `protectedProcedure` — Requires authentication (checks session)
+- `approvedProcedure` — Requires authentication + `APPROVED` status (blocks pending/rejected users from expensive operations like LLM API calls)
+- `adminProcedure` (in `server/routers/admin.ts`) — Requires authentication + `ADMIN` role (for user approval management)
 
 **Services (`services/`)** — All business logic. Framework-agnostic. Can import from `repositories/`, `domain/`, and `lib/` only. Never imports from `app/` or `server/`.
 

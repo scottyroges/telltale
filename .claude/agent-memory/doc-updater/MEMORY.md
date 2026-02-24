@@ -4,9 +4,10 @@
 - `docs/INDEX.md` is the central documentation index with "When to Consult" quick-reference + detailed sections
 - INDEX.md style: bold file paths with dash-separated descriptions, one line per entry
 - Plans live in `docs/plans/active/` (numbered by phase, e.g., `0.1-nextjs-scaffold.md`) and move to `docs/plans/completed/` when done
-- Decision records in `docs/decisions/`, numbered sequentially (001-019 exist)
+- Decision records in `docs/decisions/`, numbered sequentially (001-020 exist)
 - Architecture docs in `docs/architecture/`
 - Idea docs in `docs/ideas/` (deferred concepts, visions, critiques)
+- Operational guides in `docs/guides/` (admin workflows, deployment procedures)
 
 ## Conventions
 - Active Plans section header includes the current phase name in parens, e.g., "Active Plans (Phase 0: Foundation)"
@@ -38,6 +39,7 @@
 - **Auth pages (1.7):** Signup, forgot-password, reset-password, email-sign-in-form at `src/app/(auth)/` — colocated tests, CSS modules, multi-method login layout
 - **Dashboard UI patterns (Enhancement 8):** Card-based layout with styled borders, definition lists for structured data, status badges, responsive breakpoints at 640px, animated hover states on CTAs
 - **App-shell layout (Enhancement 3):** Parent `(app)` layout uses `height: 100svh` + `overflow: hidden` on shell, `overflow-y: auto` on main. All authenticated pages scroll within container, not viewport. Interview layout escapes parent padding with negative margins, creates full-bleed contained scroll area.
+- **User approval system (Enhancement 6):** User model extended with `approvalStatus` (PENDING/APPROVED/REJECTED) and `role` (USER/ADMIN). `approvedProcedure` middleware blocks unapproved users from expensive operations. Admin router at `src/server/routers/admin.ts` uses `adminProcedure` middleware. Admin UI at `src/app/(app)/admin/users/`. Guide at `docs/guides/admin-approval-flow.md`.
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk
@@ -48,3 +50,5 @@
 - When auth.ts gets new dependencies requiring env vars, ALL router tests break — testing-patterns.md documents the env stub pattern
 - Enhancement plans track implementation details inline (design decisions, acceptance criteria) — when enhancement completes, mark criteria as checked and add "Status: Complete (PR pending)"
 - New ADRs and idea docs are often created during enhancement work, not just during initial planning — check staged changes for new decision records
+- Guides (`docs/guides/`) document operational workflows — typically created during feature implementation, not planning (e.g., admin approval flow, deployment procedures)
+- When new tRPC middleware is added (like `approvedProcedure`), update both system-overview.md (document the middleware) and testing-patterns.md (show how to test it)

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { serverTRPC } from "@/lib/trpc/server";
+import { ApprovalBanner } from "./approval-banner";
 import styles from "./dashboard.module.css";
 
 export default async function DashboardPage() {
@@ -8,6 +9,8 @@ export default async function DashboardPage() {
 
   return (
     <div className={styles.page}>
+      {user.approvalStatus === "PENDING" && <ApprovalBanner />}
+
       <header className={styles.header}>
         <h1 className={styles.title}>Welcome back, {user.name}</h1>
         <p className={styles.subtitle}>Ready to continue your story?</p>
