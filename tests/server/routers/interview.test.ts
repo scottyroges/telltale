@@ -94,6 +94,7 @@ const activeInterview = {
   bookId: "book-1",
   questionId: "q-1",
   status: "ACTIVE",
+  completedAt: null,
   createdAt: now,
   updatedAt: now,
 };
@@ -101,6 +102,7 @@ const activeInterview = {
 const completeInterview = {
   ...activeInterview,
   status: "COMPLETE",
+  completedAt: now,
 };
 
 describe("interview router", () => {
@@ -385,17 +387,22 @@ describe("interview router", () => {
       });
 
       expect(result).toEqual(completeInterview);
+      expect(result.completedAt).toBe(now);
       expect(mockInterviewFindById).toHaveBeenCalledWith("interview-1");
       expect(mockCompleteInterview).toHaveBeenCalledWith("interview-1");
     });
 
-    it("throws BAD_REQUEST if already COMPLETE", async () => {
+    it("is idempotent (completing an already complete interview succeeds)", async () => {
       mockInterviewFindById.mockResolvedValue(completeInterview);
       mockBookFindById.mockResolvedValue(ownBook);
+      mockCompleteInterview.mockResolvedValue(completeInterview);
 
-      await expect(
-        caller.interview.complete({ interviewId: "interview-1" }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      const result = await caller.interview.complete({
+        interviewId: "interview-1",
+      });
+
+      expect(result).toEqual(completeInterview);
+      expect(mockCompleteInterview).toHaveBeenCalledWith("interview-1");
     });
 
     it("throws NOT_FOUND for missing interview", async () => {

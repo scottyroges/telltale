@@ -54,6 +54,7 @@ describe("contextService", () => {
     bookId: "b1",
     questionId: "q1",
     status: "ACTIVE" as const,
+    completedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

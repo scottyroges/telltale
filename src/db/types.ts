@@ -53,6 +53,7 @@ export type Interview = {
     bookId: string;
     questionId: string;
     status: Generated<InterviewStatus>;
+    completedAt: Timestamp | null;
     createdAt: Generated<Timestamp>;
     updatedAt: Timestamp;
 };

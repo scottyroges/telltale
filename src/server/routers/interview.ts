@@ -33,7 +33,7 @@ export const interviewRouter = router({
       if (interview.status === "COMPLETE") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Interview is already complete",
+          message: "Cannot send messages to completed interviews",
         });
       }
       return conversationService.sendMessage(input.interviewId, interview.bookId, input.content);
@@ -63,16 +63,7 @@ export const interviewRouter = router({
   complete: protectedProcedure
     .input(z.object({ interviewId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const interview = await verifyInterviewOwnership(
-        input.interviewId,
-        ctx.userId,
-      );
-      if (interview.status === "COMPLETE") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Interview is already complete",
-        });
-      }
+      await verifyInterviewOwnership(input.interviewId, ctx.userId);
       return conversationService.completeInterview(input.interviewId);
     }),
 });

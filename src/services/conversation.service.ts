@@ -124,7 +124,7 @@ export const conversationService = {
   },
 
   async completeInterview(interviewId: string) {
-    return interviewRepository.updateStatus(interviewId, "COMPLETE");
+    return interviewRepository.complete(interviewId);
   },
 
   async getInsights(interviewId: string) {

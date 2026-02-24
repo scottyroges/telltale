@@ -35,6 +35,7 @@ describe("interviewRepository", () => {
         bookId: "b1",
         questionId: "q1",
         status: "ACTIVE",
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -58,6 +59,7 @@ describe("interviewRepository", () => {
         bookId: "b1",
         questionId: "q1",
         status: "ACTIVE",
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -86,6 +88,7 @@ describe("interviewRepository", () => {
           bookId: "b1",
           questionId: "q1",
           status: "ACTIVE",
+          completedAt: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -107,6 +110,7 @@ describe("interviewRepository", () => {
         bookId: "b1",
         questionId: "q1",
         status: "ACTIVE",
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -136,6 +140,7 @@ describe("interviewRepository", () => {
         bookId: "b1",
         questionId: "q1",
         status: "COMPLETE",
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -144,6 +149,30 @@ describe("interviewRepository", () => {
       const result = await interviewRepository.updateStatus("i1", "COMPLETE");
 
       expect(result).toEqual(expected);
+      expect(updateTable).toHaveBeenCalledWith("interview");
+      expect(executeTakeFirstOrThrow).toHaveBeenCalled();
+    });
+  });
+
+  describe("complete", () => {
+    it("sets status to COMPLETE and sets completedAt timestamp", async () => {
+      const now = new Date();
+      const expected = {
+        id: "i1",
+        bookId: "b1",
+        questionId: "q1",
+        status: "COMPLETE",
+        completedAt: now,
+        createdAt: new Date(),
+        updatedAt: now,
+      };
+      executeTakeFirstOrThrow.mockResolvedValue(expected);
+
+      const result = await interviewRepository.complete("i1");
+
+      expect(result).toEqual(expected);
+      expect(result.status).toBe("COMPLETE");
+      expect(result.completedAt).toBe(now);
       expect(updateTable).toHaveBeenCalledWith("interview");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });

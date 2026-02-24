@@ -5,6 +5,7 @@ export type Interview = {
   bookId: string;
   questionId: string;
   status: InterviewStatus;
+  completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
