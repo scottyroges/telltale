@@ -30,6 +30,12 @@ export const interviewRouter = router({
         input.interviewId,
         ctx.userId,
       );
+      if (interview.status === "COMPLETE") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot send messages to completed interviews",
+        });
+      }
       return conversationService.sendMessage(input.interviewId, interview.bookId, input.content);
     }),
 

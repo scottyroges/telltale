@@ -217,26 +217,16 @@ describe("interview router", () => {
       );
     });
 
-    it("allows sending messages to completed interviews (resume)", async () => {
+    it("throws BAD_REQUEST if interview is COMPLETE", async () => {
       mockInterviewFindById.mockResolvedValue(completeInterview);
       mockBookFindById.mockResolvedValue(ownBook);
-      mockSendMessage.mockResolvedValue({
-        content: "That sounds fascinating. Tell me more.",
-      });
 
-      const result = await caller.interview.sendMessage({
-        interviewId: "interview-1",
-        content: "I remembered something else.",
-      });
-
-      expect(result).toEqual({
-        content: "That sounds fascinating. Tell me more.",
-      });
-      expect(mockSendMessage).toHaveBeenCalledWith(
-        "interview-1",
-        "book-1",
-        "I remembered something else.",
-      );
+      await expect(
+        caller.interview.sendMessage({
+          interviewId: "interview-1",
+          content: "Hello",
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
 
     it("throws NOT_FOUND for missing interview", async () => {
