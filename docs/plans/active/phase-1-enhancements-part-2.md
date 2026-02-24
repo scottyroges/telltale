@@ -623,18 +623,41 @@ Your story, your pace, your way.
 - Make it easy to remove when no longer needed
 
 **Acceptance criteria:**
-- [ ] New users default to `PENDING` approval status
-- [ ] Unapproved users cannot access interview pages
-- [ ] Unapproved users cannot call interview/Claude API endpoints
-- [ ] Clear message shown to pending users
-- [ ] Admin UI to view all users and their approval status
-- [ ] Admin can approve/reject users with single click
-- [ ] Approved users get full access immediately
-- [ ] Database migration adds `approvalStatus` field
-- [ ] Existing users migrated to `APPROVED` status
-- [ ] Admin access controlled via env var or user flag
-- [ ] Test coverage for approval checks
-- [ ] Documentation on how to approve users
+- [x] New users default to `PENDING` approval status
+- [x] Unapproved users cannot access interview pages
+- [x] Unapproved users cannot call interview/Claude API endpoints
+- [x] Clear message shown to pending users
+- [x] Admin UI to view all users and their approval status
+- [x] Admin can approve/reject users with single click
+- [x] Approved users get full access immediately
+- [x] Database migration adds `approvalStatus` field
+- [x] Existing users migrated to `APPROVED` status
+- [x] Admin access controlled via env var or user flag
+- [x] Test coverage for approval checks
+- [x] Documentation on how to approve users
+
+**Status:** Complete
+
+**Implementation:**
+- Database schema: Added `approvalStatus` enum (PENDING/APPROVED/REJECTED) and `role` enum (USER/ADMIN) to User model
+- Migration backfills existing users to APPROVED status
+- Domain types: Created `src/domain/user.ts` with `UserApprovalStatus` and `UserRole` types
+- Repository layer: `userRepository.findPendingUsers()` and `userRepository.updateApprovalStatus()`
+- Service layer: `adminService` delegates to repository for approval operations
+- tRPC middleware: `approvedProcedure` blocks unapproved users from expensive operations (FORBIDDEN error)
+- tRPC middleware: `adminProcedure` restricts admin endpoints to users with ADMIN role
+- Admin router: `admin.getPendingUsers()` and `admin.updateApprovalStatus()` endpoints
+- Admin UI: `/admin/users` page lists pending users with approve/reject actions (route-level role check)
+- User UI: Dashboard shows approval banner for pending users
+- Protected operations: All interview mutations and queries use `approvedProcedure`
+- Test coverage: Tests for `approvedProcedure`, `adminProcedure`, admin router, and interview router approval checks
+- Documentation: Created `docs/guides/admin-approval-flow.md` with full approval system guide, including manual DB process for making users admins
+- Updated architecture docs: data-model.md, system-overview.md, and testing-patterns.md
+
+**Notes:**
+- Admin promotion is currently a manual database operation (SQL UPDATE statement)
+- Future enhancement: Environment variable for auto-promoting admin emails on login
+- Rejection messaging shows same "pending" banner (rare edge case, not prioritized)
 
 ---
 

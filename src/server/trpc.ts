@@ -38,3 +38,23 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
     },
   });
 });
+
+export const approvedProcedure = protectedProcedure.use(
+  async ({ ctx, next }) => {
+    const { userRepository } = await import("@/repositories/user.repository");
+    const user = await userRepository.findById(ctx.userId);
+
+    if (!user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    if (user.approvalStatus !== "APPROVED") {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Your account is pending approval. Please contact support.",
+      });
+    }
+
+    return next({ ctx });
+  }
+);

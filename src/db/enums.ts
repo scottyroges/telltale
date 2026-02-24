@@ -41,3 +41,14 @@ export const StorySectionStatus = {
     FINAL: "FINAL"
 } as const;
 export type StorySectionStatus = (typeof StorySectionStatus)[keyof typeof StorySectionStatus];
+export const UserApprovalStatus = {
+    PENDING: "PENDING",
+    APPROVED: "APPROVED",
+    REJECTED: "REJECTED"
+} as const;
+export type UserApprovalStatus = (typeof UserApprovalStatus)[keyof typeof UserApprovalStatus];
+export const UserRole = {
+    USER: "USER",
+    ADMIN: "ADMIN"
+} as const;
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];

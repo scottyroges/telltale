@@ -4,7 +4,7 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-import type { BookStatus, BookQuestionStatus, InterviewStatus, MessageRole, InsightType, StoryStatus, StorySectionStatus } from "./enums";
+import type { BookStatus, BookQuestionStatus, InterviewStatus, MessageRole, InsightType, StoryStatus, StorySectionStatus, UserApprovalStatus, UserRole } from "./enums";
 
 export type Account = {
     id: string;
@@ -115,6 +115,8 @@ export type User = {
     email: string;
     emailVerified: Generated<boolean>;
     image: string | null;
+    approvalStatus: Generated<UserApprovalStatus>;
+    role: Generated<UserRole>;
     createdAt: Generated<Timestamp>;
     updatedAt: Timestamp;
 };

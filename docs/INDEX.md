@@ -6,6 +6,7 @@
 - **Project roadmap & phases:** docs/roadmap.md
 - **Architecture decisions (and why):** docs/decisions/
 - **System architecture & mental models:** docs/architecture/
+- **Operational guides:** docs/guides/
 - **Active work plans:** docs/plans/active/
 - **Completed work plans:** docs/plans/completed/
 - **Known issues & bugs:** docs/known-issues.md
@@ -18,6 +19,7 @@
 ## Active Plans
 
 - **phase-1-enhancements-part-2.md** — Second round of Phase 1 improvements (question removal UI, chat readability, interview layout/scroll fixes, back navigation, duplicate interview bug, interview completion/exit strategy, personalize with user name, conversation steering control, usage guidance/helper text)
+- **decouple-interviews-from-questions.md** — Make interviews independent of catalog questions to enable custom prompts, AI-generated follow-ups, and flexible conversation flows (schema migration, API updates, UI changes)
 
 ## Completed Plans
 
@@ -37,6 +39,10 @@
 - **docs/plans/completed/0.5-trpc-setup.md** — tRPC v11, auth-aware context, health-check router, React Query client, first service + repository
 - **docs/plans/completed/0.6-vercel-deployment.md** — Vercel deployment, Neon database, auto-deploys on push, dynamic auth URL
 - **docs/plans/completed/0.7-ci-quality-gates.md** — GitHub Actions CI, lint + unit tests on PRs and push to main
+
+## Guides
+
+- **docs/guides/admin-approval-flow.md** — User approval system, admin role management, protected operations
 
 ## Architecture
 
@@ -78,4 +84,4 @@
 - **017** — Observability stack: Axiom + Sentry + Better Stack + PostHog (vs. Datadog, Grafana Cloud)
 - **018** — Insight context placement: near end vs. beginning (vs. both positions, system prompt injection, split old/recent)
 - **019** — App-shell layout with container scroll (vs. viewport scroll, viewport units for interview only)
-- **020** — Async job processing: Inngest (MVP) vs. BullMQ + Railway (scale)
+- **020** — Async job processing: Inngest for MVP, BullMQ + Railway at scale (vs. pg-boss, Trigger.dev, Vercel cron)
