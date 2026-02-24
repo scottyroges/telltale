@@ -41,7 +41,11 @@ export function QuestionList({
               <span className={styles.prompt}>{bq.question.prompt}</span>
               <StatusIndicator status={bq.status} />
             </div>
-            <div className={styles.action}>
+            <div className={styles.actions}>
+              <RemoveQuestionButton
+                bookQuestionId={bq.id}
+                hasInterview={!!interview}
+              />
               <QuestionAction
                 bookQuestionId={bq.id}
                 status={bq.status}
@@ -79,6 +83,47 @@ function StatusIndicator({ status }: { status: BookQuestion["status"] }) {
         </span>
       );
   }
+}
+
+function RemoveQuestionButton({
+  bookQuestionId,
+  hasInterview,
+}: {
+  bookQuestionId: string;
+  hasInterview: boolean;
+}) {
+  const router = useRouter();
+  const trpc = useTRPC();
+
+  const removeQuestion = useMutation(
+    trpc.book.removeQuestion.mutationOptions({
+      onSuccess() {
+        router.refresh();
+      },
+    }),
+  );
+
+  const handleRemove = () => {
+    const message = hasInterview
+      ? "This question has an interview with saved responses. Are you sure you want to remove it?"
+      : "Remove this question from your book?";
+
+    if (confirm(message)) {
+      removeQuestion.mutate({ bookQuestionId });
+    }
+  };
+
+  return (
+    <button
+      className={styles.removeButton}
+      onClick={handleRemove}
+      disabled={removeQuestion.isPending}
+      aria-label="Remove question"
+      title="Remove question"
+    >
+      {removeQuestion.isPending ? "…" : "×"}
+    </button>
+  );
 }
 
 function QuestionAction({

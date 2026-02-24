@@ -6,13 +6,16 @@ import type { BookQuestion } from "@/domain/book-question";
 import type { Question } from "@/domain/question";
 import type { Interview } from "@/domain/interview";
 
-const { mockPush, mockMutate } = vi.hoisted(() => ({
-  mockPush: vi.fn(),
-  mockMutate: vi.fn(),
-}));
+const { mockPush, mockRefresh, mockStartInterview, mockRemoveQuestion } =
+  vi.hoisted(() => ({
+    mockPush: vi.fn(),
+    mockRefresh: vi.fn(),
+    mockStartInterview: vi.fn(),
+    mockRemoveQuestion: vi.fn(),
+  }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
 }));
 
 vi.mock("@/lib/trpc/client", () => ({
@@ -20,7 +23,15 @@ vi.mock("@/lib/trpc/client", () => ({
     interview: {
       start: {
         mutationOptions: (opts: Record<string, unknown>) => ({
-          mutationFn: mockMutate,
+          mutationFn: mockStartInterview,
+          ...opts,
+        }),
+      },
+    },
+    book: {
+      removeQuestion: {
+        mutationOptions: (opts: Record<string, unknown>) => ({
+          mutationFn: mockRemoveQuestion,
           ...opts,
         }),
       },
@@ -92,7 +103,10 @@ function renderQuestionList(
 describe("QuestionList", () => {
   beforeEach(() => {
     mockPush.mockReset();
-    mockMutate.mockReset();
+    mockRefresh.mockReset();
+    mockStartInterview.mockReset();
+    mockRemoveQuestion.mockReset();
+    vi.stubGlobal("confirm", vi.fn());
   });
 
   it("shows empty state when no questions", () => {
@@ -176,7 +190,7 @@ describe("QuestionList", () => {
   });
 
   it("Begin button calls interview.start and navigates on success", async () => {
-    mockMutate.mockResolvedValue({ interviewId: "new-int-1" });
+    mockStartInterview.mockResolvedValue({ interviewId: "new-int-1" });
     const user = userEvent.setup();
 
     renderQuestionList({
@@ -185,7 +199,7 @@ describe("QuestionList", () => {
 
     await user.click(screen.getByRole("button", { name: /begin/i }));
 
-    expect(mockMutate).toHaveBeenCalledWith(
+    expect(mockStartInterview).toHaveBeenCalledWith(
       { bookQuestionId: "bq-99" },
       expect.anything(),
     );
@@ -196,7 +210,7 @@ describe("QuestionList", () => {
 
   it("Begin button shows loading state while pending", async () => {
     let resolveMutate: (value: unknown) => void;
-    mockMutate.mockReturnValue(
+    mockStartInterview.mockReturnValue(
       new Promise((resolve) => {
         resolveMutate = resolve;
       }),
@@ -209,12 +223,126 @@ describe("QuestionList", () => {
 
     await user.click(screen.getByRole("button", { name: /begin/i }));
 
-    expect(screen.getByRole("button")).toBeDisabled();
-    expect(screen.getByRole("button")).toHaveTextContent("Starting\u2026");
+    expect(screen.getByRole("button", { name: /starting/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /starting/i })).toHaveTextContent(
+      "Starting\u2026",
+    );
 
     resolveMutate!({ interviewId: "int-1" });
     await waitFor(() => {
-      expect(screen.getByRole("button")).toBeEnabled();
+      expect(screen.getByRole("button", { name: /begin/i })).toBeEnabled();
     });
+  });
+
+  it("renders remove button for each question", () => {
+    renderQuestionList({
+      bookQuestions: [
+        makeBookQuestion({ id: "bq-1" }),
+        makeBookQuestion({ id: "bq-2", questionId: "q-2" }),
+      ],
+    });
+
+    const removeButtons = screen.getAllByRole("button", {
+      name: /remove question/i,
+    });
+    expect(removeButtons).toHaveLength(2);
+  });
+
+  it("shows confirmation dialog when remove button clicked", async () => {
+    const mockConfirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal("confirm", mockConfirm);
+    const user = userEvent.setup();
+
+    renderQuestionList({
+      bookQuestions: [makeBookQuestion({ id: "bq-1" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: /remove question/i }));
+
+    expect(mockConfirm).toHaveBeenCalledWith(
+      "Remove this question from your book?",
+    );
+    expect(mockRemoveQuestion).not.toHaveBeenCalled();
+  });
+
+  it("shows different confirmation for questions with interviews", async () => {
+    const mockConfirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal("confirm", mockConfirm);
+    const user = userEvent.setup();
+
+    renderQuestionList({
+      bookQuestions: [makeBookQuestion({ id: "bq-1", questionId: "q-1" })],
+      interviews: [makeInterview({ questionId: "q-1" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: /remove question/i }));
+
+    expect(mockConfirm).toHaveBeenCalledWith(
+      "This question has an interview with saved responses. Are you sure you want to remove it?",
+    );
+  });
+
+  it("removes question when confirmed", async () => {
+    const mockConfirm = vi.fn().mockReturnValue(true);
+    vi.stubGlobal("confirm", mockConfirm);
+    mockRemoveQuestion.mockResolvedValue({ id: "bq-1" });
+    const user = userEvent.setup();
+
+    renderQuestionList({
+      bookQuestions: [makeBookQuestion({ id: "bq-1" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: /remove question/i }));
+
+    expect(mockRemoveQuestion).toHaveBeenCalledWith(
+      { bookQuestionId: "bq-1" },
+      expect.anything(),
+    );
+    await waitFor(() => {
+      expect(mockRefresh).toHaveBeenCalled();
+    });
+  });
+
+  it("shows loading state on remove button while pending", async () => {
+    const mockConfirm = vi.fn().mockReturnValue(true);
+    vi.stubGlobal("confirm", mockConfirm);
+    let resolveRemove: (value: unknown) => void;
+    mockRemoveQuestion.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRemove = resolve;
+      }),
+    );
+    const user = userEvent.setup();
+
+    renderQuestionList({
+      bookQuestions: [makeBookQuestion({ id: "bq-1" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: /remove question/i }));
+
+    const removeButton = screen.getByRole("button", { name: /remove question/i });
+    expect(removeButton).toBeDisabled();
+    expect(removeButton).toHaveTextContent("…");
+
+    resolveRemove!({ id: "bq-1" });
+    await waitFor(() => {
+      expect(removeButton).toBeEnabled();
+    });
+  });
+
+  it("does not remove question when confirmation cancelled", async () => {
+    const mockConfirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal("confirm", mockConfirm);
+    const user = userEvent.setup();
+
+    renderQuestionList({
+      bookQuestions: [makeBookQuestion({ id: "bq-1" })],
+    });
+
+    await user.click(screen.getByRole("button", { name: /remove question/i }));
+
+    expect(mockConfirm).toHaveBeenCalled();
+    expect(mockRemoveQuestion).not.toHaveBeenCalled();
+    expect(mockRefresh).not.toHaveBeenCalled();
   });
 });

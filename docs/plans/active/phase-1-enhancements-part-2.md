@@ -44,13 +44,24 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Test coverage for the remove functionality
 
 **Acceptance criteria:**
-- [ ] Remove button visible for each question in the list
-- [ ] Clicking remove shows confirmation dialog
-- [ ] Successful removal updates the UI immediately
-- [ ] Loading state shown during deletion
-- [ ] Error handling if deletion fails
-- [ ] User cannot accidentally delete without confirmation
-- [ ] Test coverage for remove functionality
+- [x] Remove button visible for each question in the list
+- [x] Clicking remove shows confirmation dialog
+- [x] Successful removal updates the UI immediately
+- [x] Loading state shown during deletion
+- [x] Error handling if deletion fails
+- [x] User cannot accidentally delete without confirmation
+- [x] Test coverage for remove functionality
+
+**Status:** Complete (PR pending)
+
+**Implementation:**
+- Added remove button ("×") to each question in QuestionList component
+- Shows different confirmation messages for questions with/without interviews
+- Uses `useMutation` with `trpc.book.removeQuestion.mutationOptions()` pattern
+- Calls `router.refresh()` on success to update server-rendered data
+- Loading state during deletion (button shows "…" and is disabled)
+- New `--color-destructive` CSS variable for hover state styling
+- Comprehensive test coverage (6 new test cases)
 
 ---
 
