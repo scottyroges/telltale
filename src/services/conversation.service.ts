@@ -116,7 +116,11 @@ export const conversationService = {
       }))
     );
 
-    return { content: parsed.text };
+    if (parsed.shouldComplete) {
+      await interviewRepository.complete(interviewId);
+    }
+
+    return { content: parsed.text, shouldComplete: parsed.shouldComplete };
   },
 
   async getInterviewMessages(interviewId: string) {

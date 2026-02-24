@@ -40,6 +40,7 @@
 - **Dashboard UI patterns (Enhancement 8):** Card-based layout with styled borders, definition lists for structured data, status badges, responsive breakpoints at 640px, animated hover states on CTAs
 - **App-shell layout (Enhancement 3):** Parent `(app)` layout uses `height: 100svh` + `overflow: hidden` on shell, `overflow-y: auto` on main. All authenticated pages scroll within container, not viewport. Interview layout escapes parent padding with negative margins, creates full-bleed contained scroll area.
 - **User approval system (Enhancement 6):** User model extended with `approvalStatus` (PENDING/APPROVED/REJECTED) and `role` (USER/ADMIN). `approvedProcedure` middleware blocks unapproved users from expensive operations. Admin router at `src/server/routers/admin.ts` uses `adminProcedure` middleware. Admin UI at `src/app/(app)/admin/users/`. Guide at `docs/guides/admin-approval-flow.md`.
+- **AI response JSON contract:** The interviewer's JSON response includes `response` (text), `insights` (array), and `shouldComplete` (boolean). `shouldComplete` enables AI-initiated interview completion — when true, the conversation service auto-completes the interview server-side.
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk
@@ -52,3 +53,5 @@
 - New ADRs and idea docs are often created during enhancement work, not just during initial planning — check staged changes for new decision records
 - Guides (`docs/guides/`) document operational workflows — typically created during feature implementation, not planning (e.g., admin approval flow, deployment procedures)
 - When new tRPC middleware is added (like `approvedProcedure`), update both system-overview.md (document the middleware) and testing-patterns.md (show how to test it)
+- Multi-PR enhancements track progress inline with "Status: In Progress (N of M PRs complete)" + summary of what each PR delivered — update acceptance criteria checkboxes as each PR completes
+- UI-only changes (styling, confirmation dialogs, success messages) don't need architecture doc updates — enhancement plan tracking is sufficient

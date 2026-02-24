@@ -11,6 +11,7 @@ describe("parseInterviewerResponse", () => {
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hello!",
       insights: [{ type: "ENTITY", content: "sister Maria" }],
+      shouldComplete: false,
       parsed: true,
     });
   });
@@ -20,6 +21,7 @@ describe("parseInterviewerResponse", () => {
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hello!",
       insights: [],
+      shouldComplete: false,
       parsed: true,
     });
   });
@@ -29,6 +31,7 @@ describe("parseInterviewerResponse", () => {
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hello!",
       insights: [],
+      shouldComplete: false,
       parsed: true,
     });
   });
@@ -38,12 +41,13 @@ describe("parseInterviewerResponse", () => {
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Just a plain string",
       insights: [],
+      shouldComplete: false,
       parsed: false,
     });
   });
 
   it("returns empty text with empty insights for empty string input", () => {
-    expect(parseInterviewerResponse("")).toEqual({ text: "", insights: [], parsed: false });
+    expect(parseInterviewerResponse("")).toEqual({ text: "", insights: [], shouldComplete: false, parsed: false });
   });
 
   it("keeps valid insight entries and skips malformed ones", () => {
@@ -58,6 +62,7 @@ describe("parseInterviewerResponse", () => {
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Tell me more.",
       insights: [{ type: "EMOTION", content: "pride" }],
+      shouldComplete: false,
       parsed: true,
     });
   });
@@ -67,6 +72,7 @@ describe("parseInterviewerResponse", () => {
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hi",
       insights: [],
+      shouldComplete: false,
       parsed: true,
     });
   });
@@ -76,6 +82,7 @@ describe("parseInterviewerResponse", () => {
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hi",
       insights: [],
+      shouldComplete: false,
       parsed: true,
     });
   });
@@ -85,8 +92,40 @@ describe("parseInterviewerResponse", () => {
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hi!",
       insights: [],
+      shouldComplete: false,
       parsed: true,
     });
+  });
+
+  it("parses shouldComplete: true correctly", () => {
+    const input = JSON.stringify({
+      response: "Thank you for sharing!",
+      insights: [],
+      shouldComplete: true,
+    });
+    expect(parseInterviewerResponse(input)).toEqual({
+      text: "Thank you for sharing!",
+      insights: [],
+      shouldComplete: true,
+      parsed: true,
+    });
+  });
+
+  it("defaults shouldComplete to false when field is missing", () => {
+    const input = JSON.stringify({
+      response: "Tell me more.",
+      insights: [],
+    });
+    expect(parseInterviewerResponse(input).shouldComplete).toBe(false);
+  });
+
+  it("defaults shouldComplete to false when field is non-boolean", () => {
+    const input = JSON.stringify({
+      response: "Tell me more.",
+      insights: [],
+      shouldComplete: "yes",
+    });
+    expect(parseInterviewerResponse(input).shouldComplete).toBe(false);
   });
 });
 
@@ -95,7 +134,7 @@ describe("parseWithRetry", () => {
     const retryFn = vi.fn();
     const input = JSON.stringify({ response: "Hello!", insights: [] });
     const result = await parseWithRetry(input, retryFn);
-    expect(result).toEqual({ text: "Hello!", insights: [], parsed: true });
+    expect(result).toEqual({ text: "Hello!", insights: [], shouldComplete: false, parsed: true });
     expect(retryFn).not.toHaveBeenCalled();
   });
 
@@ -103,13 +142,13 @@ describe("parseWithRetry", () => {
     const corrected = JSON.stringify({ response: "Corrected!", insights: [] });
     const retryFn = vi.fn().mockResolvedValue(corrected);
     const result = await parseWithRetry("not json", retryFn);
-    expect(result).toEqual({ text: "Corrected!", insights: [], parsed: true });
+    expect(result).toEqual({ text: "Corrected!", insights: [], shouldComplete: false, parsed: true });
     expect(retryFn).toHaveBeenCalledOnce();
   });
 
   it("returns original raw text when both attempts fail", async () => {
     const retryFn = vi.fn().mockResolvedValue("still not json");
     const result = await parseWithRetry("not json", retryFn);
-    expect(result).toEqual({ text: "not json", insights: [], parsed: false });
+    expect(result).toEqual({ text: "not json", insights: [], shouldComplete: false, parsed: false });
   });
 });
