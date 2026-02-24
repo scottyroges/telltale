@@ -111,7 +111,7 @@ describe("UserList", () => {
     renderUserList();
 
     const approveButtons = screen.getAllByRole("button", { name: /approve/i });
-    await user.click(approveButtons[0]);
+    await user.click(approveButtons[0]!);
 
     expect(screen.getByText("Confirm Approval")).toBeInTheDocument();
     expect(screen.getByText(/are you sure you want to approve/i)).toBeInTheDocument();
@@ -122,7 +122,7 @@ describe("UserList", () => {
     renderUserList();
 
     const rejectButtons = screen.getAllByRole("button", { name: /reject/i });
-    await user.click(rejectButtons[0]);
+    await user.click(rejectButtons[0]!);
 
     expect(screen.getByText("Confirm Rejection")).toBeInTheDocument();
     expect(screen.getByText(/are you sure you want to reject/i)).toBeInTheDocument();
@@ -135,7 +135,7 @@ describe("UserList", () => {
 
     // Click approve button
     const approveButtons = screen.getAllByRole("button", { name: /approve/i });
-    await user.click(approveButtons[0]);
+    await user.click(approveButtons[0]!);
 
     // Confirm in modal
     const confirmButton = screen.getByRole("button", { name: /confirm/i });
@@ -160,7 +160,7 @@ describe("UserList", () => {
 
     // Click reject button
     const rejectButtons = screen.getAllByRole("button", { name: /reject/i });
-    await user.click(rejectButtons[0]);
+    await user.click(rejectButtons[0]!);
 
     // Confirm in modal
     const confirmButton = screen.getByRole("button", { name: /confirm/i });
@@ -184,7 +184,7 @@ describe("UserList", () => {
 
     // Open modal
     const approveButtons = screen.getAllByRole("button", { name: /approve/i });
-    await user.click(approveButtons[0]);
+    await user.click(approveButtons[0]!);
 
     expect(screen.getByText("Confirm Approval")).toBeInTheDocument();
 
@@ -209,7 +209,7 @@ describe("UserList", () => {
 
     // Click approve and confirm
     const approveButtons = screen.getAllByRole("button", { name: /approve/i });
-    await user.click(approveButtons[0]);
+    await user.click(approveButtons[0]!);
 
     const confirmButton = screen.getByRole("button", { name: /confirm/i });
     await user.click(confirmButton);
