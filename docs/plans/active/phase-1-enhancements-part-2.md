@@ -93,12 +93,29 @@ Items will be added to this list as issues are discovered during testing. Each i
 - May need to update color variables in CSS Modules
 
 **Acceptance criteria:**
-- [ ] Text contrast meets WCAG AA standards (4.5:1 minimum)
-- [ ] Clear visual distinction between user and AI messages
-- [ ] Messages are easy to read in various lighting conditions
-- [ ] Improved typography makes long conversations comfortable to read
-- [ ] Design feels polished and professional
-- [ ] No regressions in other UI components
+- [x] Text contrast meets WCAG AA standards (4.5:1 minimum)
+- [x] Clear visual distinction between user and AI messages
+- [x] Messages are easy to read in various lighting conditions
+- [x] Improved typography makes long conversations comfortable to read
+- [x] Design feels polished and professional
+- [x] No regressions in other UI components
+
+**Status:** Complete (PR pending)
+
+**Implementation:**
+- Added dedicated CSS custom properties for message styling in `globals.css`:
+  - `--color-message-assistant-bg`, `--color-message-assistant-text`, `--color-message-assistant-border`
+  - `--color-message-thinking-bg`, `--color-message-thinking-text`
+  - Light mode: `#ebebeb` background, `#1a1a1a` text, `#d4d4d4` border (high contrast)
+  - Dark mode: `#1a1a1a` background, `#e8e8e8` text, `#2a2a2a` border (high contrast)
+- Improved typography in message bubbles:
+  - `font-size: 0.95rem` (slightly smaller, more readable)
+  - `line-height: 1.6` (increased for better legibility)
+- Enhanced visual distinction:
+  - User messages: primary color background with subtle shadow (`box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1)`)
+  - Assistant messages: dedicated background color with 1px border for definition
+  - Thinking indicator: matches assistant message styling for consistency
+- Color variables replace generic `--color-muted` with message-specific tokens for better semantic clarity
 
 ---
 
