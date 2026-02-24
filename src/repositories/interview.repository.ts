@@ -7,6 +7,7 @@ const columns = [
   "bookId",
   "questionId",
   "status",
+  "completedAt",
   "createdAt",
   "updatedAt",
 ] as const;
@@ -75,6 +76,21 @@ export const interviewRepository = {
     return db
       .updateTable("interview")
       .set({ status, updatedAt: new Date() })
+      .where("id", "=", id)
+      .returning([...columns])
+      .executeTakeFirstOrThrow();
+  },
+
+  async complete(id: string): Promise<Interview> {
+    // UPDATE interview SET status = 'COMPLETE', "completedAt" = $1, "updatedAt" = $1 WHERE id = $2 RETURNING <columns>
+    const now = new Date();
+    return db
+      .updateTable("interview")
+      .set({
+        status: "COMPLETE",
+        completedAt: now,
+        updatedAt: now,
+      })
       .where("id", "=", id)
       .returning([...columns])
       .executeTakeFirstOrThrow();

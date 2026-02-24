@@ -190,18 +190,19 @@ model BookQuestion {
 }
 
 model Interview {
-  id         String             @id @default(cuid())
-  bookId     String
-  questionId String
-  status     InterviewStatus    @default(ACTIVE)
-  book       Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  question   Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  messages   Message[]
-  insights   Insight[]
-  summaries  InterviewSummary[]
-  stories    Story[]
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
+  id          String             @id @default(cuid())
+  bookId      String
+  questionId  String
+  status      InterviewStatus    @default(ACTIVE)
+  completedAt DateTime?
+  book        Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  question    Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  insights    Insight[]
+  summaries   InterviewSummary[]
+  stories     Story[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   @@unique([bookId, questionId])
   @@index([bookId])

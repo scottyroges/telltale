@@ -76,6 +76,7 @@ function makeInterview(overrides: Partial<Interview> = {}): Interview {
     bookId: "book-1",
     questionId: "q-1",
     status: "ACTIVE",
+    completedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

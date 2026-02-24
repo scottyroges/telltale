@@ -33,11 +33,13 @@ vi.mock("@/repositories/question.repository", () => ({
 
 const mockInterviewCreate = vi.hoisted(() => vi.fn());
 const mockInterviewUpdateStatus = vi.hoisted(() => vi.fn());
+const mockInterviewComplete = vi.hoisted(() => vi.fn());
 const mockInterviewFindByBookIdAndQuestionId = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/interview.repository", () => ({
   interviewRepository: {
     create: mockInterviewCreate,
     updateStatus: mockInterviewUpdateStatus,
+    complete: mockInterviewComplete,
     findByBookIdAndQuestionId: mockInterviewFindByBookIdAndQuestionId,
   },
 }));
@@ -99,6 +101,7 @@ describe("conversationService", () => {
         bookId: "b1",
         questionId: "q1",
         status: "ACTIVE",
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -148,6 +151,7 @@ describe("conversationService", () => {
         bookId: "b1",
         questionId: "q1",
         status: "ACTIVE",
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -250,6 +254,7 @@ describe("conversationService", () => {
         bookId: "b1",
         questionId: "q1",
         status: "ACTIVE",
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -297,6 +302,7 @@ describe("conversationService", () => {
         bookId: "b1",
         questionId: "q1",
         status: "ACTIVE",
+        completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -472,24 +478,23 @@ describe("conversationService", () => {
   });
 
   describe("completeInterview", () => {
-    it("delegates to interviewRepository.updateStatus", async () => {
+    it("delegates to interviewRepository.complete", async () => {
+      const now = new Date();
       const updated = {
         id: "int1",
         bookId: "b1",
         questionId: "q1",
         status: "COMPLETE",
+        completedAt: now,
         createdAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: now,
       };
-      mockInterviewUpdateStatus.mockResolvedValue(updated);
+      mockInterviewComplete.mockResolvedValue(updated);
 
       const result = await conversationService.completeInterview("int1");
 
       expect(result).toEqual(updated);
-      expect(mockInterviewUpdateStatus).toHaveBeenCalledWith(
-        "int1",
-        "COMPLETE",
-      );
+      expect(mockInterviewComplete).toHaveBeenCalledWith("int1");
     });
   });
 
