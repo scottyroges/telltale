@@ -4,8 +4,9 @@
 - `docs/INDEX.md` is the central documentation index with "When to Consult" quick-reference + detailed sections
 - INDEX.md style: bold file paths with dash-separated descriptions, one line per entry
 - Plans live in `docs/plans/active/` (numbered by phase, e.g., `0.1-nextjs-scaffold.md`) and move to `docs/plans/completed/` when done
-- Decision records in `docs/decisions/`, numbered sequentially (001-016 exist)
+- Decision records in `docs/decisions/`, numbered sequentially (001-019 exist)
 - Architecture docs in `docs/architecture/`
+- Idea docs in `docs/ideas/` (deferred concepts, visions, critiques)
 
 ## Conventions
 - Active Plans section header includes the current phase name in parens, e.g., "Active Plans (Phase 0: Foundation)"
@@ -36,6 +37,7 @@
 - **Email provider (1.7 PR 1):** `src/lib/email.ts` abstracts email sending (Resend) — server-only guard, env var validation
 - **Auth pages (1.7):** Signup, forgot-password, reset-password, email-sign-in-form at `src/app/(auth)/` — colocated tests, CSS modules, multi-method login layout
 - **Dashboard UI patterns (Enhancement 8):** Card-based layout with styled borders, definition lists for structured data, status badges, responsive breakpoints at 640px, animated hover states on CTAs
+- **App-shell layout (Enhancement 3):** Parent `(app)` layout uses `height: 100svh` + `overflow: hidden` on shell, `overflow-y: auto` on main. All authenticated pages scroll within container, not viewport. Interview layout escapes parent padding with negative margins, creates full-bleed contained scroll area.
 
 ## Lessons
 - When a plan is marked Complete, move it from Active to Completed in INDEX.md and note that the file should also be moved from `active/` to `completed/` on disk
@@ -44,3 +46,5 @@
 - Multi-PR plans stay in active/ until all PRs complete — update plan status in-place to track progress
 - New architecture docs (like auth-patterns.md) get added to INDEX.md Architecture section
 - When auth.ts gets new dependencies requiring env vars, ALL router tests break — testing-patterns.md documents the env stub pattern
+- Enhancement plans track implementation details inline (design decisions, acceptance criteria) — when enhancement completes, mark criteria as checked and add "Status: Complete (PR pending)"
+- New ADRs and idea docs are often created during enhancement work, not just during initial planning — check staged changes for new decision records

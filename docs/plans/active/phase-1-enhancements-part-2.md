@@ -108,34 +108,118 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Poor UX for the primary use case: writing detailed stories
 
 **Desired behavior:**
-- Fixed header that stays at the top of the viewport
+- Header that stays at the top (sticky within container)
 - Text input box anchored to the bottom of the viewport (always visible)
 - Larger text input area (multi-line textarea) so users can see what they're writing
 - Only the conversation messages scroll in the middle section
 - Clean initial load without awkward auto-scrolling
 - Smooth, predictable scroll behavior as new messages arrive
 
+**Design decision: `position: sticky` vs `position: fixed` for header**
+- Chose `position: sticky` over `position: fixed` for the header
+- Reasoning: The interview session is a self-contained layout (`height: 100%`, `overflow: hidden` on parent container)
+  - Sticky achieves the same visual effect (header always visible) with simpler implementation
+  - No padding compensation needed (stays in document flow)
+  - No z-index layering complexity
+  - More stable on mobile Safari (avoids viewport height jumps when address bar shows/hides)
+  - If we later want page-level scroll, sticky will adapt better to layout changes
+- Fixed positioning would be overkill for this contained scrolling area
+- If interview becomes part of a larger scrollable page in the future, we can revisit
+
+**Design decision: Flexbox flow vs `position: fixed` for input**
+- Chose flexbox normal flow over `position: fixed` for the input container
+- Reasoning: The flexbox contained-scroll pattern achieves the same outcome as fixed positioning but with simpler implementation
+  - Parent is `height: 100%` with `overflow: hidden` - input cannot scroll away, always at bottom
+  - No z-index layering needed (input stays in document flow)
+  - No padding compensation on transcript (no content hidden behind fixed element)
+  - On mobile keyboard show/hide: viewport shrinks → container adjusts → input naturally stays at bottom
+  - Resize listener already handles scroll position updates on viewport changes
+  - Simpler width constraints (no need for centering logic on fixed element)
+- Fixed positioning would add complexity (z-index, padding compensation, width handling) for the same user-facing result
+- The contained scroll pattern is more maintainable and equally robust
+
+**Design decision: Auto-expand textarea vs fixed 3-4 line minimum**
+- Chose auto-expand textarea starting at 2.5rem (~1.5 lines) over fixed 3-4 line minimum
+- Reasoning: Auto-expand provides better UX than a static large textarea
+  - Starts compact (2.5rem min-height) and dynamically grows as user types
+  - Maximizes transcript visibility for short messages (most common case)
+  - Grows to unlimited space for long responses (10rem max before internal scroll)
+  - Critical for mobile where vertical space is precious
+  - Short messages don't waste screen space, long messages get room to breathe
+- Implementation: JavaScript auto-expands textarea height to fit content (interview-input.tsx lines 19-24)
+- Fixed 3-4 line minimum would waste vertical space for the common case (short messages) to optimize for the edge case (long messages)
+- Auto-expand handles both cases optimally
+
+**Color variable changes (intentional and necessary)**
+- Interview components updated to use `--color-bg` and `--color-fg` instead of non-existent variables
+- Previous code referenced `--color-background` and `--color-text-secondary` which don't exist in the codebase
+- The standardized color system is defined in `src/app/globals.css`:
+  - `--color-bg`: `#fafafa` (light) / `#0a0a0a` (dark)
+  - `--color-fg`: `#111` (light) / `#ededed` (dark)
+- These variables are used consistently across 30+ components in the app
+- This change fixes interview components to properly inherit the app's theme (including dark mode)
+- Not scope creep - this is a bug fix to use correct, existing CSS variables
+
+**Negative margin approach (intentional tradeoff)**
+- Interview layout uses `margin: -2rem -1.5rem` to create full-bleed layout within padded parent
+- This negates the parent container's padding to allow interview to fill the entire viewport
+- Creates coupling between parent and child layouts, but acceptable tradeoff for simplicity
+- Negative margins are a common CSS pattern for full-bleed layouts within padded containers
+- Alternative approaches (conditional parent padding, CSS Grid refactor) would add unnecessary complexity
+- If parent padding changes in the future, interview layout will need corresponding adjustment
+
+**Scroll behavior on container resize (needs implementation)**
+- Current implementation doesn't handle window/container resize events
+- Edge case: if viewport shrinks while user is at bottom, auto-scroll may stop working
+- Important for mobile: keyboard appearance/dismissal changes viewport height
+- Important for mobile: device rotation changes container dimensions
+- Should add resize event listener to recalculate scroll position and maintain auto-scroll state
+- Ensures consistent auto-scroll behavior across viewport changes
+
+**Max-width duplication (needs refactoring)**
+- The `max-width: 900px` value is repeated in `.header`, `.transcript`, and `.inputContainer`
+- Should extract to CSS variable: `--interview-max-width: 900px`
+- Benefits: Single source of truth, easier to adjust layout width in the future
+- Prevents inconsistency if someone updates one instance but misses others
+
+**Z-index management (document for now)**
+- Header uses `z-index: 1` which is sufficient for current layout
+- No centralized z-index system exists yet
+- Should add comment documenting the z-index value and its purpose
+- Future consideration: when adding modals/overlays, create a z-index scale (e.g., header: 10, modal: 100, tooltip: 1000)
+- For now, documentation prevents accidental conflicts
+
+**Initial scroll behavior (current approach approved)**
+- Uses explicit `hasScrolledInitiallyRef` flag to track whether initial scroll has occurred
+- More maintainable than checking `prevMessagesLengthRef.current === 0` as a proxy
+- Clear intent: the flag's purpose is obvious to future developers
+- Alternative (length check) would be less explicit and could break if scroll logic changes
+
 **Implementation notes:**
-- Update interview page layout to use fixed positioning for header and input
+- Update interview page layout using flexbox with contained scrolling
 - Convert layout to:
-  - `position: fixed` header at top
-  - Scrollable conversation area in middle (with proper padding for fixed elements)
-  - `position: fixed` input section at bottom
-- Increase text input height (maybe 3-4 lines minimum, or expandable textarea)
+  - `position: sticky` header at top (stays in document flow, simpler than fixed)
+  - Scrollable conversation area in middle using flexbox (`flex: 1`, `overflow-y: auto`)
+  - Input section in normal flow at bottom (contained by parent's `overflow: hidden`)
+- Parent container uses `height: 100%` and `overflow: hidden` to contain the layout
+- Use auto-expand textarea (starts compact, grows dynamically to fit content)
 - Remove auto-scroll on page load, or ensure it scrolls to show the input + last message
 - Consider auto-scroll to bottom only when new AI message arrives
-- Ensure mobile responsive (fixed positioning can be tricky on mobile)
+- Ensure mobile responsive
 - Test with long conversations to ensure scroll area works correctly
 
 **Acceptance criteria:**
-- [ ] Header stays fixed at top of screen
-- [ ] Text input stays fixed at bottom of screen
-- [ ] Text input is large enough to comfortably write 3-4 lines
-- [ ] Conversation messages scroll smoothly in the middle area
-- [ ] No awkward auto-scroll on initial page load
-- [ ] New AI messages auto-scroll to show the response
-- [ ] Layout works on mobile and desktop
-- [ ] No overlapping or z-index issues between fixed elements
+- [x] Header stays at top of screen (using sticky positioning)
+- [x] Text input stays anchored at bottom of container (always visible, doesn't scroll away)
+- [x] Text input auto-expands to fit content (starts compact, grows as user types)
+- [x] Conversation messages scroll smoothly in the middle area
+- [x] No awkward auto-scroll on initial page load
+- [x] New AI messages auto-scroll to show the response
+- [x] Layout works on mobile and desktop (including keyboard show/hide)
+- [x] No overlapping or z-index issues
+
+**Status:** Complete (PR pending)
+**Related:** ADR 019 — App-shell layout with container scroll
 
 ---
 

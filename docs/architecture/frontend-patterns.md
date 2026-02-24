@@ -219,3 +219,77 @@ const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
   // Shift+Enter allows default behavior (newline)
 };
 ```
+
+## Layout Patterns
+
+### App-Shell Layout with Container Scroll
+
+Telltale uses an app-shell pattern where the authenticated app area (`(app)` route group) is locked to viewport height with internal scroll containers. This provides stable layout on mobile Safari and enables clean contained-scroll patterns for features like the interview session.
+
+**Parent layout (`src/app/(app)/layout.module.css`):**
+
+```css
+.shell {
+  height: 100svh;       /* Lock to viewport height */
+  overflow: hidden;     /* No overflow at shell level */
+}
+
+.main {
+  flex: 1;
+  min-height: 0;        /* Allow flex child to shrink */
+  overflow-y: auto;     /* Main scroll container */
+  padding: 2rem 1.5rem;
+}
+```
+
+**Key principles:**
+- All pages under `(app)` scroll within `.main`, not at the viewport level
+- Viewport units (`100svh`) are only used at the shell level, not in child components
+- Child layouts use percentage-based heights relative to their parent
+- This avoids mobile Safari viewport unit bugs (address bar show/hide)
+
+**Full-bleed child layouts:**
+
+When a child route needs to escape the parent's padding for full-bleed layout:
+
+```css
+.container {
+  margin: -2rem -1.5rem;  /* Negate parent padding */
+  flex: 1;
+  min-height: 0;
+}
+```
+
+**Interview layout example:**
+
+The interview session uses this pattern to create sticky header + scrollable transcript + fixed input:
+
+```css
+.sessionContainer {
+  height: 100%;           /* Fill parent */
+  overflow: hidden;       /* Contain children */
+}
+
+.header {
+  position: sticky;       /* Stays visible during scroll */
+  top: 0;
+  z-index: 1;
+}
+
+.transcript {
+  flex: 1;
+  overflow-y: auto;       /* Scrollable area */
+}
+
+.inputContainer {
+  /* Normal flow, always at bottom due to parent overflow: hidden */
+}
+```
+
+**Why sticky over fixed for header:**
+- Works within contained scroll (no viewport positioning needed)
+- No padding compensation needed (stays in document flow)
+- Simpler z-index management
+- More stable on mobile Safari
+
+**See also:** ADR 019 for full rationale and alternatives considered.

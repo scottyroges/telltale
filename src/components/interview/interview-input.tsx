@@ -16,13 +16,6 @@ export function InterviewInput({ onSend, isDisabled }: InterviewInputProps) {
     textareaRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, [content]);
-
   const handleSend = () => {
     const trimmedContent = content.trim();
     if (!trimmedContent || isDisabled) return;
