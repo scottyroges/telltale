@@ -209,14 +209,17 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Test with long conversations to ensure scroll area works correctly
 
 **Acceptance criteria:**
-- [ ] Header stays at top of screen (using sticky positioning)
-- [ ] Text input stays anchored at bottom of container (always visible, doesn't scroll away)
-- [ ] Text input auto-expands to fit content (starts compact, grows as user types)
-- [ ] Conversation messages scroll smoothly in the middle area
-- [ ] No awkward auto-scroll on initial page load
-- [ ] New AI messages auto-scroll to show the response
-- [ ] Layout works on mobile and desktop (including keyboard show/hide)
-- [ ] No overlapping or z-index issues
+- [x] Header stays at top of screen (using sticky positioning)
+- [x] Text input stays anchored at bottom of container (always visible, doesn't scroll away)
+- [x] Text input auto-expands to fit content (starts compact, grows as user types)
+- [x] Conversation messages scroll smoothly in the middle area
+- [x] No awkward auto-scroll on initial page load
+- [x] New AI messages auto-scroll to show the response
+- [x] Layout works on mobile and desktop (including keyboard show/hide)
+- [x] No overlapping or z-index issues
+
+**Status:** Complete (PR pending)
+**Related:** ADR 019 — App-shell layout with container scroll
 
 ---
 
