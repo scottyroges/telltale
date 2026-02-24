@@ -78,3 +78,4 @@
 - **017** — Observability stack: Axiom + Sentry + Better Stack + PostHog (vs. Datadog, Grafana Cloud)
 - **018** — Insight context placement: near end vs. beginning (vs. both positions, system prompt injection, split old/recent)
 - **019** — App-shell layout with container scroll (vs. viewport scroll, viewport units for interview only)
+- **020** — Async job processing: Inngest (MVP) vs. BullMQ + Railway (scale)

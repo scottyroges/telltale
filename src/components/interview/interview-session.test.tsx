@@ -308,4 +308,37 @@ describe("InterviewSession", () => {
       expect(screen.getByText("Default response")).toBeInTheDocument();
     });
   });
+
+  it("shows back link to question list", () => {
+    render(
+      <InterviewSession
+        interviewId="interview-1"
+        bookId="book-123"
+        questionPrompt="What was your first job?"
+        status="ACTIVE"
+        initialMessages={[]}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    const backLink = screen.getByRole("link", { name: /questions/i });
+    expect(backLink).toBeInTheDocument();
+    expect(backLink).toHaveAttribute("href", "/book/book-123/interviews");
+  });
+
+  it("back link navigates to correct book", () => {
+    render(
+      <InterviewSession
+        interviewId="interview-1"
+        bookId="different-book-456"
+        questionPrompt="Tell me about your childhood"
+        status="ACTIVE"
+        initialMessages={[]}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    const backLink = screen.getByRole("link", { name: /questions/i });
+    expect(backLink).toHaveAttribute("href", "/book/different-book-456/interviews");
+  });
 });
