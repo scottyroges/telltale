@@ -13,15 +13,15 @@ describe("GuidePage", () => {
   it("displays key guidance principles", () => {
     render(<GuidePage />);
 
-    expect(screen.getByText(/you're in control/i)).toBeInTheDocument();
+    expect(screen.getByText(/you\u2019re in control/i)).toBeInTheDocument();
     expect(
       screen.getByText(/the ai helps you remember details/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/don't worry about making it polished/i)
+      screen.getByText(/don\u2019t worry about making it polished/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/we'll craft your story later/i)
+      screen.getByText(/we\u2019ll craft your story later/i)
     ).toBeInTheDocument();
   });
 

@@ -18,9 +18,9 @@ export default function GuidePage() {
               1.
             </span>
             <div className={styles.tipContent}>
-              <p className={styles.tipHeading}>You're in control</p>
+              <p className={styles.tipHeading}>You&rsquo;re in control</p>
               <p className={styles.tipBody}>
-                Answer what feels right and skip what doesn't. There are no
+                Answer what feels right and skip what doesn&rsquo;t. There are no
                 wrong answers, and you can always come back later.
               </p>
             </div>
@@ -46,7 +46,7 @@ export default function GuidePage() {
             </span>
             <div className={styles.tipContent}>
               <p className={styles.tipHeading}>
-                Don't worry about making it polished
+                Don&rsquo;t worry about making it polished
               </p>
               <p className={styles.tipBody}>
                 Short answers, typos, and stream-of-consciousness are all
@@ -61,7 +61,7 @@ export default function GuidePage() {
             </span>
             <div className={styles.tipContent}>
               <p className={styles.tipHeading}>
-                We'll craft your story later
+                We&rsquo;ll craft your story later
               </p>
               <p className={styles.tipBody}>
                 Everything you share gets turned into a polished narrative
@@ -78,7 +78,7 @@ export default function GuidePage() {
           <li className={styles.tip}>
             <div className={styles.tipContent}>
               <p className={styles.tipBody}>
-                If a question doesn't resonate, use the{" "}
+                If a question doesn&rsquo;t resonate, use the{" "}
                 <strong>Try a different question</strong> button to move on.
               </p>
             </div>
@@ -95,7 +95,7 @@ export default function GuidePage() {
           <li className={styles.tip}>
             <div className={styles.tipContent}>
               <p className={styles.tipBody}>
-                There's no time limit. Take breaks whenever you need to.
+                There&rsquo;s no time limit. Take breaks whenever you need to.
               </p>
             </div>
           </li>
