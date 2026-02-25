@@ -60,6 +60,7 @@
 - **docs/ideas/story-flow-critique.md** — Critical analysis of story creation flow: potential issues, alternative approaches, phased value delivery
 - **docs/ideas/admin-ui.md** — Admin UI for question library, user management, system monitoring; use scripts for now
 - **docs/ideas/depth-score.md** — Interview depth/richness metric, deferred until real conversations inform the design
+- **docs/ideas/insights-system-analysis.md** — Honest analysis of the insights system: what it solves, how it works, and where it falls short
 - **docs/ideas/interview-ui-alternatives.md** — Alternative UI approaches: word processor-focused interface, inline comment/annotation interface
 
 ## Decision Records

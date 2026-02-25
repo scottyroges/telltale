@@ -1,6 +1,6 @@
 # Plan: Phase 1 Enhancements Part 2
 
-**Status:** Active
+**Status:** Complete
 **Started:** 2026-02-22
 
 ## Overview
@@ -386,12 +386,12 @@ Items will be added to this list as issues are discovered during testing. Each i
 - [x] Confirmation message shown when interview marked complete
 - [x] AI checks in at natural conversation seams to see if user wants to wrap up
 - [x] `completedAt` timestamp saved when interview completed
-- [ ] Completed interviews have visual indicator in question list
-- [ ] Completed interviews can be resumed if user wants to add more
+- [~] Completed interviews have visual indicator in question list — **Deferred**
+- [~] Completed interviews can be resumed if user wants to add more — **Deferred**
 - [x] Database migration for `completedAt` field
 - [x] Test coverage for completion flow
 
-**Status:** In Progress (3 of 4 PRs complete)
+**Status:** Complete (3 PRs shipped, visual indicators and resume deferred)
 
 **Implementation:**
 - **PR 1:** Schema migration (`completedAt` nullable timestamp on Interview model)
@@ -407,7 +407,7 @@ Items will be added to this list as issues are discovered during testing. Each i
   - Conversation service: auto-completes interview via `interviewRepository.complete()` when `shouldComplete: true`
   - Frontend: hides input and end-interview button, shows completion message when AI signals completion
   - Test coverage across all layers (prompt, parser, service, component)
-- **PR 4 (pending):** Completed interview visual indicators, resume capability
+- **Deferred:** Completed interview visual indicators in question list, resume capability
 
 ---
 
@@ -598,16 +598,16 @@ Your story, your pace, your way.
 - Test with real users: Does this help or feel patronizing?
 
 **Acceptance criteria:**
-- [ ] First-time users see onboarding guidance
+- [~] First-time users see onboarding guidance — **Deferred**
 - [x] Guidance communicates key principles clearly
-- [ ] Helper text visible but not distracting
+- [~] Helper text visible but not distracting — **Deferred**
 - [x] "How to use this" accessible from interview page
 - [x] Copy feels encouraging and reduces anxiety
-- [ ] Can dismiss onboarding (don't show again)
+- [~] Can dismiss onboarding (don't show again) — **Deferred**
 - [x] Guidance works on mobile and desktop
-- [ ] A/B test different copy variations (optional)
+- [~] A/B test different copy variations (optional) — **Deferred**
 
-**Status:** In Progress (1 of ? PRs complete)
+**Status:** Complete (1 PR shipped, onboarding modal and persistent helper text deferred)
 
 **Implementation:**
 - **PR 1:** Static `/guide` page with interview tips, plus "Tips" link in interview header
@@ -618,7 +618,7 @@ Your story, your pace, your way.
   - "Tips" link in interview header opens guide in new tab (`target="_blank"`)
   - Header restructured with `headerActions` wrapper to group Tips link and End Interview button
   - Test coverage for guide page content and tips link behavior
-- **Pending:** First-time onboarding modal, persistent helper text near input, dismissible state
+- **Deferred:** First-time onboarding modal, persistent helper text near input, dismissible state
 
 ---
 

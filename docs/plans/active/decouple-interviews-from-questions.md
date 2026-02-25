@@ -2,6 +2,7 @@
 
 **Status:** Not Started
 **Created:** 2026-02-23
+**Updated:** 2026-02-24 (post-review)
 **Goal:** Make interviews independent of catalog questions to enable flexible conversation flows — custom prompts, AI-generated follow-ups, and experimentation with different entry points.
 
 ---
@@ -9,10 +10,11 @@
 ## Context
 
 **Current coupling:**
-- Interviews require a `questionId` (NOT NULL constraint)
+- Interviews require a `questionId` (NOT NULL FK to Question)
 - Unique constraint `[bookId, questionId]` prevents multiple interviews per question
-- Starting an interview requires picking from the catalog first
-- The flow is rigid: catalog → book → interview
+- Starting an interview requires picking from the catalog first via BookQuestion
+- The flow is rigid: catalog → BookQuestion → interview
+- BookQuestion is an unnecessary indirection layer between catalog and interview
 
 **Why this blocks experimentation:**
 - Can't start interviews with custom prompts
@@ -22,353 +24,327 @@
 - Questions feel like homework, not conversation starters
 
 **Vision:**
-Catalog questions become suggestions, not requirements. Interviews are the raw material — they should start from anywhere: catalog, custom prompt, AI-generated follow-up, or triggered by async story analysis.
+Interviews own their topic as a plain text field. The catalog becomes a UI-level source of topic suggestions — click a catalog question and it pre-fills the topic. Custom topics work the same way. There's one path to start an interview: provide a book and a topic.
+
+**Key design decisions:**
+
+1. **Remove `questionId` FK from Interview, add `topic` text field.** Interview has zero dependency on the Question model. The `topic` stores the prompt used to start the conversation, whether it came from catalog or user input.
+
+2. **BookQuestion links to its Interview.** Users can browse the catalog and queue up questions they want to explore. BookQuestion tracks which catalog questions are in a book. Starting an interview from a BookQuestion copies `question.prompt` into `topic` and sets `bookQuestion.interviewId` to the new interview. The presence of `interviewId` is the completion state — no enum needed.
+
+3. **Remove `BookQuestionStatus` enum and `status` column. Add optional `interviewId` FK.** BookQuestion becomes a simple join between Book and Question, with an optional link to the Interview that was started from it.
+
+4. **One way to start an interview: `start(bookId, topic)`.** The caller provides the topic — the service doesn't care where it came from. The catalog UI copies `question.prompt` into the topic field. Custom input provides it directly.
+
+**What gets removed:**
+- `BookQuestionStatus` enum and `status` column on BookQuestion
+- `questionId` column on Interview
+- `findByBookIdAndQuestionId` repository method
+- Duplicate-interview check in `startInterview` (was based on unique constraint)
+- Status update logic in `startInterview` (was updating BookQuestion status)
+
+**What gets added:**
+- `topic` text field on Interview — the prompt used to start the conversation
+- `interviewId` optional FK on BookQuestion — links to the interview started from this question (null = not started)
+
+**What stays:**
+- `Question` model and `question.list` endpoint — catalog is still the source of suggested topics
+- `BookQuestion` model — users' curated list of catalog questions per book, now with optional interview link
+- `bookQuestion.repository.ts`, `book.addQuestion`, `book.removeQuestion` — managing the curated list
+- `verifyBookQuestionOwnership` ownership check
+- `QuestionList` component (updated: shows completion via `interviewId` instead of status enum)
+- `QuestionCatalog` component
 
 ---
 
 ## Phases
 
-### Phase 1: Schema & Repository Layer (Foundation)
+### Phase 1: Schema, Data Layer, API & Page Fixes
 
-**Goal:** Make the data model support optional questions without breaking existing flows.
-
-**Changes:**
-
-1. **Migration: Make `questionId` nullable**
-   - `ALTER TABLE interview ALTER COLUMN "questionId" DROP NOT NULL`
-   - Remove unique constraint on `[bookId, questionId]`
-   - Add new field: `startingPrompt TEXT NOT NULL` — stores the initial prompt (whether from catalog or custom)
-   - Backfill existing interviews: `UPDATE interview SET "startingPrompt" = (SELECT prompt FROM question WHERE id = interview."questionId")`
-   - This is a **non-breaking migration** — existing code still works
-
-2. **Update Interview domain type**
-   ```typescript
-   export type Interview = {
-     id: string;
-     bookId: string;
-     questionId: string | null;  // ← Now optional
-     startingPrompt: string;      // ← New required field
-     status: InterviewStatus;
-     createdAt: Date;
-     updatedAt: Date;
-   };
-   ```
-
-3. **Update interview repository**
-   - `create()` now accepts: `{ bookId, startingPrompt, questionId?: string }`
-   - `findByBookIdAndQuestionId()` still works (for backward compat), but returns `Interview | null` (multiple may exist)
-   - Add new query: `findByBookId(bookId)` returns all interviews for a book (regardless of questionId)
-
-4. **Update conversation service**
-   - `startInterview(bookQuestionId)` still works — looks up question prompt, passes both questionId and startingPrompt
-   - Add new: `startCustomInterview(bookId, startingPrompt)` — no questionId, just the prompt
-   - The rest of the service is unchanged (messages, insights, completion all work the same)
-
-**Tests:**
-- Migration can run and backfill existing data
-- Repository can create interviews with and without questionId
-- Service can start interviews both ways
-- Existing interview flow still works (catalog → book → interview)
-
-**Risks:**
-- **Breaking UI:** Frontend expects questionId to find interviews — needs update in Phase 2
-- **Data integrity:** Need to handle null questionId in ownership verification
-
----
-
-### Phase 2: API & Ownership Layer
-
-**Goal:** Add new tRPC endpoints and update ownership verification to handle nullable questionId.
+**Goal:** Replace `questionId` FK with `topic` on Interview, remove `status` from BookQuestion, update all layers from database through API and pages. This is a single PR to keep the app deployable at every merge.
 
 **Changes:**
 
-1. **New tRPC procedure: `interview.startCustom`**
-   ```typescript
-   startCustom: approvedProcedure
-     .input(z.object({
-       bookId: z.string(),
-       startingPrompt: z.string().min(10).max(500)
-     }))
-     .mutation(async ({ ctx, input }) => {
-       await verifyBookOwnership(input.bookId, ctx.userId);
-       return conversationService.startCustomInterview(
-         input.bookId,
-         input.startingPrompt
-       );
-     })
-   ```
+#### Schema & Migration
 
-2. **Update `interview.start` (existing endpoint)**
-   - Keep signature the same: `{ bookQuestionId }`
-   - Still works for catalog-based flow
-   - No breaking changes
+1. **Migration**
+   - Add `topic TEXT NOT NULL DEFAULT ''` to `interview`
+   - Backfill: `UPDATE interview SET topic = (SELECT prompt FROM question WHERE id = interview."questionId")`
+   - Backfill `book_question.interviewId`: `UPDATE book_question SET "interviewId" = (SELECT id FROM interview WHERE interview."bookId" = book_question."bookId" AND interview."questionId" = book_question."questionId")` (before dropping `questionId`)
+   - Drop FK constraint, unique constraint, and index on `questionId` from `interview`
+   - Drop `questionId` column from `interview`
+   - Remove default on `topic` after backfill
+   - Drop `status` column from `book_question`
+   - Drop `BookQuestionStatus` enum
+   - Add `interviewId TEXT` (nullable) column to `book_question` with FK to `interview(id)`
+   - **Partially reversible** — `questionId` data is lost, but `book_question` table is preserved
 
-3. **Update ownership verification**
-   - `verifyInterviewOwnership` currently loads interview + checks bookId → userId
-   - No changes needed (questionId is just metadata)
+2. **Update Prisma schema**
+   - Interview model: remove `questionId`, `question` relation, `@@unique`, `@@index([questionId])`; add `topic String`
+   - BookQuestion model: remove `status` field; add `interviewId String?` with `@relation` to Interview
+   - Remove `BookQuestionStatus` enum
+   - Remove `interviews` relation from Question model
+   - Add `bookQuestion BookQuestion?` relation on Interview model (inverse of the FK)
 
-4. **Update `book.getById` response**
-   - Currently returns `BookWithDetails` with interviews matched by questionId
-   - Need to handle interviews without questionId
-   - Return all interviews, let UI decide how to display them
+3. **Regenerate Kysely types** — `prisma generate` updates `src/db/types.ts` and `src/db/enums.ts`
+
+4. **Update domain types**
+   - `src/domain/interview.ts`: replace `questionId: string` with `topic: string`
+   - `src/domain/book-question.ts`: remove `status` field and `BookQuestionStatus` type; add `interviewId: string | null`
+   - `src/domain/types.ts`: remove `BookQuestionStatus` export
+
+#### Repository Layer
+
+5. **Update interview repository**
+   - `create()` accepts `{ bookId, topic }` instead of `{ bookId, questionId }`
+   - Remove `findByBookIdAndQuestionId()`
+   - Update column selections: add `topic`, remove `questionId`
+
+6. **Update book-question repository**
+   - Remove `updateStatus()` method and all status-related logic (status in queries, status column in selects)
+   - Add `setInterviewId(bookQuestionId, interviewId)` method
+   - Include `interviewId` in query select lists
+
+7. **Update book repository**
+   - `findByIdWithDetails()`: add `topic` to the interview subquery select list, remove `questionId` from the select list
+
+#### Service Layer
+
+8. **Update conversation service**
+   - Replace `startInterview(bookQuestionId, userName?)` with `startInterview(bookId, topic, userName?)`
+   - Remove BookQuestion lookup, duplicate-interview check, and status update
+   - The hidden topic message uses the `topic` parameter directly
+   - No separate `startCustomInterview` — there's just one `startInterview`
+
+#### API Layer
+
+9. **Update `interview.start` procedure**
+   - Change input from `{ bookQuestionId }` to `{ bookId, topic, bookQuestionId? }` with validation (`.min(5).max(500)` on topic)
+   - Verify book ownership directly via `verifyBookOwnership(bookId, userId)`
+   - Call `conversationService.startInterview(bookId, topic, userName)`
+   - If `bookQuestionId` provided: verify it exists and belongs to the same `bookId`, then call `bookQuestionRepository.setInterviewId(bookQuestionId, newInterviewId)` to link the BookQuestion to the new interview
+
+10. **Update `book.addQuestion` / `book.removeQuestion`**
+    - Remove status-related logic (no more status updates)
+
+#### Pages & Components
+
+11. **Update interview page (`/interview/[interviewId]/page.tsx`)**
+    - Use `interview.topic` directly for the header display
+    - Remove the `bookQuestion.find()` lookup that matched on `questionId`
+    - No longer needs `trpc.question.list()` call
+
+12. **Update `InterviewSession` component**
+    - Rename `questionPrompt` prop to `topic`
+    - Update header back link label from "Questions" to "Interviews" (or just "Back")
+    - Update `COMPLETION_MESSAGE` — "return to the question list" → "return to your book"
+
+13. **Update `InterviewInput` component**
+    - Change redirect button text from "Try a different question" to "Ask me something else"
+
+14. **Update `QuestionList` component**
+    - Replace status badges (`StatusIndicator` + `BookQuestionStatus` enum) with completion state derived from `bookQuestion.interviewId` (null = not started, non-null = completed)
+    - Remove interview-matching logic via `interview.questionId` — completion now comes from `bookQuestion.interviewId` directly
+    - Completed questions link to their interview (`/interview/[interviewId]`)
+    - Remove `RemoveQuestionButton` interview warning (removing a BookQuestion has no destructive consequence — it only removes from the curated list)
+    - Display-only for now — no click-to-start-interview action (comes in Phase 2)
+
+15. **Update guide page copy**
+    - "Try a different question" → "Try a different topic" (or similar)
+    - Also update "pick another question from the list" and other "question" references in guide copy
 
 **Tests:**
-- `interview.startCustom` creates interview with null questionId
-- `interview.start` still works for catalog questions
-- Ownership verification works for both types
-- `book.getById` returns all interviews
+- Repository: create interview with topic
+- Repository: `bookQuestion.setInterviewId` links a BookQuestion to an interview
+- Service: `startInterview(bookId, topic)` creates interview and returns first AI message
+- `interview.start` creates interview with topic, validates topic length, verifies book ownership
+- `interview.start` with `bookQuestionId` links the BookQuestion to the new interview
+- `interview.start` with invalid `bookQuestionId` (nonexistent or belongs to a different book) rejects
+- `interview.start` with `bookQuestionId` that already has an `interviewId` set (double-start) overwrites the link
+- Interview page displays `topic` correctly
+- Update existing conversation service tests to use new signature
+- Update `interview.repository.test.ts` — references to `questionId` in fixtures/assertions
+- Update `book.repository.test.ts` — add `topic` to interview subquery expectations
+- Update `context.service.test.ts` — `questionId: "q1"` in interview fixtures
+- Update `book-question.repository.test.ts` — remove status references, add `interviewId`
+- Update `interview-session.test.tsx` — ~28 occurrences of `questionPrompt` prop → `topic`, redirect button label assertions
+- Update `interview-input.test.tsx` — redirect button label "Ask me something else"
+- Update `guide/page.test.tsx` — references to "question" copy
+- Update `QuestionList` tests — completion state from `interviewId` instead of status enum
 
-**Risks:**
-- **API versioning:** If we need to change response shape, consider adding `book.getByIdV2`
-- **Validation:** Need to prevent abuse (rate limiting on custom interviews?)
+**PR 1: Schema + data layer + API + page fixes**
 
 ---
 
-### Phase 3: UI Updates (Enable Custom Interviews)
+### Phase 2: UI — Book Page Updates
 
-**Goal:** Update UI to support starting interviews without picking from catalog, while keeping catalog flow intact.
+**Goal:** Add interview list and custom topic input to the book page. Keep question curation alongside the new interview flows.
 
 **Changes:**
 
 1. **Book interviews page (`/book/[bookId]/interviews`)**
 
    **Current layout:**
-   - "Your Questions" section (BookQuestions with status)
-   - "Add More Questions" section (catalog browser)
+   - "Your Questions" section (`QuestionList` showing BookQuestions with status)
+   - "Add More Questions" section (`QuestionCatalog` browser)
 
    **New layout:**
-   - **"Your Interviews" section** (all interviews, regardless of source)
-     - Shows `interview.startingPrompt` (not question.prompt)
-     - For catalog-based interviews, shows question badge/tag
-     - For custom interviews, shows "Custom" badge
-     - Each has Continue/Review link
-   - **"Start a New Interview"** — big input field + "Begin" button (calls `interview.startCustom`)
-   - **"Or Choose from Catalog"** — collapsible section with catalog browser (existing QuestionCatalog component)
+   - **"Your Interviews" section** — all interviews for the book
+     - Shows `interview.topic` as the label
+     - Shows status (active/completed) and date
+     - Click navigates to `/interview/[interviewId]`
+   - **"Your Questions" section** — `QuestionList` (updated, no status badges)
+     - Shows curated catalog questions the user has added
+     - Click a question to start an interview (copies `question.prompt` as topic)
+   - **"Start a New Interview"** — text input + "Begin" button
+     - Calls `interview.start` with `{ bookId, topic }`
+   - **"Add More Questions"** — `QuestionCatalog` browser (unchanged)
 
-2. **Interview session page (`/interview/[interviewId]`)**
-   - Header shows `interview.startingPrompt` (not question.prompt)
-   - Back button goes to `/book/[bookId]/interviews`
-   - No changes to transcript/input (works the same)
+2. **Add `InterviewList` component**
+   - New component receives `Interview[]`
+   - Each row: topic (truncated), status badge, created date
 
-3. **Component changes:**
-   - **Rename** `QuestionList` → `InterviewList` (better semantic name)
-   - `InterviewList` receives `Interview[]` instead of `BookQuestion[]`
-   - Remove dependency on `bookQuestions` entirely (interviews are the source of truth)
-   - `QuestionCatalog` still exists (for catalog-based flow) but is optional/collapsible
+3. **Update `QuestionList`**
+   - Add "Begin" action to start an interview from a queued question
+   - Calls `interview.start({ bookId, topic: question.prompt, bookQuestionId })` — links the BookQuestion to the new interview
+   - Completion state already shown in Phase 1 via `interviewId`
 
-4. **BookQuestion status lifecycle — what happens?**
-   - **Option A (Keep it):** When starting custom interview, don't touch BookQuestion at all. BookQuestionStatus is only for catalog-based flow.
-   - **Option B (Deprecate it):** Remove BookQuestionStatus entirely, derive status from interviews. If interview exists → STARTED. If interview.status = COMPLETE → COMPLETE.
-   - **Recommendation:** Option A for now (less churn), Option B later (simpler model)
+4. **New book landing experience**
+   - After creating a book, user lands on `/book/{bookId}/interviews` with no interviews and no questions
+   - Empty state should be inviting — show catalog prominently and custom topic input
+   - Custom input available for users who know what they want to talk about
 
 **States:**
-- Empty state: "No interviews yet. Start your first conversation below."
-- Loading state while starting custom interview
-- Error handling if prompt is too short/long
+- Empty state: "No interviews yet. Start your first conversation below." + prominent catalog
+- Loading state while creating interview
+- Validation feedback for topic input (10-500 chars)
 
 **Tests:**
-- Can start custom interview from book page
-- Custom interview appears in interview list
-- Catalog-based flow still works
-- Interview page displays correct starting prompt
+- Can start interview with custom topic
+- Can start interview from catalog question via QuestionList
+- Interview list shows all interviews with correct info
+- Empty state renders correctly
 
-**Risks:**
-- **UX confusion:** Users might not understand difference between catalog and custom
-- **Discovery:** Catalog questions might get buried (test with real users)
+**PR 2: Book page UI updates**
 
 ---
 
-### Phase 4: Cleanup & Future-Proofing
+### Phase 3: Docs & Cleanup
 
-**Goal:** Remove technical debt and prepare for async interview creation.
+**Goal:** Update documentation and clean up dead code.
 
 **Changes:**
 
-1. **Deprecate BookQuestion model (optional — defer if needed)**
-   - BookQuestion was a join table to track "which catalog questions are in this book"
-   - With custom interviews, this model is less useful
-   - **Option:** Keep it for users who like the "checklist" UX, but make it optional
-   - **Alternative:** Remove it entirely, derive everything from interviews
+1. Update `docs/architecture/data-model.md` — update Interview (topic instead of questionId), update BookQuestion (no status)
+2. Update `docs/architecture/system-overview.md` — reflect simplified flow
+3. Add ADR: "Interviews independent of catalog questions"
+4. Grep for any remaining `questionId`, `BookQuestionStatus` references and clean up
+5. Delete any orphaned test files
 
-2. **Add interview metadata field (JSON)**
-   - For future experimentation: store metadata like `{ source: 'catalog' | 'custom' | 'ai-generated', tags: [], relatedInterviewIds: [] }`
-   - Enables tracking where interviews came from without rigid schema
-
-3. **Async interview creation (future Phase 2.x work)**
-   - Background job analyzes stories, identifies gaps
-   - Creates interview with `startingPrompt` = "Let's talk more about [topic from analysis]"
-   - No questionId, no user action required
-   - This is now possible with the decoupled model
-
-4. **Update docs**
-   - `docs/architecture/data-model.md` — update Interview section to explain nullable questionId
-   - `docs/ideas/story-creation-flow.md` — note that custom interviews are now possible
-   - Add decision record: "ADR 021: Interviews independent of catalog questions"
-
-**Tests:**
-- All existing tests still pass
-- New tests for custom interview flows
-- Integration test: catalog → interview, custom → interview, both work
+**PR 3: Docs + cleanup**
 
 ---
 
 ## Open Questions
 
-1. **BookQuestion lifecycle:** Keep the model or deprecate it?
-   - **Leaning toward:** Keep it for now (Phase 3 Option A), revisit in Phase 4
-   - **Rationale:** Less churn, existing users aren't disrupted
+1. **Catalog discoverability:** With custom input as the primary flow, will users still find the catalog useful?
+   - Start with both visible. Iterate based on usage.
 
-2. **UI discoverability:** How do we prevent catalog questions from being buried?
-   - **Options:**
-     - Default to expanded catalog, collapse custom input
-     - Show catalog as tabs: "Start Custom" | "Choose from Catalog"
-     - Show recent/popular catalog questions as suggestions
-   - **Recommendation:** Test with users, start simple (both visible)
+2. **Rate limiting:** Should we limit interview creation?
+   - Not initially. Approval system already gates access.
 
-3. **Multiple interviews per question:** Should we allow it?
-   - **Current:** Unique constraint prevents it
-   - **New model:** Nothing prevents it
-   - **Use case:** "Let's talk about childhood again, from a different angle"
-   - **Recommendation:** Allow it, see if users find it useful
+3. **Topic message phrasing:** Should the hidden LLM prompt use the same template for all topics?
+   - Start with the same template. Can differentiate later if needed.
 
-4. **BookQuestion status tracking:** If we keep BookQuestion, how does status work with multiple interviews?
-   - **Current:** One interview per question, status maps 1:1
-   - **New model:** Multiple interviews possible, status is ambiguous
-   - **Options:**
-     - Status = COMPLETE if ANY interview is complete
-     - Status = STARTED if ANY interview exists
-     - Remove status entirely, show count of interviews
-   - **Recommendation:** Show count, not status ("2 interviews")
+### Resolved (post-review)
 
-5. **Migration strategy:** Can we migrate in place or do we need a feature flag?
-   - **Leaning toward:** Migrate in place (low risk, backward compatible)
-   - **Rationale:** Schema change is additive, API is additive, UI can deploy incrementally
+4. **PR split breakage:** PR 1 (schema) would break pages fixed in PR 2/3.
+   - **Resolved:** Merged Phase 1 + Phase 2 into a single PR so the app stays deployable.
 
-6. **Rate limiting:** Should we limit custom interview creation to prevent abuse?
-   - **Recommendation:** Not initially (trust users), add if needed
+5. **Migration orphaned data:** Should backfill use COALESCE for dangling FKs?
+   - **Resolved:** No — FK constraint is enforced, orphans can't exist.
 
-7. **Analytics:** Track catalog vs custom interview usage?
-   - **Recommendation:** Yes, add to PostHog (when Phase 5 ships)
+6. **COMPLETION_MESSAGE copy:** What should replace "return to the question list"?
+   - **Resolved:** "return to your book"
+
+7. **InterviewInput redirect button:** Not mentioned in original plan.
+   - **Resolved:** Change to "Ask me something else". Added to Phase 1.
+
+8. **RemoveQuestionButton interview warning:** What happens after decoupling?
+   - **Resolved:** Remove it — removing a BookQuestion only removes from the curated list, no destructive consequence.
+
+9. **QuestionList behavior in Phase 1:** Should it support click-to-start?
+   - **Resolved:** Display-only in Phase 1. Click-to-start comes in Phase 2.
+
+10. **BookQuestion completion tracking:** How does the user know a catalog question has been started?
+    - **Resolved:** Add optional `interviewId` FK on BookQuestion. Set when an interview is started from a BookQuestion. The presence of `interviewId` is the completion state — no enum needed. Link is one-directional: BookQuestion → Interview.
 
 ---
 
 ## Success Criteria
 
 **Phase 1 complete when:**
-- [ ] Migration runs cleanly on dev database
-- [ ] Existing interviews have backfilled `startingPrompt`
-- [ ] Repository can create interviews with and without questionId
-- [ ] Service has both `startInterview` and `startCustomInterview`
-- [ ] All existing tests pass
+- [ ] Migration runs cleanly — backfills `topic`, drops `questionId`, removes `status` from BookQuestion
+- [ ] Interview repository creates with `topic`
+- [ ] Conversation service has single `startInterview(bookId, topic)` method
+- [ ] BookQuestion status removed; `interviewId` FK added to repository, domain types
+- [ ] `interview.start` accepts `{ bookId, topic }` with validation
+- [ ] Interview page uses `interview.topic` for display
+- [ ] `InterviewSession` prop renamed from `questionPrompt` to `topic`
+- [ ] `InterviewInput` redirect button says "Ask me something else"
+- [ ] `COMPLETION_MESSAGE` says "return to your book"
+- [ ] `QuestionList` shows completion via `interviewId` (display-only, no click-to-start action)
+- [ ] `RemoveQuestionButton` interview warning removed
+- [ ] Guide page copy updated
+- [ ] All existing tests updated and passing
 
 **Phase 2 complete when:**
-- [ ] `interview.startCustom` endpoint exists and works
-- [ ] `interview.start` still works (no regression)
-- [ ] Ownership verification handles nullable questionId
-- [ ] Tests cover both endpoints
+- [ ] Book page shows interviews alongside curated questions
+- [ ] User can start interview with custom topic
+- [ ] User can start interview from a curated question
+- [ ] QuestionList updated (click to start interview)
+- [ ] Tests cover new UI
 
 **Phase 3 complete when:**
-- [ ] Book interviews page shows all interviews (catalog + custom)
-- [ ] User can start custom interview with arbitrary prompt
-- [ ] Catalog questions are still visible and usable
-- [ ] Interview session page works for both types
-- [ ] Tests cover new UI flows
-
-**Phase 4 complete when:**
-- [ ] Docs updated (data model, ADR, story flow)
-- [ ] Technical debt addressed (BookQuestion decision made)
-- [ ] Async interview creation is possible (even if not implemented)
-- [ ] All tests pass, no regressions
-
-**End-to-end success:**
-- [ ] User can start interview by typing a custom prompt
-- [ ] User can still start interview from catalog
-- [ ] Both types of interviews work identically once started
-- [ ] Existing users see no breaking changes
-- [ ] Future async processing can create interviews
+- [ ] Docs updated
+- [ ] ADR written
+- [ ] No dead `questionId` or `BookQuestionStatus` references remain
 
 ---
 
 ## PR Strategy
 
-**PR 1: Schema migration + repository layer**
-- Migration file (nullable questionId, add startingPrompt, backfill)
-- Update Interview domain type
-- Update interview.repository.ts
-- Tests for repository
-- **Merge first, let it bake** (doesn't affect UI yet)
-
-**PR 2: Service + API layer**
-- Add `startCustomInterview` to conversation.service.ts
-- Add `interview.startCustom` tRPC procedure
-- Update `book.getById` to return all interviews
-- Tests for service + API
-- **Still no UI changes** (API exists but unused)
-
-**PR 3: UI — custom interview input**
-- Book interviews page: add "Start a New Interview" section
-- Call `interview.startCustom` on submit
-- Show custom interviews in list alongside catalog-based
-- Update interview page header to use `startingPrompt`
-- Tests for UI components
-
-**PR 4: UI — catalog as optional**
-- Make catalog collapsible/secondary
-- Refine interview list display (badges for source type)
-- Polish empty states
-- Tests for refined UI
-
-**PR 5: Docs + cleanup**
-- Update data-model.md
-- Add ADR 021
-- Update story-creation-flow.md
-- Any final polish/bug fixes
+| PR | Scope | Risk |
+|----|-------|------|
+| 1  | Schema + data layer + API + page fixes | Medium (partially destructive migration, but all layers updated together so app stays deployable) |
+| 2  | Book page UI updates | Low-Medium (additive — new components + minor updates) |
+| 3  | Docs + cleanup | None |
 
 ---
 
 ## Implementation Notes
 
-**Backward compatibility:**
-- All existing code paths must continue working
-- Catalog → book → interview flow unchanged
-- Schema changes are additive (nullable, new column)
-- API is additive (new endpoint, existing endpoint unchanged)
+**Migration is partially destructive:**
+- `questionId` column on Interview is dropped — not reversible
+- `status` column on BookQuestion is dropped
+- `book_question` table is preserved
+- Backfill must complete successfully before drops
+- Test migration on dev database first
+- Back up prod before running
+
+**Single interview start path:**
+- `conversationService.startInterview(bookId, topic, userName?)` — the only way to start an interview
+- Caller provides the topic string; service doesn't know or care about the source
+- Catalog UI copies `question.prompt` into topic; custom UI takes user input directly
 
 **Data integrity:**
-- `startingPrompt` is always set (NOT NULL) — it's the source of truth
-- `questionId` is metadata (nullable) — indicates if interview came from catalog
-- No orphaned interviews (bookId foreign key, cascade on delete)
+- `topic` is NOT NULL — always set, source of truth for what the interview is about
+- `bookId` FK remains — interviews always belong to a book
+- Cascade on book delete preserves cleanup behavior
 
-**Testing strategy:**
-- Unit tests for repository, service, API
-- Component tests for UI (mocked tRPC)
-- Integration test: end-to-end flow (catalog and custom)
-- Migration test: run migration on snapshot of prod-like data
-
-**Rollback plan:**
-- If Phase 3 UI confuses users, hide custom input behind feature flag
-- Schema changes are safe (backward compatible)
-- Can rollback UI without rolling back schema
-
----
-
-## Future Opportunities (Not in This Plan)
-
-Once interviews are decoupled:
-- **AI-suggested interviews:** Background job analyzes stories, suggests new prompts
-- **Interview templates:** Pre-filled prompts for common themes ("Tell me about your career", "Describe your childhood home")
-- **Multi-interview stories:** One story draws from multiple interviews
-- **Interview search:** Search all interviews by content, not just by question
-- **Cross-book interviews:** Same interview referenced in multiple books
-- **Conversation steering:** User can redirect mid-interview without starting over
-
-These become **much easier** with a flexible interview model.
-
----
-
-## Next Steps
-
-1. **Review this plan** — does this match the vision?
-2. **Decide on BookQuestion:** Keep or deprecate?
-3. **Run `/plan-review`** — check for gaps, validate PR split
-4. **Start Phase 1** — schema migration + repository layer
+**Question and BookQuestion models stay:**
+- `Question` table and `question.list` endpoint remain as the catalog data source
+- `BookQuestion` stays as users' curated list of catalog questions per book, with optional `interviewId` FK to track which questions have been started
+- The link is one-directional: BookQuestion → Interview. Interview knows nothing about questions.
+- Questions are read-only reference data — no FK from Interview
+- Could later become user-editable templates, AI-generated suggestions, etc.
