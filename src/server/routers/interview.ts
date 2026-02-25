@@ -60,6 +60,22 @@ export const interviewRouter = router({
       return conversationService.getBookInsights(input.bookId);
     }),
 
+  redirect: approvedProcedure
+    .input(z.object({ interviewId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const interview = await verifyInterviewOwnership(
+        input.interviewId,
+        ctx.userId,
+      );
+      if (interview.status === "COMPLETE") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot redirect completed interviews",
+        });
+      }
+      return conversationService.redirect(input.interviewId, interview.bookId, ctx.userName);
+    }),
+
   complete: protectedProcedure
     .input(z.object({ interviewId: z.string() }))
     .mutation(async ({ ctx, input }) => {

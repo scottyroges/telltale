@@ -55,3 +55,8 @@ The conversational response is the priority. Never let note-taking make the conv
 }
 
 export const INTERVIEWER_SYSTEM_PROMPT = getInterviewerSystemPrompt();
+
+export const REDIRECT_PROMPT =
+  "The storyteller would like to explore a different aspect of this topic. " +
+  "Smoothly transition the conversation by acknowledging what's been shared so far, " +
+  "then ask an engaging question about a different angle of the same topic.";

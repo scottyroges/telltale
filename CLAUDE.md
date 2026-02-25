@@ -40,6 +40,10 @@ For detailed examples and anti-patterns, see `docs/architecture/frontend-pattern
 - **Split when files grow.** When a file becomes large or cluttered, find abstractions and seams to break it into smaller pieces.
 - **Group files into directories.** Related files belong together — use directories to make the codebase easy to navigate.
 
+## Git Workflow
+
+- **Always create PRs against `main`** unless explicitly told otherwise.
+
 ## Documentation
 
 For project documentation, see `docs/INDEX.md`.

@@ -515,6 +515,100 @@ describe("conversationService", () => {
     });
   });
 
+  describe("redirect", () => {
+    it("creates hidden USER message, calls LLM, persists ASSISTANT message, and returns content", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [
+          { role: "user", content: "topic message" },
+          { role: "assistant", content: "opening question" },
+          { role: "user", content: "The storyteller would like to explore a different aspect" },
+        ],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"What a wonderful story. Let me ask about something different — what was school like for you growing up?","insights":[{"type":"DETAIL","content":"school experiences — unexplored, worth probing"}]}',
+      });
+      mockInsightCreateMany.mockResolvedValue({ count: 1 });
+
+      const result = await conversationService.redirect("int1", "b1", "Sarah");
+
+      expect(result).toEqual({
+        content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
+      });
+
+      // Hidden USER message created first
+      expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
+        interviewId: "int1",
+        role: "USER",
+        content: expect.stringContaining("different aspect"),
+        hidden: true,
+      });
+
+      // Context built after hidden message persisted
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
+
+      // ASSISTANT message persisted (not hidden)
+      expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
+        interviewId: "int1",
+        role: "ASSISTANT",
+        content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
+      });
+    });
+
+    it("creates USER message with hidden: true", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "redirect prompt" }],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Let me ask about something else.","insights":[]}',
+      });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+
+      await conversationService.redirect("int1", "b1", "Sarah");
+
+      const firstCall = mockMessageCreate.mock.calls[0]![0];
+      expect(firstCall.hidden).toBe(true);
+    });
+
+    it("persists extracted insights", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "redirect prompt" }],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Let me ask about something else.","insights":[{"type":"ENTITY","content":"sister Maria — mentioned in passing"},{"type":"EMOTION","content":"nostalgia for childhood home"}]}',
+      });
+      mockInsightCreateMany.mockResolvedValue({ count: 2 });
+
+      await conversationService.redirect("int1", "b1", "Sarah");
+
+      expect(mockInsightCreateMany).toHaveBeenCalledWith([
+        { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — mentioned in passing" },
+        { bookId: "b1", interviewId: "int1", type: "EMOTION", content: "nostalgia for childhood home" },
+      ]);
+    });
+
+    it("does not call interviewRepository.complete even when shouldComplete is true", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "redirect prompt" }],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Let me ask about something else.","insights":[],"shouldComplete":true}',
+      });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+
+      await conversationService.redirect("int1", "b1", "Sarah");
+
+      expect(mockInterviewComplete).not.toHaveBeenCalled();
+    });
+  });
+
   describe("getInterviewMessages", () => {
     it("delegates to messageRepository", async () => {
       const messages = [

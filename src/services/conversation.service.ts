@@ -6,6 +6,7 @@ import { messageRepository } from "@/repositories/message.repository";
 import { insightRepository } from "@/repositories/insight.repository";
 import { parseInterviewerResponse, parseWithRetry } from "@/services/response-parser";
 import { contextService } from "@/services/context.service";
+import { REDIRECT_PROMPT } from "@/prompts/interviewer";
 
 export const conversationService = {
   async startInterview(bookQuestionId: string, userName: string) {
@@ -121,6 +122,41 @@ export const conversationService = {
     }
 
     return { content: parsed.text, shouldComplete: parsed.shouldComplete };
+  },
+
+  async redirect(interviewId: string, bookId: string, userName: string) {
+    await messageRepository.create({
+      interviewId,
+      role: "USER",
+      content: REDIRECT_PROMPT,
+      hidden: true,
+    });
+
+    const context = await contextService.buildContextWindow(interviewId, userName);
+
+    const response = await llmProvider.generateResponse(
+      context.systemPrompt,
+      context.messages,
+    );
+
+    const parsed = parseInterviewerResponse(response.content);
+
+    await messageRepository.create({
+      interviewId,
+      role: "ASSISTANT",
+      content: parsed.text,
+    });
+
+    await insightRepository.createMany(
+      parsed.insights.map(i => ({
+        bookId,
+        interviewId,
+        type: i.type,
+        content: i.content,
+      }))
+    );
+
+    return { content: parsed.text };
   },
 
   async getInterviewMessages(interviewId: string) {
