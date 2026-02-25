@@ -507,13 +507,20 @@ Items will be added to this list as issues are discovered during testing. Each i
 
 **Acceptance criteria:**
 - [ ] "Ask me something different" button/link visible in interview UI
-- [ ] Clicking sends signal to AI to change conversation direction
-- [ ] AI acknowledges the pivot and asks about a different aspect
-- [ ] AI doesn't repeat recently covered topics
+- [x] Clicking sends signal to AI to change conversation direction
+- [x] AI acknowledges the pivot and asks about a different aspect
+- [x] AI doesn't repeat recently covered topics
 - [ ] Button is discoverable but not distracting
 - [ ] Works well on mobile and desktop
 - [ ] Analytics tracking for button usage
-- [ ] Test coverage for conversation steering flow
+- [x] Test coverage for conversation steering flow
+
+**Status:** In Progress (2 of 3 PRs complete)
+
+**Implementation:**
+- **PR 1:** Hidden message infrastructure — `hidden` boolean on Message model, included in LLM context but excluded from user-facing queries
+- **PR 2:** Backend redirect endpoint — `REDIRECT_PROMPT` constant in `src/prompts/interviewer.ts`, `conversationService.redirect()` creates hidden USER message with redirect prompt, calls LLM via context service, persists ASSISTANT response and extracted insights. tRPC `interview.redirect` mutation uses `approvedProcedure`, verifies ownership, rejects completed interviews. Does not trigger auto-completion even if LLM returns `shouldComplete: true`. Test coverage across service and router layers.
+- **PR 3 (pending):** Frontend UI — "Ask me something different" button in interview interface
 
 ---
 

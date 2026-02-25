@@ -41,6 +41,7 @@ vi.mock("@/repositories/interview.repository", () => ({
 
 const mockStartInterview = vi.hoisted(() => vi.fn());
 const mockSendMessage = vi.hoisted(() => vi.fn());
+const mockRedirect = vi.hoisted(() => vi.fn());
 const mockGetInterviewMessages = vi.hoisted(() => vi.fn());
 const mockGetInsights = vi.hoisted(() => vi.fn());
 const mockGetBookInsights = vi.hoisted(() => vi.fn());
@@ -49,6 +50,7 @@ vi.mock("@/services/conversation.service", () => ({
   conversationService: {
     startInterview: mockStartInterview,
     sendMessage: mockSendMessage,
+    redirect: mockRedirect,
     getInterviewMessages: mockGetInterviewMessages,
     getInsights: mockGetInsights,
     getBookInsights: mockGetBookInsights,
@@ -239,6 +241,57 @@ describe("interview router", () => {
           content: "Hello",
         }),
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("redirect", () => {
+    it("verifies ownership and delegates to conversationService.redirect", async () => {
+      mockInterviewFindById.mockResolvedValue(activeInterview);
+      mockBookFindById.mockResolvedValue(ownBook);
+      mockRedirect.mockResolvedValue({
+        content: "Let me ask about something different.",
+      });
+
+      const result = await caller.interview.redirect({
+        interviewId: "interview-1",
+      });
+
+      expect(result).toEqual({
+        content: "Let me ask about something different.",
+      });
+      expect(mockInterviewFindById).toHaveBeenCalledWith("interview-1");
+      expect(mockBookFindById).toHaveBeenCalledWith("book-1");
+      expect(mockRedirect).toHaveBeenCalledWith(
+        "interview-1",
+        "book-1",
+        "Test User",
+      );
+    });
+
+    it("throws BAD_REQUEST if interview is COMPLETE", async () => {
+      mockInterviewFindById.mockResolvedValue(completeInterview);
+      mockBookFindById.mockResolvedValue(ownBook);
+
+      await expect(
+        caller.interview.redirect({ interviewId: "interview-1" }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
+    it("throws NOT_FOUND for missing interview", async () => {
+      mockInterviewFindById.mockResolvedValue(null);
+
+      await expect(
+        caller.interview.redirect({ interviewId: "missing" }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("throws FORBIDDEN for another user's interview", async () => {
+      mockInterviewFindById.mockResolvedValue(activeInterview);
+      mockBookFindById.mockResolvedValue({ ...ownBook, userId: "other-user" });
+
+      await expect(
+        caller.interview.redirect({ interviewId: "interview-1" }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
 
