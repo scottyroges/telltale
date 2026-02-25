@@ -70,6 +70,7 @@ export type Message = {
     interviewId: string;
     role: MessageRole;
     content: string;
+    hidden: Generated<boolean>;
     createdAt: Generated<Timestamp>;
 };
 export type Question = {

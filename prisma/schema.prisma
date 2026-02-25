@@ -215,6 +215,7 @@ model Message {
   interviewId String
   role        MessageRole
   content     String
+  hidden      Boolean     @default(false)
   interview   Interview   @relation(fields: [interviewId], references: [id], onDelete: Cascade)
   createdAt   DateTime    @default(now())
 

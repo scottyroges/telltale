@@ -7,6 +7,7 @@ const columns = [
   "interviewId",
   "role",
   "content",
+  "hidden",
   "createdAt",
 ] as const;
 
@@ -15,9 +16,10 @@ export const messageRepository = {
     interviewId: string;
     role: MessageRole;
     content: string;
+    hidden?: boolean;
   }): Promise<Message> {
-    // INSERT INTO message (id, "interviewId", role, content)
-    //   VALUES ($1, $2, $3, $4)
+    // INSERT INTO message (id, "interviewId", role, content, hidden)
+    //   VALUES ($1, $2, $3, $4, $5)
     //   RETURNING <columns>
     return db
       .insertInto("message")
@@ -29,11 +31,20 @@ export const messageRepository = {
       .executeTakeFirstOrThrow();
   },
 
-  async findByInterviewId(interviewId: string): Promise<Message[]> {
+  async findByInterviewId(
+    interviewId: string,
+    options?: { includeHidden?: boolean },
+  ): Promise<Message[]> {
     // SELECT <columns> FROM message WHERE "interviewId" = $1 ORDER BY "createdAt" ASC
-    return db
+    let query = db
       .selectFrom("message")
-      .where("interviewId", "=", interviewId)
+      .where("interviewId", "=", interviewId);
+
+    if (!options?.includeHidden) {
+      query = query.where("hidden", "=", false);
+    }
+
+    return query
       .select([...columns])
       .orderBy("createdAt", "asc")
       .execute();

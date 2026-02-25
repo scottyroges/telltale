@@ -18,6 +18,7 @@ export function createMockDb() {
   const insertInto = vi.fn();
   const updateTable = vi.fn();
   const deleteFrom = vi.fn();
+  const where = vi.fn();
 
   const builder: Record<string, unknown> = {};
 
@@ -46,6 +47,11 @@ export function createMockDb() {
           deleteFrom(...args);
           return proxy;
         };
+      if (prop === "where")
+        return (...args: unknown[]) => {
+          where(...args);
+          return proxy;
+        };
       // Return a function that returns the proxy for chaining
       return () => proxy;
     },
@@ -70,5 +76,7 @@ export function createMockDb() {
     updateTable,
     /** Spy for `.deleteFrom(table)` */
     deleteFrom,
+    /** Spy for `.where(column, op, value)` */
+    where,
   };
 }

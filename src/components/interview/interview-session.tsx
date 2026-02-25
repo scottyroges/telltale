@@ -60,6 +60,7 @@ export function InterviewSession({
           interviewId,
           role: "USER",
           content,
+          hidden: false,
           createdAt: new Date(),
         };
         setMessages((prev) => [...prev, userMessage]);
@@ -74,6 +75,7 @@ export function InterviewSession({
           interviewId,
           role: "ASSISTANT",
           content: response.content,
+          hidden: false,
           createdAt: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);

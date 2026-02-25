@@ -523,6 +523,7 @@ describe("conversationService", () => {
           interviewId: "int1",
           role: "USER",
           content: "hello",
+          hidden: false,
           createdAt: new Date(),
         },
       ];

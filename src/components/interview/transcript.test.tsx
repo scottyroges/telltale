@@ -10,6 +10,7 @@ describe("Transcript", () => {
       interviewId: "interview-1",
       role: "USER",
       content: "System message about topic",
+      hidden: false,
       createdAt: new Date("2024-01-01"),
     },
     {
@@ -17,6 +18,7 @@ describe("Transcript", () => {
       interviewId: "interview-1",
       role: "ASSISTANT",
       content: "Hello! Let's talk about your memories.",
+      hidden: false,
       createdAt: new Date("2024-01-01"),
     },
     {
@@ -24,6 +26,7 @@ describe("Transcript", () => {
       interviewId: "interview-1",
       role: "USER",
       content: "I remember my first day of school.",
+      hidden: false,
       createdAt: new Date("2024-01-01"),
     },
   ];
@@ -91,6 +94,7 @@ describe("Transcript", () => {
       interviewId: "interview-1",
       role: "ASSISTANT",
       content: "That sounds interesting!",
+      hidden: false,
       createdAt: new Date("2024-01-01"),
     };
 
