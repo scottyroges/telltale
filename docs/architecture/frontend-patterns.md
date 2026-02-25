@@ -239,11 +239,14 @@ Telltale uses an app-shell pattern where the authenticated app area (`(app)` rou
   min-height: 0;        /* Allow flex child to shrink */
   overflow-y: auto;     /* Main scroll container */
   padding: 2rem 1.5rem;
+  display: flex;         /* Required for child flex: 1 to work */
+  flex-direction: column;
 }
 ```
 
 **Key principles:**
 - All pages under `(app)` scroll within `.main`, not at the viewport level
+- `.main` must be a flex column container so child layouts' `flex: 1` actually fills available space
 - Viewport units (`100svh`) are only used at the shell level, not in child components
 - Child layouts use percentage-based heights relative to their parent
 - This avoids mobile Safari viewport unit bugs (address bar show/hide)
@@ -257,6 +260,7 @@ When a child route needs to escape the parent's padding for full-bleed layout:
   margin: -2rem -1.5rem;  /* Negate parent padding */
   flex: 1;
   min-height: 0;
+  overflow: hidden;        /* Contain scroll within children, not this wrapper */
 }
 ```
 
