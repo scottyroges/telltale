@@ -75,7 +75,7 @@ src/
 │   ├── providers.tsx          # Root provider composition (tRPC, React Query, future providers)
 │   ├── ui/                    # Base components (Radix UI primitives + CSS Modules)
 │   ├── books/                 # Book list and create form
-│   ├── book-interviews/       # Question list and catalog
+│   ├── book-interviews/       # Interview list, topic input, question list and catalog
 │   └── interview/             # Interview session, transcript, input
 │
 └── hooks/                     # Custom React hooks

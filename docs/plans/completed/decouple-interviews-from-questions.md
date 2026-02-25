@@ -1,6 +1,6 @@
 # Plan: Decouple Interviews from Questions
 
-**Status:** In Progress (1 of 3 PRs complete, PR 2 in progress)
+**Status:** Complete
 **Created:** 2026-02-23
 **Updated:** 2026-02-25
 **Goal:** Make interviews independent of catalog questions to enable flexible conversation flows — custom prompts, AI-generated follow-ups, and experimentation with different entry points.
@@ -308,9 +308,9 @@ Interviews own their topic as a plain text field. The catalog becomes a UI-level
 - [x] Tests cover new UI (InterviewList, TopicInput)
 
 **Phase 3 complete when:**
-- [ ] Docs updated
-- [ ] ADR written
-- [ ] No dead `questionId` or `BookQuestionStatus` references remain
+- [x] Docs updated
+- [x] ADR written
+- [x] No dead `questionId` or `BookQuestionStatus` references remain
 
 ---
 
