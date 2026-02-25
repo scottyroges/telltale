@@ -5,5 +5,6 @@ export type Message = {
   interviewId: string;
   role: MessageRole;
   content: string;
+  hidden: boolean;
   createdAt: Date;
 };

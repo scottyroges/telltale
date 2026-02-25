@@ -626,7 +626,7 @@ buildContextWindow(interviewId, userName)
   │
   ├─ Load interview → null? → throw Error("Interview not found")
   ├─ Build personalized system prompt (includes user's name if provided)
-  ├─ Load messages (filter USER/ASSISTANT only)
+  ├─ Load messages (all messages including hidden, filter USER/ASSISTANT roles only)
   ├─ Load insights
   ├─ Load latest summary (if exists)
   │

@@ -350,7 +350,7 @@ export const contextService = {
     const [interview, allMessages, insights, existingSummary] =
       await Promise.all([
         interviewRepository.findById(interviewId),
-        messageRepository.findByInterviewId(interviewId),
+        messageRepository.findByInterviewId(interviewId, { includeHidden: true }),
         insightRepository.findByInterviewId(interviewId),
         interviewSummaryRepository.findLatestByInterviewId(interviewId),
       ]);
