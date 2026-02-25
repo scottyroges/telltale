@@ -10,7 +10,7 @@ describe("Transcript", () => {
       interviewId: "interview-1",
       role: "USER",
       content: "System message about topic",
-      hidden: false,
+      hidden: true,
       createdAt: new Date("2024-01-01"),
     },
     {
@@ -47,15 +47,15 @@ describe("Transcript", () => {
     ).toBeInTheDocument();
   });
 
-  it("filters out first message (displays messages.slice(1))", () => {
+  it("filters out hidden messages", () => {
     render(<Transcript messages={mockMessages} isWaitingForResponse={false} />);
 
-    // First message (system message) should not be visible
+    // Hidden message should not be visible
     expect(
       screen.queryByText("System message about topic")
     ).not.toBeInTheDocument();
 
-    // Other messages should be visible
+    // Visible messages should be rendered
     expect(
       screen.getByText("Hello! Let's talk about your memories.")
     ).toBeInTheDocument();

@@ -70,8 +70,7 @@ export function Transcript({ messages, isWaitingForResponse }: TranscriptProps) 
     prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
-  // Filter out the first message (internal system message)
-  const displayMessages = messages.slice(1);
+  const displayMessages = messages.filter((m) => !m.hidden);
 
   return (
     <div ref={scrollContainerRef} className={styles.transcript}>

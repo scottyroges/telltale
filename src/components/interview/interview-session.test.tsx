@@ -42,15 +42,9 @@ function createWrapper() {
 }
 
 describe("InterviewSession", () => {
+  // Topic message is hidden and filtered by the repository, so initialMessages
+  // only contains visible messages (the AI greeting onward).
   const initialMessages: Message[] = [
-    {
-      id: "1",
-      interviewId: "interview-1",
-      role: "USER",
-      content: "System message",
-      hidden: false,
-      createdAt: new Date(),
-    },
     {
       id: "2",
       interviewId: "interview-1",
