@@ -1,6 +1,4 @@
 import { llmProvider } from "@/lib/llm";
-import { bookQuestionRepository } from "@/repositories/book-question.repository";
-import { questionRepository } from "@/repositories/question.repository";
 import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
 import { insightRepository } from "@/repositories/insight.repository";
@@ -9,38 +7,13 @@ import { contextService } from "@/services/context.service";
 import { REDIRECT_PROMPT } from "@/prompts/interviewer";
 
 export const conversationService = {
-  async startInterview(bookQuestionId: string, userName: string) {
-    const bookQuestion =
-      await bookQuestionRepository.findById(bookQuestionId);
-    if (!bookQuestion) {
-      throw new Error(`BookQuestion not found: ${bookQuestionId}`);
-    }
-
-    const question = await questionRepository.findById(
-      bookQuestion.questionId,
-    );
-    if (!question) {
-      throw new Error(`Question not found: ${bookQuestion.questionId}`);
-    }
-
-    // Check if interview already exists for this book + question
-    const existingInterview = await interviewRepository.findByBookIdAndQuestionId(
-      bookQuestion.bookId,
-      bookQuestion.questionId,
-    );
-
-    if (existingInterview) {
-      // Resume existing interview - return its ID without creating a new one
-      return { interviewId: existingInterview.id };
-    }
-
-    // No existing interview found - create a new one
+  async startInterview(bookId: string, topic: string, userName: string) {
     const interview = await interviewRepository.create({
-      bookId: bookQuestion.bookId,
-      questionId: bookQuestion.questionId,
+      bookId,
+      topic,
     });
 
-    const topicMessage = `The topic for this conversation is: ${question.prompt}. Please greet the storyteller warmly and ask an opening question about this topic.`;
+    const topicMessage = `The topic for this conversation is: ${topic}. Please greet the storyteller warmly and ask an opening question about this topic.`;
 
     // Persist topic message (hidden from transcript, visible to LLM)
     await messageRepository.create({
@@ -68,14 +41,12 @@ export const conversationService = {
 
     await insightRepository.createMany(
       parsed.insights.map(i => ({
-        bookId: bookQuestion.bookId,
+        bookId,
         interviewId: interview.id,
         type: i.type,
         content: i.content,
       }))
     );
-
-    await bookQuestionRepository.updateStatus(bookQuestionId, "STARTED");
 
     return { interviewId: interview.id };
   },

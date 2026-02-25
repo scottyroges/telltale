@@ -94,12 +94,6 @@ enum BookStatus {
   ARCHIVED
 }
 
-enum BookQuestionStatus {
-  NOT_STARTED
-  STARTED
-  COMPLETE
-}
-
 enum InterviewStatus {
   ACTIVE
   PAUSED
@@ -148,7 +142,6 @@ model Question {
   prompt         String
   orderIndex     Int
   bookQuestions  BookQuestion[]
-  interviews     Interview[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -173,15 +166,16 @@ model Book {
 }
 
 model BookQuestion {
-  id         String             @id @default(cuid())
-  bookId     String
-  questionId String
-  orderIndex Int
-  status     BookQuestionStatus @default(NOT_STARTED)
-  book       Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  question   Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
+  id          String     @id @default(cuid())
+  bookId      String
+  questionId  String
+  orderIndex  Int
+  interviewId String?    @unique
+  book        Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  question    Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  interview   Interview? @relation(fields: [interviewId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@unique([bookId, questionId])
   @@index([bookId])
@@ -190,23 +184,21 @@ model BookQuestion {
 }
 
 model Interview {
-  id          String             @id @default(cuid())
-  bookId      String
-  questionId  String
-  status      InterviewStatus    @default(ACTIVE)
-  completedAt DateTime?
-  book        Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  question    Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  messages    Message[]
-  insights    Insight[]
-  summaries   InterviewSummary[]
-  stories     Story[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id           String             @id @default(cuid())
+  bookId       String
+  topic        String
+  status       InterviewStatus    @default(ACTIVE)
+  completedAt  DateTime?
+  book         Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  bookQuestion BookQuestion?
+  messages     Message[]
+  insights     Insight[]
+  summaries    InterviewSummary[]
+  stories      Story[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
-  @@unique([bookId, questionId])
   @@index([bookId])
-  @@index([questionId])
   @@map("interview")
 }
 

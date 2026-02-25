@@ -30,13 +30,13 @@ describe("bookQuestionRepository", () => {
   });
 
   describe("create", () => {
-    it("creates a book question with NOT_STARTED status", async () => {
+    it("creates a book question", async () => {
       const expected = {
         id: "bq1",
         bookId: "b1",
         questionId: "q1",
         orderIndex: 0,
-        status: "NOT_STARTED",
+        interviewId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -61,7 +61,7 @@ describe("bookQuestionRepository", () => {
         bookId: "b1",
         questionId: "q1",
         orderIndex: 0,
-        status: "NOT_STARTED",
+        interviewId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -91,7 +91,7 @@ describe("bookQuestionRepository", () => {
           bookId: "b1",
           questionId: "q1",
           orderIndex: 0,
-          status: "NOT_STARTED",
+          interviewId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -106,20 +106,20 @@ describe("bookQuestionRepository", () => {
     });
   });
 
-  describe("updateStatus", () => {
-    it("updates book question status", async () => {
+  describe("setInterviewId", () => {
+    it("sets interviewId on a book question", async () => {
       const expected = {
         id: "bq1",
         bookId: "b1",
         questionId: "q1",
         orderIndex: 0,
-        status: "STARTED",
+        interviewId: "int-1",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
       executeTakeFirstOrThrow.mockResolvedValue(expected);
 
-      const result = await bookQuestionRepository.updateStatus("bq1", "STARTED");
+      const result = await bookQuestionRepository.setInterviewId("bq1", "int-1");
 
       expect(result).toEqual(expected);
       expect(updateTable).toHaveBeenCalledWith("book_question");
@@ -134,7 +134,7 @@ describe("bookQuestionRepository", () => {
         bookId: "b1",
         questionId: "q1",
         orderIndex: 0,
-        status: "NOT_STARTED",
+        interviewId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

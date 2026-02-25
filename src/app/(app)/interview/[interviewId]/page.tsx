@@ -10,38 +10,20 @@ export default async function InterviewPage({ params }: PageProps) {
   const { interviewId } = await params;
   const trpc = await serverTRPC();
 
-  // Fetch interview, messages, and book data
+  // Fetch interview and messages
   const interview = await trpc.interview.getById({ id: interviewId });
 
   if (!interview) {
     notFound();
   }
 
-  const [messages, book] = await Promise.all([
-    trpc.interview.getMessages({ interviewId }),
-    trpc.book.getById({ id: interview.bookId }),
-  ]);
-
-  if (!book) {
-    notFound();
-  }
-
-  // Extract question prompt from book's bookQuestions
-  const bookQuestion = book.bookQuestions.find(
-    (bq) => bq.questionId === interview.questionId
-  );
-
-  if (!bookQuestion) {
-    notFound();
-  }
-
-  const questionPrompt = bookQuestion.question.prompt;
+  const messages = await trpc.interview.getMessages({ interviewId });
 
   return (
     <InterviewSession
       interviewId={interview.id}
       bookId={interview.bookId}
-      questionPrompt={questionPrompt}
+      topic={interview.topic}
       status={interview.status}
       initialMessages={messages}
     />

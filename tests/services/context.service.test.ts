@@ -52,7 +52,7 @@ describe("contextService", () => {
   const mockInterview = {
     id: "int1",
     bookId: "b1",
-    questionId: "q1",
+    topic: "Tell me about your childhood",
     status: "ACTIVE" as const,
     completedAt: null,
     createdAt: new Date(),

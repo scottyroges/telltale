@@ -87,7 +87,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={initialMessages}
       />,
@@ -113,7 +113,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={initialMessages}
       />,
@@ -149,7 +149,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={initialMessages}
       />,
@@ -190,7 +190,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={initialMessages}
       />,
@@ -234,7 +234,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={initialMessages}
       />,
@@ -254,7 +254,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="COMPLETE"
         initialMessages={initialMessages}
       />,
@@ -280,7 +280,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={initialMessages}
       />,
@@ -305,7 +305,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={initialMessages}
       />,
@@ -330,14 +330,14 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-123"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={[]}
       />,
       { wrapper: createWrapper() }
     );
 
-    const backLink = screen.getByRole("link", { name: /questions/i });
+    const backLink = screen.getByRole("link", { name: /back/i });
     expect(backLink).toBeInTheDocument();
     expect(backLink).toHaveAttribute("href", "/book/book-123/interviews");
   });
@@ -347,7 +347,7 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="book-1"
-        questionPrompt="What was your first job?"
+        topic="What was your first job?"
         status="ACTIVE"
         initialMessages={[]}
       />,
@@ -364,14 +364,14 @@ describe("InterviewSession", () => {
       <InterviewSession
         interviewId="interview-1"
         bookId="different-book-456"
-        questionPrompt="Tell me about your childhood"
+        topic="Tell me about your childhood"
         status="ACTIVE"
         initialMessages={[]}
       />,
       { wrapper: createWrapper() }
     );
 
-    const backLink = screen.getByRole("link", { name: /questions/i });
+    const backLink = screen.getByRole("link", { name: /back/i });
     expect(backLink).toHaveAttribute("href", "/book/different-book-456/interviews");
   });
 
@@ -389,7 +389,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -424,7 +424,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -454,7 +454,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -469,7 +469,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="COMPLETE"
           initialMessages={initialMessages}
         />,
@@ -488,7 +488,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -518,7 +518,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -540,7 +540,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -571,7 +571,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -600,7 +600,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -634,7 +634,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -664,7 +664,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -708,7 +708,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -716,7 +716,7 @@ describe("InterviewSession", () => {
       );
 
       const redirectButton = screen.getByRole("button", {
-        name: /try a different question/i,
+        name: /ask me something else/i,
       });
       expect(redirectButton).toBeDisabled();
     });
@@ -728,7 +728,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={initialMessages}
         />,
@@ -745,7 +745,7 @@ describe("InterviewSession", () => {
       });
 
       const redirectButton = screen.getByRole("button", {
-        name: /try a different question/i,
+        name: /ask me something else/i,
       });
       expect(redirectButton).not.toBeDisabled();
     });
@@ -757,7 +757,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={messagesWithUserReply}
         />,
@@ -765,7 +765,7 @@ describe("InterviewSession", () => {
       );
 
       const redirectButton = screen.getByRole("button", {
-        name: /try a different question/i,
+        name: /ask me something else/i,
       });
       await user.click(redirectButton);
 
@@ -797,7 +797,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={messagesWithUserReply}
         />,
@@ -805,7 +805,7 @@ describe("InterviewSession", () => {
       );
 
       const redirectButton = screen.getByRole("button", {
-        name: /try a different question/i,
+        name: /ask me something else/i,
       });
       await user.click(redirectButton);
 
@@ -821,7 +821,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="COMPLETE"
           initialMessages={messagesWithUserReply}
         />,
@@ -838,7 +838,7 @@ describe("InterviewSession", () => {
         <InterviewSession
           interviewId="interview-1"
           bookId="book-1"
-          questionPrompt="What was your first job?"
+          topic="What was your first job?"
           status="ACTIVE"
           initialMessages={messagesWithUserReply}
         />,
@@ -846,7 +846,7 @@ describe("InterviewSession", () => {
       );
 
       const redirectButton = screen.getByRole("button", {
-        name: /try a different question/i,
+        name: /ask me something else/i,
       });
       expect(redirectButton).not.toBeDisabled();
     });

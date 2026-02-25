@@ -61,7 +61,7 @@ export function InterviewInput({ onSend, onRedirect, isDisabled, redirectDisable
         onClick={onRedirect}
         disabled={redirectDisabled}
       >
-        Try a different question
+        Ask me something else
       </button>
     </div>
   );
