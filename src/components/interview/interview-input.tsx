@@ -5,10 +5,12 @@ import styles from "./interview-input.module.css";
 
 export type InterviewInputProps = {
   onSend: (content: string) => void;
+  onRedirect: () => void;
   isDisabled: boolean;
+  redirectDisabled: boolean;
 };
 
-export function InterviewInput({ onSend, isDisabled }: InterviewInputProps) {
+export function InterviewInput({ onSend, onRedirect, isDisabled, redirectDisabled }: InterviewInputProps) {
   const [content, setContent] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -35,22 +37,31 @@ export function InterviewInput({ onSend, isDisabled }: InterviewInputProps) {
 
   return (
     <div className={styles.inputContainer}>
-      <textarea
-        ref={textareaRef}
-        className={styles.textarea}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Share your story..."
-        disabled={isDisabled}
-        rows={1}
-      />
+      <div className={styles.inputRow}>
+        <textarea
+          ref={textareaRef}
+          className={styles.textarea}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Share your story..."
+          disabled={isDisabled}
+          rows={1}
+        />
+        <button
+          className={styles.sendButton}
+          onClick={handleSend}
+          disabled={isSendDisabled}
+        >
+          Send
+        </button>
+      </div>
       <button
-        className={styles.sendButton}
-        onClick={handleSend}
-        disabled={isSendDisabled}
+        className={styles.redirectButton}
+        onClick={onRedirect}
+        disabled={redirectDisabled}
       >
-        Send
+        Try a different question
       </button>
     </div>
   );

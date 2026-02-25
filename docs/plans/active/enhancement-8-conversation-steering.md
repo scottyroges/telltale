@@ -50,24 +50,9 @@ Add `redirect` procedure: `approvedProcedure`, input `{ interviewId: z.string() 
 
 ---
 
-## PR 3: Frontend — wire redirect button to new API
+## PR 3: Frontend — wire redirect button to new API — Status: Complete
 
-### 1. Interview session — `src/components/interview/interview-session.tsx`
-- Remove `REDIRECT_MESSAGE` constant
-- Add `redirectMutation` using `trpc.interview.redirect.mutationOptions()`:
-  - `onMutate`: set `isWaitingForResponse = true`, clear error
-  - `onSuccess`: add ASSISTANT message to state (no user message), clear waiting
-  - `onError`: clear waiting, show error
-- Change `handleRedirect` to call `redirectMutation.mutate({ interviewId })` instead of `handleSend(REDIRECT_MESSAGE)`
-- Disable the redirect button until the user has sent at least one message (the AI's opening question alone isn't enough context for a meaningful redirect)
-
-### 2. Tests
-- Update `src/components/interview/interview-session.test.tsx` if it exists — redirect tests should verify no optimistic user message is added, only ASSISTANT response
-
-### Verify
-- `npm run typecheck`
-- `npm test -- src/components/interview`
-- Manual: `npm run dev`, start interview, click "Try a different question" — no user message appears, AI responds with a different angle
+Added `redirectMutation` using `trpc.interview.redirect.mutationOptions()` in interview-session. No optimistic user message — only the ASSISTANT response is added to state on success. "Try a different question" button added to `InterviewInput` with `onRedirect` callback and `redirectDisabled` prop; disabled until user has sent at least one message. Input layout restructured with `inputRow` wrapper to accommodate redirect button below the send row. Full test coverage for both components.
 
 ## Files summary
 

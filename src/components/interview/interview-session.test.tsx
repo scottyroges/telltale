@@ -5,9 +5,10 @@ import { InterviewSession } from "@/components/interview/interview-session";
 import type { Message } from "@/domain/message";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const { mockSendMessageMutationOptions, mockCompleteMutationOptions } = vi.hoisted(() => ({
+const { mockSendMessageMutationOptions, mockCompleteMutationOptions, mockRedirectMutationOptions } = vi.hoisted(() => ({
   mockSendMessageMutationOptions: vi.fn(),
   mockCompleteMutationOptions: vi.fn(),
+  mockRedirectMutationOptions: vi.fn(),
 }));
 
 vi.mock("@/lib/trpc/client", () => ({
@@ -18,6 +19,9 @@ vi.mock("@/lib/trpc/client", () => ({
       },
       complete: {
         mutationOptions: mockCompleteMutationOptions,
+      },
+      redirect: {
+        mutationOptions: mockRedirectMutationOptions,
       },
     },
   }),
@@ -60,6 +64,7 @@ describe("InterviewSession", () => {
   beforeEach(() => {
     mockSendMessageMutationOptions.mockReset();
     mockCompleteMutationOptions.mockReset();
+    mockRedirectMutationOptions.mockReset();
     vi.clearAllMocks();
     // Mock scrollTo
     HTMLElement.prototype.scrollTo = vi.fn();
@@ -73,6 +78,10 @@ describe("InterviewSession", () => {
     }));
     mockCompleteMutationOptions.mockImplementation((opts) => ({
       mutationFn: async () => ({ status: "COMPLETE" }),
+      ...opts,
+    }));
+    mockRedirectMutationOptions.mockImplementation((opts) => ({
+      mutationFn: async () => ({ content: "Let me ask about something else." }),
       ...opts,
     }));
   });
@@ -659,6 +668,176 @@ describe("InterviewSession", () => {
           screen.getByText(/failed to mark interview as complete/i)
         ).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("Redirect button", () => {
+    const messagesWithUserReply: Message[] = [
+      ...initialMessages,
+      {
+        id: "3",
+        interviewId: "interview-1",
+        role: "USER",
+        content: "I worked at a bakery.",
+        hidden: false,
+        createdAt: new Date(),
+      },
+      {
+        id: "4",
+        interviewId: "interview-1",
+        role: "ASSISTANT",
+        content: "That sounds interesting! What did you do there?",
+        hidden: false,
+        createdAt: new Date(),
+      },
+    ];
+
+    it("is disabled when user has not sent any messages", () => {
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const redirectButton = screen.getByRole("button", {
+        name: /try a different question/i,
+      });
+      expect(redirectButton).toBeDisabled();
+    });
+
+    it("is enabled after user sends a message", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={initialMessages}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const textarea = screen.getByPlaceholderText("Share your story...");
+      await user.type(textarea, "I worked at a bakery.");
+      await user.keyboard("{Enter}");
+
+      // Wait for AI response so we're no longer waiting
+      await waitFor(() => {
+        expect(screen.getByText("Default response")).toBeInTheDocument();
+      });
+
+      const redirectButton = screen.getByRole("button", {
+        name: /try a different question/i,
+      });
+      expect(redirectButton).not.toBeDisabled();
+    });
+
+    it("adds only ASSISTANT message on success (no optimistic USER message)", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={messagesWithUserReply}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const redirectButton = screen.getByRole("button", {
+        name: /try a different question/i,
+      });
+      await user.click(redirectButton);
+
+      // ASSISTANT redirect response should appear
+      await waitFor(() => {
+        expect(
+          screen.getByText("Let me ask about something else.")
+        ).toBeInTheDocument();
+      });
+
+      // No redirect prompt text should appear as a user message
+      expect(
+        screen.queryByText(/ask me a different follow-up/i)
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows error on redirect failure", async () => {
+      const user = userEvent.setup();
+
+      mockRedirectMutationOptions.mockReset();
+      mockRedirectMutationOptions.mockImplementation((opts) => ({
+        ...opts,
+        mutationFn: async () => {
+          throw new Error("Network error");
+        },
+      }));
+
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={messagesWithUserReply}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const redirectButton = screen.getByRole("button", {
+        name: /try a different question/i,
+      });
+      await user.click(redirectButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Something went wrong. Try again.")
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("is hidden when interview is complete", () => {
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="COMPLETE"
+          initialMessages={messagesWithUserReply}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(
+        screen.queryByRole("button", { name: /try a different question/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it("is enabled when initialMessages already contain user replies", () => {
+      render(
+        <InterviewSession
+          interviewId="interview-1"
+          bookId="book-1"
+          questionPrompt="What was your first job?"
+          status="ACTIVE"
+          initialMessages={messagesWithUserReply}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      const redirectButton = screen.getByRole("button", {
+        name: /try a different question/i,
+      });
+      expect(redirectButton).not.toBeDisabled();
     });
   });
 });
