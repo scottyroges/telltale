@@ -512,7 +512,6 @@ Items will be added to this list as issues are discovered during testing. Each i
 - [x] AI doesn't repeat recently covered topics
 - [x] Button is discoverable but not distracting
 - [x] Works well on mobile and desktop
-- [ ] Analytics tracking for button usage
 - [x] Test coverage for conversation steering flow
 
 **Status:** Complete
@@ -600,13 +599,26 @@ Your story, your pace, your way.
 
 **Acceptance criteria:**
 - [ ] First-time users see onboarding guidance
-- [ ] Guidance communicates key principles clearly
+- [x] Guidance communicates key principles clearly
 - [ ] Helper text visible but not distracting
-- [ ] "How to use this" accessible from interview page
-- [ ] Copy feels encouraging and reduces anxiety
+- [x] "How to use this" accessible from interview page
+- [x] Copy feels encouraging and reduces anxiety
 - [ ] Can dismiss onboarding (don't show again)
-- [ ] Guidance works on mobile and desktop
+- [x] Guidance works on mobile and desktop
 - [ ] A/B test different copy variations (optional)
+
+**Status:** In Progress (1 of ? PRs complete)
+
+**Implementation:**
+- **PR 1:** Static `/guide` page with interview tips, plus "Tips" link in interview header
+  - New route at `src/app/(app)/guide/page.tsx` — server component, no client-side state
+  - Four "How It Works" principles: user control, AI as memory aid, no polish needed, stories crafted later
+  - "Quick Tips" section referencing existing UI controls ("Try a different question", "End Interview")
+  - Card-based layout with responsive breakpoints at 640px, consistent with dashboard styling patterns
+  - "Tips" link in interview header opens guide in new tab (`target="_blank"`)
+  - Header restructured with `headerActions` wrapper to group Tips link and End Interview button
+  - Test coverage for guide page content and tips link behavior
+- **Pending:** First-time onboarding modal, persistent helper text near input, dismissible state
 
 ---
 

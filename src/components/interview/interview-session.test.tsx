@@ -342,6 +342,23 @@ describe("InterviewSession", () => {
     expect(backLink).toHaveAttribute("href", "/book/book-123/interviews");
   });
 
+  it("shows Tips link pointing to /guide that opens in a new tab", () => {
+    render(
+      <InterviewSession
+        interviewId="interview-1"
+        bookId="book-1"
+        questionPrompt="What was your first job?"
+        status="ACTIVE"
+        initialMessages={[]}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    const tipsLink = screen.getByRole("link", { name: /tips/i });
+    expect(tipsLink).toHaveAttribute("href", "/guide");
+    expect(tipsLink).toHaveAttribute("target", "_blank");
+  });
+
   it("back link navigates to correct book", () => {
     render(
       <InterviewSession
