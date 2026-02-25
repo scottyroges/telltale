@@ -1,8 +1,8 @@
 # Plan: Decouple Interviews from Questions
 
-**Status:** In Progress (1 of 3 PRs complete)
+**Status:** In Progress (1 of 3 PRs complete, PR 2 in progress)
 **Created:** 2026-02-23
-**Updated:** 2026-02-24
+**Updated:** 2026-02-25
 **Goal:** Make interviews independent of catalog questions to enable flexible conversation flows — custom prompts, AI-generated follow-ups, and experimentation with different entry points.
 
 ---
@@ -227,6 +227,8 @@ Interviews own their topic as a plain text field. The catalog becomes a UI-level
 
 **PR 2: Book page UI updates**
 
+*PR 2 progress:* InterviewList component (topic, status badge, date, links to interview), TopicInput component (custom topic with 5-char min validation, calls `interview.start`, navigates on success), interviews page updated with "Your Interviews" and "Start a New Interview" sections. QuestionList click-to-start deferred.
+
 ---
 
 ### Phase 3: Docs & Cleanup
@@ -299,11 +301,11 @@ Interviews own their topic as a plain text field. The catalog becomes a UI-level
 - [x] All existing tests updated and passing
 
 **Phase 2 complete when:**
-- [ ] Book page shows interviews alongside curated questions
-- [ ] User can start interview with custom topic
+- [x] Book page shows interviews alongside curated questions
+- [x] User can start interview with custom topic
 - [ ] User can start interview from a curated question
 - [ ] QuestionList updated (click to start interview)
-- [ ] Tests cover new UI
+- [x] Tests cover new UI (InterviewList, TopicInput)
 
 **Phase 3 complete when:**
 - [ ] Docs updated
