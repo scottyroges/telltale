@@ -45,6 +45,9 @@ yarn-error.log*
 .idea/
 .vscode/
 
+# claude agent memory
+.claude/agent-memory/
+
 # misc
 .DS_Store
 *.pem
