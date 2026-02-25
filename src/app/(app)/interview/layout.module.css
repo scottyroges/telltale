@@ -9,4 +9,7 @@
   /* Flex container for session */
   display: flex;
   flex-direction: column;
+
+  /* Contain scroll within transcript, not the whole page */
+  overflow: hidden;
 }
