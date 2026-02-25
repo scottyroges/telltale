@@ -19,10 +19,10 @@
 ## Active Plans
 
 - **phase-1-enhancements-part-2.md** — Second round of Phase 1 improvements (question removal UI, chat readability, interview layout/scroll fixes, back navigation, duplicate interview bug, interview completion/exit strategy, personalize with user name, conversation steering control, usage guidance/helper text)
-- **decouple-interviews-from-questions.md** — Make interviews independent of catalog questions to enable custom prompts, AI-generated follow-ups, and flexible conversation flows (schema migration, API updates, UI changes)
 
 ## Completed Plans
 
+- **docs/plans/completed/decouple-interviews-from-questions.md** — Decouple interviews from catalog questions: Interview owns `topic` text, BookQuestion optionally links via `interviewId`, single `startInterview(bookId, topic)` path (3 PRs)
 - **docs/plans/completed/phase-1-enhancements.md** — First round of Phase 1 improvements (token-based summarization, password visibility, Google icon, SSL modes, loading states, dashboard polish)
 - **docs/plans/completed/1.7-email-apple-auth.md** — Email/password authentication, sign-up/sign-in flows, password reset (3 PRs)
 - **docs/plans/completed/1.6-context-window-management.md** — Summarization, context assembly, insight injection, hard token limit enforcement (3 PRs)
@@ -87,3 +87,4 @@
 - **018** — Insight context placement: near end vs. beginning (vs. both positions, system prompt injection, split old/recent)
 - **019** — App-shell layout with container scroll (vs. viewport scroll, viewport units for interview only)
 - **020** — Async job processing: Inngest for MVP, BullMQ + Railway at scale (vs. pg-boss, Trigger.dev, Vercel cron)
+- **021** — Interviews independent of catalog questions: Interview owns `topic` as plain text, BookQuestion optionally links via `interviewId` (vs. keeping questionId FK, dual-path approach)

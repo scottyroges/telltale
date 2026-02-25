@@ -148,7 +148,7 @@ describe("book router", () => {
       bookId: "book-1",
       questionId: "q1",
       orderIndex: 3,
-      status: "NOT_STARTED",
+      interviewId: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -185,7 +185,7 @@ describe("book router", () => {
       bookId: "book-1",
       questionId: "q1",
       orderIndex: 0,
-      status: "NOT_STARTED",
+      interviewId: null,
       createdAt: now,
       updatedAt: now,
     };
