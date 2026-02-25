@@ -33,7 +33,7 @@ describe("interviewRepository", () => {
       const expected = {
         id: "i1",
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your childhood",
         status: "ACTIVE",
         completedAt: null,
         createdAt: new Date(),
@@ -43,7 +43,7 @@ describe("interviewRepository", () => {
 
       const result = await interviewRepository.create({
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your childhood",
       });
 
       expect(result).toEqual(expected);
@@ -57,7 +57,7 @@ describe("interviewRepository", () => {
       const expected = {
         id: "i1",
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your childhood",
         status: "ACTIVE",
         completedAt: null,
         createdAt: new Date(),
@@ -86,7 +86,7 @@ describe("interviewRepository", () => {
         {
           id: "i1",
           bookId: "b1",
-          questionId: "q1",
+          topic: "Tell me about your childhood",
           status: "ACTIVE",
           completedAt: null,
           createdAt: new Date(),
@@ -103,42 +103,12 @@ describe("interviewRepository", () => {
     });
   });
 
-  describe("findByBookIdAndQuestionId", () => {
-    it("returns an interview when found", async () => {
-      const expected = {
-        id: "i1",
-        bookId: "b1",
-        questionId: "q1",
-        status: "ACTIVE",
-        completedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      executeTakeFirst.mockResolvedValue(expected);
-
-      const result = await interviewRepository.findByBookIdAndQuestionId("b1", "q1");
-
-      expect(result).toEqual(expected);
-      expect(selectFrom).toHaveBeenCalledWith("interview");
-      expect(executeTakeFirst).toHaveBeenCalled();
-    });
-
-    it("returns null when not found", async () => {
-      executeTakeFirst.mockResolvedValue(undefined);
-
-      const result = await interviewRepository.findByBookIdAndQuestionId("b1", "q1");
-
-      expect(result).toBeNull();
-      expect(selectFrom).toHaveBeenCalledWith("interview");
-    });
-  });
-
   describe("updateStatus", () => {
     it("updates interview status", async () => {
       const expected = {
         id: "i1",
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your childhood",
         status: "COMPLETE",
         completedAt: null,
         createdAt: new Date(),
@@ -160,7 +130,7 @@ describe("interviewRepository", () => {
       const expected = {
         id: "i1",
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your childhood",
         status: "COMPLETE",
         completedAt: now,
         createdAt: new Date(),

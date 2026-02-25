@@ -79,7 +79,7 @@ export const bookRepository = {
               "book_question.bookId",
               "book_question.questionId",
               "book_question.orderIndex",
-              "book_question.status",
+              "book_question.interviewId",
               "book_question.createdAt",
               "book_question.updatedAt",
             ])
@@ -107,7 +107,7 @@ export const bookRepository = {
             .select([
               "interview.id",
               "interview.bookId",
-              "interview.questionId",
+              "interview.topic",
               "interview.status",
               "interview.createdAt",
               "interview.updatedAt",

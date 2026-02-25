@@ -15,32 +15,12 @@ vi.mock("@/services/context.service", () => ({
   },
 }));
 
-const mockBookQuestionFindById = vi.hoisted(() => vi.fn());
-const mockBookQuestionUpdateStatus = vi.hoisted(() => vi.fn());
-vi.mock("@/repositories/book-question.repository", () => ({
-  bookQuestionRepository: {
-    findById: mockBookQuestionFindById,
-    updateStatus: mockBookQuestionUpdateStatus,
-  },
-}));
-
-const mockQuestionFindById = vi.hoisted(() => vi.fn());
-vi.mock("@/repositories/question.repository", () => ({
-  questionRepository: {
-    findById: mockQuestionFindById,
-  },
-}));
-
 const mockInterviewCreate = vi.hoisted(() => vi.fn());
-const mockInterviewUpdateStatus = vi.hoisted(() => vi.fn());
 const mockInterviewComplete = vi.hoisted(() => vi.fn());
-const mockInterviewFindByBookIdAndQuestionId = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/interview.repository", () => ({
   interviewRepository: {
     create: mockInterviewCreate,
-    updateStatus: mockInterviewUpdateStatus,
     complete: mockInterviewComplete,
-    findByBookIdAndQuestionId: mockInterviewFindByBookIdAndQuestionId,
   },
 }));
 
@@ -78,87 +58,17 @@ describe("conversationService", () => {
   });
 
   describe("startInterview", () => {
-    it("resumes existing interview when one already exists", async () => {
-      const bookQuestion = {
-        id: "bq1",
-        bookId: "b1",
-        questionId: "q1",
-        orderIndex: 0,
-        status: "STARTED",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      const question = {
-        id: "q1",
-        category: "childhood",
-        prompt: "Tell me about your earliest memories",
-        orderIndex: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      const existingInterview = {
-        id: "existing-int1",
-        bookId: "b1",
-        questionId: "q1",
-        status: "ACTIVE",
-        completedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockBookQuestionFindById.mockResolvedValue(bookQuestion);
-      mockQuestionFindById.mockResolvedValue(question);
-      mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(existingInterview);
-
-      const result = await conversationService.startInterview("bq1", "Sarah");
-
-      expect(result).toEqual({
-        interviewId: "existing-int1",
-      });
-
-      // Should check for existing interview
-      expect(mockInterviewFindByBookIdAndQuestionId).toHaveBeenCalledWith("b1", "q1");
-
-      // Should NOT create new interview
-      expect(mockInterviewCreate).not.toHaveBeenCalled();
-
-      // Should NOT call LLM or create messages
-      expect(mockMessageCreate).not.toHaveBeenCalled();
-      expect(mockGenerateResponse).not.toHaveBeenCalled();
-      expect(mockBuildContextWindow).not.toHaveBeenCalled();
-    });
-
-    it("creates interview and returns opening message when no existing interview", async () => {
-      const bookQuestion = {
-        id: "bq1",
-        bookId: "b1",
-        questionId: "q1",
-        orderIndex: 0,
-        status: "NOT_STARTED",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      const question = {
-        id: "q1",
-        category: "childhood",
-        prompt: "Tell me about your earliest memories",
-        orderIndex: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it("creates interview and returns opening message", async () => {
       const interview = {
         id: "int1",
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your earliest memories",
         status: "ACTIVE",
         completedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      mockBookQuestionFindById.mockResolvedValue(bookQuestion);
-      mockQuestionFindById.mockResolvedValue(question);
-      mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(null);
       mockInterviewCreate.mockResolvedValue(interview);
       mockBuildContextWindow.mockResolvedValue({
         systemPrompt: expect.any(String),
@@ -175,20 +85,17 @@ describe("conversationService", () => {
         content: '{"response":"Welcome! Tell me about your earliest memories.","insights":[]}',
       });
       mockMessageCreate.mockResolvedValue({});
-      mockBookQuestionUpdateStatus.mockResolvedValue({});
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      const result = await conversationService.startInterview("bq1", "Sarah");
+      const result = await conversationService.startInterview("b1", "Tell me about your earliest memories", "Sarah");
 
       expect(result).toEqual({
         interviewId: "int1",
       });
 
-      expect(mockBookQuestionFindById).toHaveBeenCalledWith("bq1");
-      expect(mockQuestionFindById).toHaveBeenCalledWith("q1");
       expect(mockInterviewCreate).toHaveBeenCalledWith({
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your earliest memories",
       });
 
       // Topic message persisted first (hidden from transcript)
@@ -223,37 +130,13 @@ describe("conversationService", () => {
         role: "ASSISTANT",
         content: "Welcome! Tell me about your earliest memories.",
       });
-
-      expect(mockBookQuestionUpdateStatus).toHaveBeenCalledWith(
-        "bq1",
-        "STARTED",
-      );
     });
 
     it("persists extracted insights when present", async () => {
-      const bookQuestion = {
-        id: "bq1",
-        bookId: "b1",
-        questionId: "q1",
-        orderIndex: 0,
-        status: "NOT_STARTED",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      mockBookQuestionFindById.mockResolvedValue(bookQuestion);
-      mockQuestionFindById.mockResolvedValue({
-        id: "q1",
-        category: "childhood",
-        prompt: "Tell me about your earliest memories",
-        orderIndex: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(null);
       mockInterviewCreate.mockResolvedValue({
         id: "int1",
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your earliest memories",
         status: "ACTIVE",
         completedAt: null,
         createdAt: new Date(),
@@ -267,10 +150,9 @@ describe("conversationService", () => {
         content: '{"response":"Welcome!","insights":[{"type":"ENTITY","content":"sister Maria — older, bossy"},{"type":"EMOTION","content":"nostalgia for childhood home"}]}',
       });
       mockMessageCreate.mockResolvedValue({});
-      mockBookQuestionUpdateStatus.mockResolvedValue({});
       mockInsightCreateMany.mockResolvedValue({ count: 2 });
 
-      await conversationService.startInterview("bq1", "Sarah");
+      await conversationService.startInterview("b1", "Tell me about your earliest memories", "Sarah");
 
       expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([
@@ -280,28 +162,10 @@ describe("conversationService", () => {
     });
 
     it("persists no insights when AI returns empty insights array", async () => {
-      mockBookQuestionFindById.mockResolvedValue({
-        id: "bq1",
-        bookId: "b1",
-        questionId: "q1",
-        orderIndex: 0,
-        status: "NOT_STARTED",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      mockQuestionFindById.mockResolvedValue({
-        id: "q1",
-        category: "childhood",
-        prompt: "Tell me about your earliest memories",
-        orderIndex: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      mockInterviewFindByBookIdAndQuestionId.mockResolvedValue(null);
       mockInterviewCreate.mockResolvedValue({
         id: "int1",
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your earliest memories",
         status: "ACTIVE",
         completedAt: null,
         createdAt: new Date(),
@@ -315,38 +179,12 @@ describe("conversationService", () => {
         content: '{"response":"Welcome!","insights":[]}',
       });
       mockMessageCreate.mockResolvedValue({});
-      mockBookQuestionUpdateStatus.mockResolvedValue({});
       mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      await conversationService.startInterview("bq1", "Sarah");
+      await conversationService.startInterview("b1", "Tell me about your earliest memories", "Sarah");
 
       expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
       expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
-    });
-
-    it("throws when BookQuestion is not found", async () => {
-      mockBookQuestionFindById.mockResolvedValue(null);
-
-      await expect(
-        conversationService.startInterview("bq-missing", "Sarah"),
-      ).rejects.toThrow("BookQuestion not found: bq-missing");
-    });
-
-    it("throws when Question is not found", async () => {
-      mockBookQuestionFindById.mockResolvedValue({
-        id: "bq1",
-        bookId: "b1",
-        questionId: "q-missing",
-        orderIndex: 0,
-        status: "NOT_STARTED",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      mockQuestionFindById.mockResolvedValue(null);
-
-      await expect(
-        conversationService.startInterview("bq1", "Sarah"),
-      ).rejects.toThrow("Question not found: q-missing");
     });
   });
 
@@ -638,7 +476,7 @@ describe("conversationService", () => {
       const updated = {
         id: "int1",
         bookId: "b1",
-        questionId: "q1",
+        topic: "Tell me about your childhood",
         status: "COMPLETE",
         completedAt: now,
         createdAt: new Date(),

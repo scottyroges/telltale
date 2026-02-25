@@ -19,9 +19,11 @@ vi.mock("@/repositories/book.repository", () => ({
 }));
 
 const mockBqFindById = vi.hoisted(() => vi.fn());
+const mockBqSetInterviewId = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/book-question.repository", () => ({
   bookQuestionRepository: {
     findById: mockBqFindById,
+    setInterviewId: mockBqSetInterviewId,
   },
 }));
 
@@ -86,7 +88,7 @@ const bookQuestion = {
   bookId: "book-1",
   questionId: "q-1",
   orderIndex: 0,
-  status: "NOT_STARTED",
+  interviewId: null,
   createdAt: now,
   updatedAt: now,
 };
@@ -94,7 +96,7 @@ const bookQuestion = {
 const activeInterview = {
   id: "interview-1",
   bookId: "book-1",
-  questionId: "q-1",
+  topic: "Tell me about your childhood",
   status: "ACTIVE",
   completedAt: null,
   createdAt: now,
@@ -127,39 +129,79 @@ describe("interview router", () => {
   });
 
   describe("start", () => {
-    it("verifies ownership and delegates to conversationService", async () => {
-      mockBqFindById.mockResolvedValue(bookQuestion);
+    it("verifies book ownership and delegates to conversationService", async () => {
       mockBookFindById.mockResolvedValue(ownBook);
       mockStartInterview.mockResolvedValue({
         interviewId: "interview-1",
-        openingMessage: "Tell me about your childhood.",
       });
 
-      const result = await caller.interview.start({ bookQuestionId: "bq-1" });
+      const result = await caller.interview.start({
+        bookId: "book-1",
+        topic: "Tell me about your childhood",
+      });
 
       expect(result).toEqual({
         interviewId: "interview-1",
-        openingMessage: "Tell me about your childhood.",
       });
-      expect(mockBqFindById).toHaveBeenCalledWith("bq-1");
       expect(mockBookFindById).toHaveBeenCalledWith("book-1");
-      expect(mockStartInterview).toHaveBeenCalledWith("bq-1", "Test User");
+      expect(mockStartInterview).toHaveBeenCalledWith(
+        "book-1",
+        "Tell me about your childhood",
+        "Test User",
+      );
     });
 
-    it("throws NOT_FOUND for missing bookQuestionId", async () => {
-      mockBqFindById.mockResolvedValue(null);
+    it("links bookQuestion when bookQuestionId is provided", async () => {
+      mockBookFindById.mockResolvedValue(ownBook);
+      mockStartInterview.mockResolvedValue({ interviewId: "interview-1" });
+      mockBqFindById.mockResolvedValue(bookQuestion);
+      mockBqSetInterviewId.mockResolvedValue({});
+
+      await caller.interview.start({
+        bookId: "book-1",
+        topic: "Tell me about your childhood",
+        bookQuestionId: "bq-1",
+      });
+
+      expect(mockBqFindById).toHaveBeenCalledWith("bq-1");
+      expect(mockBqSetInterviewId).toHaveBeenCalledWith("bq-1", "interview-1");
+    });
+
+    it("throws BAD_REQUEST when bookQuestionId belongs to a different book", async () => {
+      mockBookFindById.mockResolvedValue(ownBook);
+      mockBqFindById.mockResolvedValue({ ...bookQuestion, bookId: "other-book" });
 
       await expect(
-        caller.interview.start({ bookQuestionId: "bq-missing" }),
+        caller.interview.start({
+          bookId: "book-1",
+          topic: "Tell me about your childhood",
+          bookQuestionId: "bq-1",
+        }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+      // Validation happens before interview creation
+      expect(mockStartInterview).not.toHaveBeenCalled();
+    });
+
+    it("throws NOT_FOUND for missing book", async () => {
+      mockBookFindById.mockResolvedValue(null);
+
+      await expect(
+        caller.interview.start({
+          bookId: "book-missing",
+          topic: "Tell me about your childhood",
+        }),
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
 
-    it("throws FORBIDDEN for another user's bookQuestion", async () => {
-      mockBqFindById.mockResolvedValue(bookQuestion);
+    it("throws FORBIDDEN for another user's book", async () => {
       mockBookFindById.mockResolvedValue({ ...ownBook, userId: "other-user" });
 
       await expect(
-        caller.interview.start({ bookQuestionId: "bq-1" }),
+        caller.interview.start({
+          bookId: "book-1",
+          topic: "Tell me about your childhood",
+        }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
@@ -473,10 +515,16 @@ describe("interview router", () => {
     const unauthCaller = createCaller({ session: null, userId: null });
 
     await expect(
-      unauthCaller.interview.start({ bookQuestionId: "bq-1" }),
+      unauthCaller.interview.start({
+        bookId: "book-1",
+        topic: "Tell me about your childhood",
+      }),
     ).rejects.toThrow(TRPCError);
     await expect(
-      unauthCaller.interview.start({ bookQuestionId: "bq-1" }),
+      unauthCaller.interview.start({
+        bookId: "book-1",
+        topic: "Tell me about your childhood",
+      }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });

@@ -28,8 +28,8 @@ export default async function InterviewsPage({ params }: InterviewsPageProps) {
       <section className={styles.section}>
         <h2 className={styles.sectionHeading}>Your Questions</h2>
         <QuestionList
+          bookId={bookId}
           bookQuestions={book.bookQuestions}
-          interviews={book.interviews}
         />
       </section>
 

@@ -7,8 +7,8 @@ Question (global prompt catalog)
 
 User
 └── Book (grouping container)
-    ├── BookQuestion (join: which questions are in this book)
-    ├── Interview (bookId, questionId — the raw conversation)
+    ├── BookQuestion (join: which questions are in this book, optional interviewId link)
+    ├── Interview (bookId, topic — the raw conversation)
     │   ├── Message (the back-and-forth)
     │   ├── Insight (extracted metadata for follow-ups)
     │   └── InterviewSummary (rolling summaries, linked list)
@@ -44,10 +44,10 @@ Global prompt catalog — hardcoded starting points that kick off interviews. Ha
 Top-level grouping container. A user can have multiple books, each containing a set of interviews and resulting stories. Status lifecycle: `IN_PROGRESS` → `COMPLETE` → `ARCHIVED`.
 
 ### BookQuestion
-Join table tracking which questions a user has selected for a given book. Provides a "checklist" UX — here are the questions in your book, here's which ones you've interviewed for, here's what's left. Status lifecycle: `NOT_STARTED` → `STARTED` → `COMPLETE`. Unique constraint on `(bookId, questionId)`.
+Join table tracking which catalog questions a user has selected for a given book. Provides a curated list of suggested topics. An optional `interviewId` FK links to the interview started from this question — its presence indicates the question has been explored. Unique constraint on `(bookId, questionId)`.
 
 ### Interview
-The raw conversation container. Started from a question within a book. Contains all messages, extracted insights, and rolling summaries. No topic field — the originating Question provides the starting point; summaries and insights capture where the conversation actually went. Status lifecycle: `ACTIVE` → `PAUSED` → `COMPLETE`.
+The raw conversation container. Owns its `topic` as a plain text field — the prompt used to start the conversation, whether it came from the catalog or custom user input. Contains all messages, extracted insights, and rolling summaries. Interview has no dependency on the Question model; BookQuestion optionally links back to it. Status lifecycle: `ACTIVE` → `PAUSED` → `COMPLETE`.
 
 ### Message
 Individual message in an interview. Has a `role` (USER, ASSISTANT, SYSTEM). A `hidden` flag (default `false`) allows messages to participate in the LLM's context window without appearing in the user-visible transcript — used for backend-injected steering prompts. Messages are append-only and immutable — no `updatedAt`.

@@ -11,12 +11,12 @@ import { InterviewInput } from "./interview-input";
 import styles from "./interview-session.module.css";
 
 const COMPLETION_MESSAGE =
-  "Interview marked as complete. You can review the conversation or return to the question list.";
+  "Interview marked as complete. You can review the conversation or return to your book.";
 
 export type InterviewSessionProps = {
   interviewId: string;
   bookId: string;
-  questionPrompt: string;
+  topic: string;
   status: InterviewStatus;
   initialMessages: Message[];
 };
@@ -24,7 +24,7 @@ export type InterviewSessionProps = {
 export function InterviewSession({
   interviewId,
   bookId,
-  questionPrompt,
+  topic,
   status,
   initialMessages,
 }: InterviewSessionProps) {
@@ -157,7 +157,7 @@ export function InterviewSession({
       <div className={styles.header}>
         <div className={styles.headerTop}>
           <Link href={`/book/${bookId}/interviews`} className={styles.back}>
-            &larr; Questions
+            &larr; Back
           </Link>
           <div className={styles.headerActions}>
             <Link
@@ -179,7 +179,7 @@ export function InterviewSession({
             )}
           </div>
         </div>
-        <h1 className={styles.questionPrompt}>{questionPrompt}</h1>
+        <h1 className={styles.topic}>{topic}</h1>
       </div>
       {completionMessage && (
         <div className={styles.completionMessage}>{completionMessage}</div>

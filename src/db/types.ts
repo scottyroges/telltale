@@ -4,7 +4,7 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-import type { BookStatus, BookQuestionStatus, InterviewStatus, MessageRole, InsightType, StoryStatus, StorySectionStatus, UserApprovalStatus, UserRole } from "./enums";
+import type { BookStatus, InterviewStatus, MessageRole, InsightType, StoryStatus, StorySectionStatus, UserApprovalStatus, UserRole } from "./enums";
 
 export type Account = {
     id: string;
@@ -34,7 +34,7 @@ export type BookQuestion = {
     bookId: string;
     questionId: string;
     orderIndex: number;
-    status: Generated<BookQuestionStatus>;
+    interviewId: string | null;
     createdAt: Generated<Timestamp>;
     updatedAt: Timestamp;
 };
@@ -51,7 +51,7 @@ export type Insight = {
 export type Interview = {
     id: string;
     bookId: string;
-    questionId: string;
+    topic: string;
     status: Generated<InterviewStatus>;
     completedAt: Timestamp | null;
     createdAt: Generated<Timestamp>;

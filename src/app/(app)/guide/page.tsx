@@ -79,7 +79,7 @@ export default function GuidePage() {
             <div className={styles.tipContent}>
               <p className={styles.tipBody}>
                 If a question doesn&rsquo;t resonate, use the{" "}
-                <strong>Try a different question</strong> button to move on.
+                <strong>Ask me something else</strong> button to move on.
               </p>
             </div>
           </li>
@@ -87,8 +87,7 @@ export default function GuidePage() {
             <div className={styles.tipContent}>
               <p className={styles.tipBody}>
                 When you feel done with a topic, click{" "}
-                <strong>End Interview</strong> and pick another question from the
-                list.
+                <strong>End Interview</strong> and return to your book.
               </p>
             </div>
           </li>

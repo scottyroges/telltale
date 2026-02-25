@@ -1,11 +1,9 @@
-export type BookQuestionStatus = "NOT_STARTED" | "STARTED" | "COMPLETE";
-
 export type BookQuestion = {
   id: string;
   bookId: string;
   questionId: string;
   orderIndex: number;
-  status: BookQuestionStatus;
+  interviewId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

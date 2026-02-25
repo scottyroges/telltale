@@ -97,7 +97,7 @@ describe("bookRepository", () => {
             bookId: "b1",
             questionId: "q1",
             orderIndex: 0,
-            status: "NOT_STARTED",
+            interviewId: null,
             createdAt: new Date(),
             updatedAt: new Date(),
             question: {
@@ -114,7 +114,7 @@ describe("bookRepository", () => {
           {
             id: "i1",
             bookId: "b1",
-            questionId: "q1",
+            topic: "Tell me…",
             status: "ACTIVE",
             createdAt: new Date(),
             updatedAt: new Date(),

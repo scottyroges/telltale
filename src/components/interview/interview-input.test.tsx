@@ -111,7 +111,7 @@ describe("InterviewInput", () => {
       render(<InterviewInput {...defaultProps} onRedirect={onRedirect} />);
 
       const redirectButton = screen.getByRole("button", {
-        name: /try a different question/i,
+        name: /ask me something else/i,
       });
       await user.click(redirectButton);
 
@@ -122,7 +122,7 @@ describe("InterviewInput", () => {
       render(<InterviewInput {...defaultProps} redirectDisabled={true} />);
 
       const redirectButton = screen.getByRole("button", {
-        name: /try a different question/i,
+        name: /ask me something else/i,
       });
       expect(redirectButton).toBeDisabled();
     });
@@ -131,7 +131,7 @@ describe("InterviewInput", () => {
       render(<InterviewInput {...defaultProps} redirectDisabled={false} />);
 
       const redirectButton = screen.getByRole("button", {
-        name: /try a different question/i,
+        name: /ask me something else/i,
       });
       expect(redirectButton).not.toBeDisabled();
     });

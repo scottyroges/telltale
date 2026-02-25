@@ -1,8 +1,8 @@
 # Plan: Decouple Interviews from Questions
 
-**Status:** Not Started
+**Status:** In Progress (1 of 3 PRs complete)
 **Created:** 2026-02-23
-**Updated:** 2026-02-24 (post-review)
+**Updated:** 2026-02-24
 **Goal:** Make interviews independent of catalog questions to enable flexible conversation flows — custom prompts, AI-generated follow-ups, and experimentation with different entry points.
 
 ---
@@ -284,19 +284,19 @@ Interviews own their topic as a plain text field. The catalog becomes a UI-level
 ## Success Criteria
 
 **Phase 1 complete when:**
-- [ ] Migration runs cleanly — backfills `topic`, drops `questionId`, removes `status` from BookQuestion
-- [ ] Interview repository creates with `topic`
-- [ ] Conversation service has single `startInterview(bookId, topic)` method
-- [ ] BookQuestion status removed; `interviewId` FK added to repository, domain types
-- [ ] `interview.start` accepts `{ bookId, topic }` with validation
-- [ ] Interview page uses `interview.topic` for display
-- [ ] `InterviewSession` prop renamed from `questionPrompt` to `topic`
-- [ ] `InterviewInput` redirect button says "Ask me something else"
-- [ ] `COMPLETION_MESSAGE` says "return to your book"
-- [ ] `QuestionList` shows completion via `interviewId` (display-only, no click-to-start action)
-- [ ] `RemoveQuestionButton` interview warning removed
-- [ ] Guide page copy updated
-- [ ] All existing tests updated and passing
+- [x] Migration runs cleanly — backfills `topic`, drops `questionId`, removes `status` from BookQuestion
+- [x] Interview repository creates with `topic`
+- [x] Conversation service has single `startInterview(bookId, topic)` method
+- [x] BookQuestion status removed; `interviewId` FK added to repository, domain types
+- [x] `interview.start` accepts `{ bookId, topic }` with validation
+- [x] Interview page uses `interview.topic` for display
+- [x] `InterviewSession` prop renamed from `questionPrompt` to `topic`
+- [x] `InterviewInput` redirect button says "Ask me something else"
+- [x] `COMPLETION_MESSAGE` says "return to your book"
+- [x] `QuestionList` shows completion via `interviewId` (display-only, no click-to-start action)
+- [x] `RemoveQuestionButton` interview warning removed
+- [x] Guide page copy updated
+- [x] All existing tests updated and passing
 
 **Phase 2 complete when:**
 - [ ] Book page shows interviews alongside curated questions

@@ -17,7 +17,7 @@ export const questionRouter = router({
     .input(
       z.object({
         category: z.string(),
-        prompt: z.string(),
+        prompt: z.string().min(5).max(500),
         orderIndex: z.number(),
       }),
     )

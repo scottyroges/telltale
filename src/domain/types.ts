@@ -1,6 +1,6 @@
 export type { Question } from "./question";
 export type { Book, BookStatus, BookWithDetails } from "./book";
-export type { BookQuestion, BookQuestionStatus } from "./book-question";
+export type { BookQuestion } from "./book-question";
 export type { Interview, InterviewStatus } from "./interview";
 export type { Message, MessageRole } from "./message";
 export type { Insight, InsightType } from "./insight";

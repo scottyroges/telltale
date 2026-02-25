@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { BookQuestion } from "@/domain/book-question";
 import type { Question } from "@/domain/question";
-import type { Interview } from "@/domain/interview";
 
 const { mockPush, mockRefresh, mockStartInterview, mockRemoveQuestion } =
   vi.hoisted(() => ({
@@ -62,24 +61,11 @@ function makeBookQuestion(
     bookId: "book-1",
     questionId: "q-1",
     orderIndex: 0,
-    status: "NOT_STARTED",
+    interviewId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
     question: makeQuestion({ id: overrides.questionId ?? "q-1", ...question }),
-  };
-}
-
-function makeInterview(overrides: Partial<Interview> = {}): Interview {
-  return {
-    id: "int-1",
-    bookId: "book-1",
-    questionId: "q-1",
-    status: "ACTIVE",
-    completedAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ...overrides,
   };
 }
 
@@ -90,8 +76,8 @@ function renderQuestionList(
     defaultOptions: { mutations: { retry: false } },
   });
   const defaultProps = {
+    bookId: "book-1",
     bookQuestions: [],
-    interviews: [],
     ...props,
   };
   return render(
@@ -118,11 +104,11 @@ describe("QuestionList", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders NOT_STARTED question with gray dot and Begin button", () => {
+  it("renders not-started question with gray dot and Begin button", () => {
     renderQuestionList({
       bookQuestions: [
         makeBookQuestion(
-          { status: "NOT_STARTED" },
+          { interviewId: null },
           { prompt: "Tell me about your childhood" },
         ),
       ],
@@ -137,36 +123,13 @@ describe("QuestionList", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders STARTED question with In Progress label and Continue link", () => {
+  it("renders completed question with checkmark and Review link", () => {
     renderQuestionList({
       bookQuestions: [
         makeBookQuestion(
-          { status: "STARTED", questionId: "q-2" },
-          { prompt: "What was school like?" },
-        ),
-      ],
-      interviews: [makeInterview({ id: "int-2", questionId: "q-2" })],
-    });
-
-    expect(screen.getByText("In Progress")).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: /continue/i });
-    expect(link).toHaveAttribute("href", "/interview/int-2");
-  });
-
-  it("renders COMPLETE question with checkmark and Review link", () => {
-    renderQuestionList({
-      bookQuestions: [
-        makeBookQuestion(
-          { status: "COMPLETE", questionId: "q-3" },
+          { interviewId: "int-3", questionId: "q-3" },
           { prompt: "Describe your first job" },
         ),
-      ],
-      interviews: [
-        makeInterview({
-          id: "int-3",
-          questionId: "q-3",
-          status: "COMPLETE",
-        }),
       ],
     });
 
@@ -175,33 +138,27 @@ describe("QuestionList", () => {
     expect(link).toHaveAttribute("href", "/interview/int-3");
   });
 
-  it("renders error state when STARTED question has no matching interview", () => {
-    renderQuestionList({
-      bookQuestions: [
-        makeBookQuestion(
-          { status: "STARTED", questionId: "q-2" },
-          { prompt: "Missing interview question" },
-        ),
-      ],
-      interviews: [], // no matching interview
-    });
-
-    expect(screen.getByText("Error")).toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
-  });
-
   it("Begin button calls interview.start and navigates on success", async () => {
     mockStartInterview.mockResolvedValue({ interviewId: "new-int-1" });
     const user = userEvent.setup();
 
     renderQuestionList({
-      bookQuestions: [makeBookQuestion({ id: "bq-99", status: "NOT_STARTED" })],
+      bookQuestions: [
+        makeBookQuestion(
+          { id: "bq-99", interviewId: null },
+          { prompt: "Tell me about your childhood" },
+        ),
+      ],
     });
 
     await user.click(screen.getByRole("button", { name: /begin/i }));
 
     expect(mockStartInterview).toHaveBeenCalledWith(
-      { bookQuestionId: "bq-99" },
+      {
+        bookId: "book-1",
+        topic: "Tell me about your childhood",
+        bookQuestionId: "bq-99",
+      },
       expect.anything(),
     );
     await waitFor(() => {
@@ -219,7 +176,7 @@ describe("QuestionList", () => {
     const user = userEvent.setup();
 
     renderQuestionList({
-      bookQuestions: [makeBookQuestion({ status: "NOT_STARTED" })],
+      bookQuestions: [makeBookQuestion({ interviewId: null })],
     });
 
     await user.click(screen.getByRole("button", { name: /begin/i }));
@@ -264,23 +221,6 @@ describe("QuestionList", () => {
       "Remove this question from your book?",
     );
     expect(mockRemoveQuestion).not.toHaveBeenCalled();
-  });
-
-  it("shows different confirmation for questions with interviews", async () => {
-    const mockConfirm = vi.fn().mockReturnValue(false);
-    vi.stubGlobal("confirm", mockConfirm);
-    const user = userEvent.setup();
-
-    renderQuestionList({
-      bookQuestions: [makeBookQuestion({ id: "bq-1", questionId: "q-1" })],
-      interviews: [makeInterview({ questionId: "q-1" })],
-    });
-
-    await user.click(screen.getByRole("button", { name: /remove question/i }));
-
-    expect(mockConfirm).toHaveBeenCalledWith(
-      "This question has an interview with saved responses. Are you sure you want to remove it?",
-    );
   });
 
   it("removes question when confirmed", async () => {

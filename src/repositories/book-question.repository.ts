@@ -1,13 +1,13 @@
 import { db } from "@/lib/db";
 import { createId } from "@/lib/id";
-import type { BookQuestion, BookQuestionStatus } from "@/domain/book-question";
+import type { BookQuestion } from "@/domain/book-question";
 
 const columns = [
   "id",
   "bookId",
   "questionId",
   "orderIndex",
-  "status",
+  "interviewId",
   "createdAt",
   "updatedAt",
 ] as const;
@@ -18,15 +18,14 @@ export const bookQuestionRepository = {
     questionId: string;
     orderIndex: number;
   }): Promise<BookQuestion> {
-    // INSERT INTO book_question (id, "bookId", "questionId", "orderIndex", status, "updatedAt")
-    //   VALUES ($1, $2, $3, $4, 'NOT_STARTED', $5)
+    // INSERT INTO book_question (id, "bookId", "questionId", "orderIndex", "updatedAt")
+    //   VALUES ($1, $2, $3, $4, $5)
     //   RETURNING <columns>
     return db
       .insertInto("book_question")
       .values({
         id: createId(),
         ...data,
-        status: "NOT_STARTED",
         updatedAt: new Date(),
       })
       .returning([...columns])
@@ -54,14 +53,11 @@ export const bookQuestionRepository = {
       .execute();
   },
 
-  async updateStatus(
-    id: string,
-    status: BookQuestionStatus,
-  ): Promise<BookQuestion> {
-    // UPDATE book_question SET status = $1, "updatedAt" = $2 WHERE id = $3 RETURNING <columns>
+  async setInterviewId(id: string, interviewId: string): Promise<BookQuestion> {
+    // UPDATE book_question SET "interviewId" = $1, "updatedAt" = $2 WHERE id = $3 RETURNING <columns>
     return db
       .updateTable("book_question")
-      .set({ status, updatedAt: new Date() })
+      .set({ interviewId, updatedAt: new Date() })
       .where("id", "=", id)
       .returning([...columns])
       .executeTakeFirstOrThrow();

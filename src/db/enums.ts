@@ -4,12 +4,6 @@ export const BookStatus = {
     ARCHIVED: "ARCHIVED"
 } as const;
 export type BookStatus = (typeof BookStatus)[keyof typeof BookStatus];
-export const BookQuestionStatus = {
-    NOT_STARTED: "NOT_STARTED",
-    STARTED: "STARTED",
-    COMPLETE: "COMPLETE"
-} as const;
-export type BookQuestionStatus = (typeof BookQuestionStatus)[keyof typeof BookQuestionStatus];
 export const InterviewStatus = {
     ACTIVE: "ACTIVE",
     PAUSED: "PAUSED",

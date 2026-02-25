@@ -32,7 +32,7 @@ describe("GuidePage", () => {
       screen.getByRole("heading", { name: /quick tips/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/try a different question/i)
+      screen.getByText(/ask me something else/i)
     ).toBeInTheDocument();
     expect(screen.getByText(/end interview/i)).toBeInTheDocument();
     expect(screen.getByText(/no time limit/i)).toBeInTheDocument();

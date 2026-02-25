@@ -5,7 +5,7 @@ import type { Interview, InterviewStatus } from "@/domain/interview";
 const columns = [
   "id",
   "bookId",
-  "questionId",
+  "topic",
   "status",
   "completedAt",
   "createdAt",
@@ -15,9 +15,9 @@ const columns = [
 export const interviewRepository = {
   async create(data: {
     bookId: string;
-    questionId: string;
+    topic: string;
   }): Promise<Interview> {
-    // INSERT INTO interview (id, "bookId", "questionId", status, "updatedAt")
+    // INSERT INTO interview (id, "bookId", topic, status, "updatedAt")
     //   VALUES ($1, $2, $3, 'ACTIVE', $4)
     //   RETURNING <columns>
     return db
@@ -25,7 +25,7 @@ export const interviewRepository = {
       .values({
         id: createId(),
         bookId: data.bookId,
-        questionId: data.questionId,
+        topic: data.topic,
         status: "ACTIVE",
         updatedAt: new Date(),
       })
@@ -51,21 +51,6 @@ export const interviewRepository = {
       .where("bookId", "=", bookId)
       .select([...columns])
       .execute();
-  },
-
-  async findByBookIdAndQuestionId(
-    bookId: string,
-    questionId: string,
-  ): Promise<Interview | null> {
-    // SELECT <columns> FROM interview WHERE "bookId" = $1 AND "questionId" = $2
-    return (
-      (await db
-        .selectFrom("interview")
-        .where("bookId", "=", bookId)
-        .where("questionId", "=", questionId)
-        .select([...columns])
-        .executeTakeFirst()) ?? null
-    );
   },
 
   async updateStatus(
