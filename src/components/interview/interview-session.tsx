@@ -159,15 +159,25 @@ export function InterviewSession({
           <Link href={`/book/${bookId}/interviews`} className={styles.back}>
             &larr; Questions
           </Link>
-          {!isComplete && (
-            <button
-              onClick={handleComplete}
-              disabled={completeMutation.isPending || isWaitingForResponse}
-              className={styles.completeButton}
+          <div className={styles.headerActions}>
+            <Link
+              href="/guide"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.tipsLink}
             >
-              End Interview
-            </button>
-          )}
+              Tips
+            </Link>
+            {!isComplete && (
+              <button
+                onClick={handleComplete}
+                disabled={completeMutation.isPending || isWaitingForResponse}
+                className={styles.completeButton}
+              >
+                End Interview
+              </button>
+            )}
+          </div>
         </div>
         <h1 className={styles.questionPrompt}>{questionPrompt}</h1>
       </div>

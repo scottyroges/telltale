@@ -38,6 +38,21 @@
   color: var(--color-fg);
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tipsLink {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.tipsLink:hover {
+  color: var(--color-fg);
+}
+
 .completeButton {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
