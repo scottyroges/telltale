@@ -69,6 +69,7 @@ describe("contextService", () => {
 
     expect(result.messages).toEqual([]);
     expect(result.systemPrompt).toBeTruthy();
+    expect(mockMessageFindByInterviewId).toHaveBeenCalledWith("int1", { includeHidden: true });
   });
 
   it("returns single message for one message", async () => {
@@ -78,6 +79,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "Hello",
+        hidden: false,
         createdAt: new Date(),
       },
     ];
@@ -101,6 +103,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "First message",
+        hidden: false,
         createdAt: new Date(),
       },
       {
@@ -108,6 +111,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "ASSISTANT" as const,
         content: "Response",
+        hidden: false,
         createdAt: new Date(),
       },
       {
@@ -115,6 +119,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "Second message",
+        hidden: false,
         createdAt: new Date(),
       },
     ];
@@ -145,6 +150,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
         content: "x".repeat(1000), // 1000 chars = 250 tokens
+        hidden: false,
         createdAt: new Date(),
       })),
       {
@@ -152,6 +158,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "x".repeat(32000), // 32000 chars = 8000 tokens (recent window)
+        hidden: false,
         createdAt: new Date(),
       },
     ];
@@ -177,6 +184,7 @@ describe("contextService", () => {
       interviewId: "int1",
       role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
       content: largeContent,
+      hidden: false,
       createdAt: new Date(),
     }));
 
@@ -215,6 +223,7 @@ describe("contextService", () => {
       interviewId: "int1",
       role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
       content: largeContent,
+      hidden: false,
       createdAt: new Date(),
     }));
 
@@ -265,6 +274,7 @@ describe("contextService", () => {
       interviewId: "int1",
       role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
       content: largeContent,
+      hidden: false,
       createdAt: new Date(),
     }));
 
@@ -301,6 +311,7 @@ describe("contextService", () => {
       interviewId: "int1",
       role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
       content: largeContent,
+      hidden: false,
       createdAt: new Date(),
     }));
 
@@ -342,6 +353,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "First message",
+        hidden: false,
         createdAt: new Date(),
       },
       {
@@ -349,6 +361,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "ASSISTANT" as const,
         content: "Response",
+        hidden: false,
         createdAt: new Date(),
       },
       {
@@ -356,6 +369,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "Second message",
+        hidden: false,
         createdAt: new Date(),
       },
     ];
@@ -410,6 +424,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "SYSTEM" as const,
         content: "System message",
+        hidden: false,
         createdAt: new Date(),
       },
       {
@@ -417,6 +432,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "User message",
+        hidden: false,
         createdAt: new Date(),
       },
       {
@@ -424,6 +440,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "ASSISTANT" as const,
         content: "Assistant message",
+        hidden: false,
         createdAt: new Date(),
       },
     ];
@@ -449,6 +466,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "x".repeat(10), // 10 chars = 3 tokens (ceil(10/4))
+        hidden: false,
         createdAt: new Date(),
       },
     ];
@@ -484,6 +502,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "Hello",
+        hidden: false,
         createdAt: new Date(),
       },
     ];
@@ -529,6 +548,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "First message",
+        hidden: false,
         createdAt: new Date(),
       },
       {
@@ -536,6 +556,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "ASSISTANT" as const,
         content: "Response",
+        hidden: false,
         createdAt: new Date(),
       },
       {
@@ -543,6 +564,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "Second message",
+        hidden: false,
         createdAt: new Date(),
       },
     ];
@@ -574,6 +596,7 @@ describe("contextService", () => {
       interviewId: "int1",
       role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
       content: largeContent,
+      hidden: false,
       createdAt: new Date(),
     }));
 
@@ -606,6 +629,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "Hello",
+        hidden: false,
         createdAt: new Date(),
       },
     ]);
@@ -626,6 +650,7 @@ describe("contextService", () => {
         interviewId: "int1",
         role: "USER" as const,
         content: "Hello",
+        hidden: false,
         createdAt: new Date(),
       },
     ]);

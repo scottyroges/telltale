@@ -50,7 +50,7 @@ Join table tracking which questions a user has selected for a given book. Provid
 The raw conversation container. Started from a question within a book. Contains all messages, extracted insights, and rolling summaries. No topic field — the originating Question provides the starting point; summaries and insights capture where the conversation actually went. Status lifecycle: `ACTIVE` → `PAUSED` → `COMPLETE`.
 
 ### Message
-Individual message in an interview. Has a `role` (USER, ASSISTANT, SYSTEM). Messages are append-only and immutable — no `updatedAt`.
+Individual message in an interview. Has a `role` (USER, ASSISTANT, SYSTEM). A `hidden` flag (default `false`) allows messages to participate in the LLM's context window without appearing in the user-visible transcript — used for backend-injected steering prompts. Messages are append-only and immutable — no `updatedAt`.
 
 ### Insight
 Extracted metadata from interview conversations. Types:

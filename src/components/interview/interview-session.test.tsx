@@ -44,6 +44,7 @@ describe("InterviewSession", () => {
       interviewId: "interview-1",
       role: "USER",
       content: "System message",
+      hidden: false,
       createdAt: new Date(),
     },
     {
@@ -51,6 +52,7 @@ describe("InterviewSession", () => {
       interviewId: "interview-1",
       role: "ASSISTANT",
       content: "Hello! Tell me about your first job.",
+      hidden: false,
       createdAt: new Date(),
     },
   ];
