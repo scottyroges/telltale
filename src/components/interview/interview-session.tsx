@@ -108,6 +108,36 @@ export function InterviewSession({
     sendMessage.mutate({ interviewId, content });
   };
 
+  const redirectMutation = useMutation(
+    trpc.interview.redirect.mutationOptions({
+      onMutate: () => {
+        setIsWaitingForResponse(true);
+        setError(null);
+      },
+      onSuccess: (response) => {
+        const assistantMessage: Message = {
+          id: crypto.randomUUID(),
+          interviewId,
+          role: "ASSISTANT",
+          content: response.content,
+          hidden: false,
+          createdAt: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setIsWaitingForResponse(false);
+      },
+      onError: (error) => {
+        console.error("Failed to redirect:", error);
+        setIsWaitingForResponse(false);
+        setError("Something went wrong. Try again.");
+      },
+    })
+  );
+
+  const handleRedirect = (): void => {
+    redirectMutation.mutate({ interviewId });
+  };
+
   const handleComplete = (): void => {
     const confirmed = confirm(
       "Are you sure you want to end this interview? You won't be able to add more messages after completion."
@@ -120,6 +150,7 @@ export function InterviewSession({
 
   const isComplete = isCompleted;
   const isInputDisabled = isWaitingForResponse || isComplete;
+  const hasUserSentMessage = messages.some((m, i) => i > 0 && m.role === "USER");
 
   return (
     <div className={styles.sessionContainer}>
@@ -146,7 +177,12 @@ export function InterviewSession({
       <Transcript messages={messages} isWaitingForResponse={isWaitingForResponse} />
       {!isComplete && (
         <>
-          <InterviewInput onSend={handleSend} isDisabled={isInputDisabled} />
+          <InterviewInput
+            onSend={handleSend}
+            onRedirect={handleRedirect}
+            isDisabled={isInputDisabled}
+            redirectDisabled={isInputDisabled || !hasUserSentMessage}
+          />
           {error && <div className={styles.errorMessage}>{error}</div>}
         </>
       )}

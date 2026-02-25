@@ -1,12 +1,17 @@
 .inputContainer {
   display: flex;
-  gap: 0.75rem;
+  flex-direction: column;
   padding: 1rem;
   border-top: 1px solid var(--color-border);
   background-color: var(--color-bg);
   max-width: var(--interview-max-width);
   margin: 0 auto;
   width: 100%;
+}
+
+.inputRow {
+  display: flex;
+  gap: 0.75rem;
 }
 
 .textarea {
@@ -52,6 +57,25 @@
 .sendButton:disabled {
   background-color: var(--color-muted);
   color: var(--color-fg);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.redirectButton {
+  font-size: 0.8125rem;
+  color: var(--color-muted-fg);
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.redirectButton:hover:not(:disabled) {
+  color: var(--color-fg);
+}
+
+.redirectButton:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }

@@ -1,14 +1,25 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { InterviewInput } from "@/components/interview/interview-input";
 
 describe("InterviewInput", () => {
+  const defaultProps = {
+    onSend: vi.fn(),
+    onRedirect: vi.fn(),
+    isDisabled: false,
+    redirectDisabled: false,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("calls onSend when Enter pressed (without Shift)", async () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
 
-    render(<InterviewInput onSend={onSend} isDisabled={false} />);
+    render(<InterviewInput {...defaultProps} onSend={onSend} />);
 
     const textarea = screen.getByPlaceholderText("Share your story...");
     await user.type(textarea, "Hello world");
@@ -21,7 +32,7 @@ describe("InterviewInput", () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
 
-    render(<InterviewInput onSend={onSend} isDisabled={false} />);
+    render(<InterviewInput {...defaultProps} onSend={onSend} />);
 
     const textarea = screen.getByPlaceholderText(
       "Share your story..."
@@ -36,7 +47,7 @@ describe("InterviewInput", () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
 
-    render(<InterviewInput onSend={onSend} isDisabled={false} />);
+    render(<InterviewInput {...defaultProps} onSend={onSend} />);
 
     const textarea = screen.getByPlaceholderText("Share your story...");
     await user.type(textarea, "Test message");
@@ -48,21 +59,21 @@ describe("InterviewInput", () => {
   });
 
   it("disables textarea when isDisabled={true}", () => {
-    render(<InterviewInput onSend={vi.fn()} isDisabled={true} />);
+    render(<InterviewInput {...defaultProps} isDisabled={true} />);
 
     const textarea = screen.getByPlaceholderText("Share your story...");
     expect(textarea).toBeDisabled();
   });
 
   it("disables Send button when isDisabled={true}", () => {
-    render(<InterviewInput onSend={vi.fn()} isDisabled={true} />);
+    render(<InterviewInput {...defaultProps} isDisabled={true} />);
 
     const sendButton = screen.getByRole("button", { name: /send/i });
     expect(sendButton).toBeDisabled();
   });
 
   it("disables Send button when textarea is empty", () => {
-    render(<InterviewInput onSend={vi.fn()} isDisabled={false} />);
+    render(<InterviewInput {...defaultProps} />);
 
     const sendButton = screen.getByRole("button", { name: /send/i });
     expect(sendButton).toBeDisabled();
@@ -72,7 +83,7 @@ describe("InterviewInput", () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
 
-    render(<InterviewInput onSend={onSend} isDisabled={false} />);
+    render(<InterviewInput {...defaultProps} onSend={onSend} />);
 
     const textarea = screen.getByPlaceholderText(
       "Share your story..."
@@ -86,9 +97,43 @@ describe("InterviewInput", () => {
   });
 
   it("auto-focuses on mount", () => {
-    render(<InterviewInput onSend={vi.fn()} isDisabled={false} />);
+    render(<InterviewInput {...defaultProps} />);
 
     const textarea = screen.getByPlaceholderText("Share your story...");
     expect(textarea).toHaveFocus();
+  });
+
+  describe("redirect button", () => {
+    it("renders and calls onRedirect when clicked", async () => {
+      const user = userEvent.setup();
+      const onRedirect = vi.fn();
+
+      render(<InterviewInput {...defaultProps} onRedirect={onRedirect} />);
+
+      const redirectButton = screen.getByRole("button", {
+        name: /try a different question/i,
+      });
+      await user.click(redirectButton);
+
+      expect(onRedirect).toHaveBeenCalledOnce();
+    });
+
+    it("is disabled when redirectDisabled is true", () => {
+      render(<InterviewInput {...defaultProps} redirectDisabled={true} />);
+
+      const redirectButton = screen.getByRole("button", {
+        name: /try a different question/i,
+      });
+      expect(redirectButton).toBeDisabled();
+    });
+
+    it("is enabled when redirectDisabled is false even if isDisabled is false", () => {
+      render(<InterviewInput {...defaultProps} redirectDisabled={false} />);
+
+      const redirectButton = screen.getByRole("button", {
+        name: /try a different question/i,
+      });
+      expect(redirectButton).not.toBeDisabled();
+    });
   });
 });

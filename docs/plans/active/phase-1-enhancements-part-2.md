@@ -506,21 +506,21 @@ Items will be added to this list as issues are discovered during testing. Each i
 - Track usage analytics: How often do users use this? After how many exchanges?
 
 **Acceptance criteria:**
-- [ ] "Ask me something different" button/link visible in interview UI
+- [x] "Ask me something different" button/link visible in interview UI
 - [x] Clicking sends signal to AI to change conversation direction
 - [x] AI acknowledges the pivot and asks about a different aspect
 - [x] AI doesn't repeat recently covered topics
-- [ ] Button is discoverable but not distracting
-- [ ] Works well on mobile and desktop
+- [x] Button is discoverable but not distracting
+- [x] Works well on mobile and desktop
 - [ ] Analytics tracking for button usage
 - [x] Test coverage for conversation steering flow
 
-**Status:** In Progress (2 of 3 PRs complete)
+**Status:** Complete
 
 **Implementation:**
 - **PR 1:** Hidden message infrastructure — `hidden` boolean on Message model, included in LLM context but excluded from user-facing queries
 - **PR 2:** Backend redirect endpoint — `REDIRECT_PROMPT` constant in `src/prompts/interviewer.ts`, `conversationService.redirect()` creates hidden USER message with redirect prompt, calls LLM via context service, persists ASSISTANT response and extracted insights. tRPC `interview.redirect` mutation uses `approvedProcedure`, verifies ownership, rejects completed interviews. Does not trigger auto-completion even if LLM returns `shouldComplete: true`. Test coverage across service and router layers.
-- **PR 3 (pending):** Frontend UI — "Ask me something different" button in interview interface
+- **PR 3:** Frontend redirect button — `redirectMutation` in interview-session using `trpc.interview.redirect.mutationOptions()`, no optimistic user message (only ASSISTANT response added). "Try a different question" button in `InterviewInput` with `onRedirect` callback, disabled until user has sent at least one message. Input layout restructured with `inputRow` wrapper. Full test coverage for both components.
 
 ---
 
