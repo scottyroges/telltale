@@ -191,13 +191,14 @@ describe("conversationService", () => {
         questionId: "q1",
       });
 
-      // Topic message persisted first
+      // Topic message persisted first (hidden from transcript)
       expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
         interviewId: "int1",
         role: "USER",
         content: expect.stringContaining(
           "Tell me about your earliest memories",
         ),
+        hidden: true,
       });
 
       // Context service called after topic message persisted

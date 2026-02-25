@@ -8,9 +8,9 @@ The "Try a different question" button is already wired up on the frontend (PR fr
 
 Add a `hidden` boolean to the Message model. Create a new `interview.redirect` tRPC endpoint that takes only `interviewId`, creates a hidden USER message with the redirect prompt, generates an AI response, and returns it. The frontend calls this new endpoint instead of piping a hardcoded message through `sendMessage`.
 
-**Important:** The topic message created during `startInterview` (line 42-49 of conversation.service.ts) is currently hidden via `messages.slice(1)` in the Transcript component. Marking it as `hidden: true` and removing the `slice(1)` hack is a natural follow-up but **out of scope** for this PR — we'd need to backfill existing data.
+**Important:** The topic message created during `startInterview` (line 42-49 of conversation.service.ts) was originally hidden via `messages.slice(1)` in the Transcript component. This was unified with the `hidden` field in a follow-up PR (see below).
 
-**Follow-up:** Unify hiding mechanisms — backfill `hidden: true` on topic messages in `startInterview`, migrate existing data, and remove the `messages.slice(1)` hack in Transcript.
+**Follow-up (Complete):** Unified hiding mechanisms — `startInterview` now creates topic messages with `hidden: true`, data migration backfills existing topic messages, and `Transcript` uses `messages.filter(m => !m.hidden)` instead of `messages.slice(1)`. `interview-session` simplified `hasUserSentMessage` check since hidden topic messages are now filtered at the repository layer.
 
 ## PR 1: Schema + repository + domain type — Status: Complete
 
@@ -54,6 +54,12 @@ Add `redirect` procedure: `approvedProcedure`, input `{ interviewId: z.string() 
 
 Added `redirectMutation` using `trpc.interview.redirect.mutationOptions()` in interview-session. No optimistic user message — only the ASSISTANT response is added to state on success. "Try a different question" button added to `InterviewInput` with `onRedirect` callback and `redirectDisabled` prop; disabled until user has sent at least one message. Input layout restructured with `inputRow` wrapper to accommodate redirect button below the send row. Full test coverage for both components.
 
+## Follow-up: Unify hidden message mechanisms — Status: Complete
+
+Unified the two separate hiding mechanisms (the `hidden` boolean from PR 1 and the `messages.slice(1)` hack for topic messages) into a single approach. `startInterview` now creates the topic message with `hidden: true`. Data migration `20260225000000_backfill_hidden_topic_messages` marks the first message of each existing interview as hidden. `Transcript` replaced `messages.slice(1)` with `messages.filter(m => !m.hidden)`. `interview-session` simplified `hasUserSentMessage` by removing the `i > 0` index guard, since hidden topic messages are now filtered at the repository layer. Tests updated across all affected components and services.
+
+---
+
 ## Files summary
 
 | File | PR | Change |
@@ -62,7 +68,9 @@ Added `redirectMutation` using `trpc.interview.redirect.mutationOptions()` in in
 | `src/domain/message.ts` | 1 | Add `hidden: boolean` field |
 | `src/repositories/message.repository.ts` | 1 | `hidden` in create, `includeHidden` filter |
 | `src/services/context.service.ts` | 1 | Pass `{ includeHidden: true }` |
-| `src/components/interview/interview-session.tsx` | 1, 3 | PR1: add `hidden: false` to message literals. PR3: new redirect mutation |
+| `src/components/interview/interview-session.tsx` | 1, 3, FU | PR1: `hidden: false` in literals. PR3: redirect mutation. FU: simplify `hasUserSentMessage` |
 | `src/prompts/interviewer.ts` | 2 | Export `REDIRECT_PROMPT` |
-| `src/services/conversation.service.ts` | 2 | Add `redirect()` method |
+| `src/services/conversation.service.ts` | 2, FU | PR2: add `redirect()` method. FU: `startInterview` creates topic with `hidden: true` |
 | `src/server/routers/interview.ts` | 2 | Add `redirect` procedure |
+| `src/components/interview/transcript.tsx` | FU | Replace `messages.slice(1)` with `messages.filter(m => !m.hidden)` |
+| `prisma/migrations/20260225000000_backfill.../migration.sql` | FU | Backfill `hidden=true` on first message of each interview |

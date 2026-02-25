@@ -42,11 +42,12 @@ export const conversationService = {
 
     const topicMessage = `The topic for this conversation is: ${question.prompt}. Please greet the storyteller warmly and ask an opening question about this topic.`;
 
-    // Persist topic message before building context
+    // Persist topic message (hidden from transcript, visible to LLM)
     await messageRepository.create({
       interviewId: interview.id,
       role: "USER",
       content: topicMessage,
+      hidden: true,
     });
 
     // Build context window

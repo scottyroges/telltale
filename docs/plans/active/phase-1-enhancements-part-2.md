@@ -521,6 +521,7 @@ Items will be added to this list as issues are discovered during testing. Each i
 - **PR 1:** Hidden message infrastructure — `hidden` boolean on Message model, included in LLM context but excluded from user-facing queries
 - **PR 2:** Backend redirect endpoint — `REDIRECT_PROMPT` constant in `src/prompts/interviewer.ts`, `conversationService.redirect()` creates hidden USER message with redirect prompt, calls LLM via context service, persists ASSISTANT response and extracted insights. tRPC `interview.redirect` mutation uses `approvedProcedure`, verifies ownership, rejects completed interviews. Does not trigger auto-completion even if LLM returns `shouldComplete: true`. Test coverage across service and router layers.
 - **PR 3:** Frontend redirect button — `redirectMutation` in interview-session using `trpc.interview.redirect.mutationOptions()`, no optimistic user message (only ASSISTANT response added). "Try a different question" button in `InterviewInput` with `onRedirect` callback, disabled until user has sent at least one message. Input layout restructured with `inputRow` wrapper. Full test coverage for both components.
+- **Follow-up PR:** Unified hidden message mechanisms — `startInterview` creates topic message with `hidden: true`, data migration backfills existing records, `Transcript` uses `messages.filter(m => !m.hidden)` instead of `messages.slice(1)`, `interview-session` simplified `hasUserSentMessage` check.
 
 ---
 

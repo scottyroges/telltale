@@ -150,7 +150,7 @@ export function InterviewSession({
 
   const isComplete = isCompleted;
   const isInputDisabled = isWaitingForResponse || isComplete;
-  const hasUserSentMessage = messages.some((m, i) => i > 0 && m.role === "USER");
+  const hasUserSentMessage = messages.some((m) => m.role === "USER");
 
   return (
     <div className={styles.sessionContainer}>
