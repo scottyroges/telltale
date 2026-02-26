@@ -11,6 +11,7 @@
 - **Completed work plans:** docs/plans/completed/
 - **Known issues & bugs:** docs/known-issues.md
 - **Ideas & deferred concepts:** docs/ideas/
+- **Notes & thinking:** .personal/docs/notes/
 
 ## Roadmap
 
@@ -54,14 +55,24 @@
 - **docs/architecture/testing-patterns.md** — Testing guidelines, user-facing tests, React Query test setup, environment stubs
 - **docs/architecture/scaling-strategy.md** — Deployment phases, extraction triggers, cost projections
 
+## Notes
+
+- **notes/book-perspective.md** — First person vs. third person narrative perspective: trade-offs, implications for interviews and final book
+- **notes/insights-as-biographer-notes.md** — How professional biographers organize notes, and what the insights system can learn from their practices
+- **notes/insights-strategy.md** — Strategic analysis of insights serving three jobs (interviewer memory, cross-interview continuity, book creation index), industry research on memory architectures
+- **notes/biography-reverse-chain.md** — Working backward from finished biography to raw interviews: the full data supply chain, what each stage produces and consumes
+- **notes/insights-system-analysis.md** — Honest analysis of the insights system: what it solves, how it works, and where it falls short
+- **notes/processing-transcripts.md** — Strategic Chunking with Overlap (Map-Reduce) for processing long transcripts: chunk sizing, overlap rationale, "Lost in the Middle" phenomenon
+- **notes/raw-interviews-to-biography.md** — Turning raw interview material into a cohesive biography: synthesis pipeline, narrative architecture, through-lines
+- **notes/story-creation-flow.md** — End-to-end vision: interviews → story tagging → completeness assessment → book outline → narrative generation → export/print
+- **notes/story-flow-critique.md** — Critical analysis of story creation flow: artificial phase boundaries, alternative approaches, phased value delivery
+
 ## Ideas (Deferred)
 
-- **docs/ideas/story-creation-flow.md** — End-to-end vision: interviews → story tagging → completeness assessment → book outline → narrative generation → export/print
-- **docs/ideas/story-flow-critique.md** — Critical analysis of story creation flow: potential issues, alternative approaches, phased value delivery
 - **docs/ideas/admin-ui.md** — Admin UI for question library, user management, system monitoring; use scripts for now
 - **docs/ideas/depth-score.md** — Interview depth/richness metric, deferred until real conversations inform the design
-- **docs/ideas/raw-interviews-to-biography.md** — Turning raw interview material into a cohesive biography: synthesis pipeline, narrative architecture, interview-phase tweaks
-- **docs/ideas/insights-system-analysis.md** — Honest analysis of the insights system: what it solves, how it works, and where it falls short
+- **docs/ideas/interview-categories-cross-topic-threads.md** — Group interviews into broader categories to surface loose threads from related topics and follow up naturally
+- **docs/ideas/llm-driven-interview-planning.md** — Replace the question catalog with LLM-driven interview planning: onboarding conversation generates tailored topics, post-interview reflection proposes follow-ups
 - **docs/ideas/interview-ui-alternatives.md** — Alternative UI approaches: word processor-focused interface, inline comment/annotation interface
 
 ## Decision Records
