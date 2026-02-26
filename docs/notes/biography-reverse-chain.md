@@ -586,7 +586,7 @@ Similar to Stage 6 in that it's operating on prose, but the inputs are larger (f
 
 ## Related Documents
 
-- [LLM-Driven Interview Planning](../../ideas/llm-driven-interview-planning.md) — the original idea that became Stage 0
+- [LLM-Driven Interview Planning](../ideas/llm-driven-interview-planning.md) — the original idea that became Stage 0
 - [Insights Strategy](./insights-strategy.md) — industry research on memory systems and how they apply to Telltale
 - [Raw Interviews to Biography](./raw-interviews-to-biography.md) — the synthesis pipeline (forward direction)
 - [Story Creation Flow](./story-creation-flow.md) — end-to-end product flow
