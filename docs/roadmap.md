@@ -36,7 +36,7 @@ Get a single conversation working end-to-end before building any surrounding UI.
 ## Phase 2: Interview Intelligence ← **Next**
 Revisit the interview engine to support cross-interview memory and the full data pipeline. The reverse chain analysis revealed that the interview (Stage 1) needs to produce a **core memory block** — a persistent, evolving mental model of the subject — and that an **onboarding conversation** (Stage 0) should bootstrap it before the first real interview. This phase also builds the async processing pipeline (Stage 2) that turns raw transcripts into structured intelligence.
 
-### 2a: Core Memory Block + Cross-Interview Memory (Stage 1 revisit)
+### 2a: Core Memory Block + Cross-Interview Memory (Stage 1 revisit) ✅
 Replace the current per-message insight extraction with a core memory block that lives on the Book and persists across interviews. Each interview starts knowing what prior interviews covered.
 
 - Core memory block on Book — ~2-5k characters, updated in-place each turn

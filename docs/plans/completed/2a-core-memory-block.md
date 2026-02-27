@@ -1,6 +1,6 @@
 # Plan 2a: Core Memory Block + Cross-Interview Memory
 
-**Status:** Not Started
+**Status:** Complete
 **Created:** 2026-02-26
 **Depends on:** 1.5 (insight extraction), 1.6 (context window management)
 **Blocks:** 2b (onboarding), 2c (post-interview pipeline)
@@ -346,9 +346,10 @@ The LLM now returns both a conversational response (~300-800 tokens) AND an upda
 
 3. **First interview special handling:** Should the prompt for the very first turn (null core memory) be meaningfully different from subsequent turns? Or is "You have no existing memory of this subject" sufficient? Leaning toward simple null handling — the prompt already explains what to do when there's no memory.
 
-## Follow-ups (Out of Scope)
+## Follow-ups (Resolved)
 
-- **Add `parseWithRetry` to `startInterview` and `redirect`:** Currently only `sendMessage` retries on parse failure. If the first turn of an interview fails to parse, `updatedCoreMemory` stays `null` and the LLM rebuilds from scratch next turn. Low risk but worth adding retry logic in a separate PR.
+- **~~Add `parseWithRetry` to `startInterview` and `redirect`~~:** Done in PR #53. Both methods now use `parseWithRetry` for consistency with `sendMessage`.
+- **~~Pin core memory in `enforceMaxTokens`~~:** Done in PR #52. Core memory message is now reserved before the backwards walk so it survives aggressive truncation.
 
 ## Done When
 
