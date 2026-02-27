@@ -541,6 +541,48 @@ describe("contextService", () => {
     ]);
   });
 
+  it("enforceMaxTokens preserves core memory message during truncation", async () => {
+    // MAX_CONTEXT_TOKENS = 16000. System prompt ~700 tokens.
+    // Create 4 large messages at 5000 tokens each (20000 chars) = 20000 tokens.
+    // Core memory ~100 tokens. Total ~20800, well over 16k.
+    // Without pinning, backwards walk keeps last 3 messages (15000 tokens + 700 sys = 15700).
+    // Core memory at second-to-last position (index 2) would be dropped.
+    // With pinning, core memory is reserved, then backwards walk fills remaining budget.
+    const largeContent = "x".repeat(20000); // 5000 tokens each
+    const messages = Array.from({ length: 4 }, (_, i) => ({
+      id: `m${i + 1}`,
+      interviewId: "int1",
+      role: (i % 2 === 0 ? "USER" : "ASSISTANT") as "USER" | "ASSISTANT",
+      content: largeContent,
+      hidden: false,
+      createdAt: new Date(),
+    }));
+
+    const coreMemory = "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: childhood";
+
+    mockInterviewFindById.mockResolvedValue(mockInterview);
+    mockMessageFindByInterviewId.mockResolvedValue(messages);
+    mockSummaryFindLatest.mockResolvedValue(null);
+    // Summarization will be triggered — mock it to succeed with short summary
+    mockGenerateResponse.mockResolvedValue({ content: "Summary" });
+
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await contextService.buildContextWindow("int1", "Sarah", coreMemory);
+
+    // Core memory message should be present in the result
+    const coreMemoryMsg = result.messages.find((m) =>
+      m.content.startsWith("[Your memory"),
+    );
+    expect(coreMemoryMsg).toBeDefined();
+    expect(coreMemoryMsg!.content).toContain("Key people: Maria");
+
+    // Core memory should be second-to-last
+    expect(result.messages[result.messages.length - 2]).toBe(coreMemoryMsg);
+
+    consoleSpy.mockRestore();
+  });
+
   it("enforces MAX_CONTEXT_TOKENS by truncating to most recent messages", async () => {
     // Create messages totaling > 16k tokens
     // Each message: 20000 chars = 5000 tokens (ceil(20000/4))
