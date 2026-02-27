@@ -10,7 +10,6 @@ describe("parseInterviewerResponse", () => {
     });
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hello!",
-      insights: [],
       updatedCoreMemory: "## Book Memory\nKey people: Maria",
       shouldComplete: false,
       parsed: true,
@@ -21,7 +20,6 @@ describe("parseInterviewerResponse", () => {
     const input = JSON.stringify({ response: "Hello!", updatedCoreMemory: "" });
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hello!",
-      insights: [],
       updatedCoreMemory: null,
       shouldComplete: false,
       parsed: true,
@@ -32,7 +30,6 @@ describe("parseInterviewerResponse", () => {
     const input = JSON.stringify({ response: "Hello!" });
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hello!",
-      insights: [],
       updatedCoreMemory: null,
       shouldComplete: false,
       parsed: true,
@@ -43,7 +40,6 @@ describe("parseInterviewerResponse", () => {
     const input = JSON.stringify({ response: "Hello!", updatedCoreMemory: 42 });
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hello!",
-      insights: [],
       updatedCoreMemory: null,
       shouldComplete: false,
       parsed: true,
@@ -54,23 +50,7 @@ describe("parseInterviewerResponse", () => {
     const input = JSON.stringify({ response: "Hello!", updatedCoreMemory: { book: "memory" } });
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hello!",
-      insights: [],
       updatedCoreMemory: null,
-      shouldComplete: false,
-      parsed: true,
-    });
-  });
-
-  it("always returns empty insights even if LLM includes insights array", () => {
-    const input = JSON.stringify({
-      response: "Hello!",
-      updatedCoreMemory: "## Book Memory\nSome content",
-      insights: [{ type: "ENTITY", content: "sister Maria" }],
-    });
-    expect(parseInterviewerResponse(input)).toEqual({
-      text: "Hello!",
-      insights: [],
-      updatedCoreMemory: "## Book Memory\nSome content",
       shouldComplete: false,
       parsed: true,
     });
@@ -80,7 +60,6 @@ describe("parseInterviewerResponse", () => {
     const input = "Just a plain string";
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Just a plain string",
-      insights: [],
       updatedCoreMemory: null,
       shouldComplete: false,
       parsed: false,
@@ -90,7 +69,6 @@ describe("parseInterviewerResponse", () => {
   it("returns empty text with null updatedCoreMemory for empty string input", () => {
     expect(parseInterviewerResponse("")).toEqual({
       text: "",
-      insights: [],
       updatedCoreMemory: null,
       shouldComplete: false,
       parsed: false,
@@ -101,7 +79,6 @@ describe("parseInterviewerResponse", () => {
     const input = "```json\n{\"response\":\"Hi\",\"updatedCoreMemory\":\"## Book Memory\\ntest\"}\n```";
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hi",
-      insights: [],
       updatedCoreMemory: "## Book Memory\ntest",
       shouldComplete: false,
       parsed: true,
@@ -112,7 +89,6 @@ describe("parseInterviewerResponse", () => {
     const input = "Here is my response:\n```json\n{\"response\":\"Hi\",\"updatedCoreMemory\":\"mem\"}\n```";
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hi",
-      insights: [],
       updatedCoreMemory: "mem",
       shouldComplete: false,
       parsed: true,
@@ -123,7 +99,6 @@ describe("parseInterviewerResponse", () => {
     const input = `Here is the JSON: ${JSON.stringify({ response: "Hi!", updatedCoreMemory: "mem" })}`;
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Hi!",
-      insights: [],
       updatedCoreMemory: "mem",
       shouldComplete: false,
       parsed: true,
@@ -138,7 +113,6 @@ describe("parseInterviewerResponse", () => {
     });
     expect(parseInterviewerResponse(input)).toEqual({
       text: "Thank you for sharing!",
-      insights: [],
       updatedCoreMemory: "## Book Memory\nfinal",
       shouldComplete: true,
       parsed: true,
@@ -168,7 +142,7 @@ describe("parseWithRetry", () => {
     const retryFn = vi.fn();
     const input = JSON.stringify({ response: "Hello!", updatedCoreMemory: "mem" });
     const result = await parseWithRetry(input, retryFn);
-    expect(result).toEqual({ text: "Hello!", insights: [], updatedCoreMemory: "mem", shouldComplete: false, parsed: true });
+    expect(result).toEqual({ text: "Hello!", updatedCoreMemory: "mem", shouldComplete: false, parsed: true });
     expect(retryFn).not.toHaveBeenCalled();
   });
 
@@ -176,13 +150,13 @@ describe("parseWithRetry", () => {
     const corrected = JSON.stringify({ response: "Corrected!", updatedCoreMemory: "mem" });
     const retryFn = vi.fn().mockResolvedValue(corrected);
     const result = await parseWithRetry("not json", retryFn);
-    expect(result).toEqual({ text: "Corrected!", insights: [], updatedCoreMemory: "mem", shouldComplete: false, parsed: true });
+    expect(result).toEqual({ text: "Corrected!", updatedCoreMemory: "mem", shouldComplete: false, parsed: true });
     expect(retryFn).toHaveBeenCalledOnce();
   });
 
   it("returns original raw text when both attempts fail", async () => {
     const retryFn = vi.fn().mockResolvedValue("still not json");
     const result = await parseWithRetry("not json", retryFn);
-    expect(result).toEqual({ text: "not json", insights: [], updatedCoreMemory: null, shouldComplete: false, parsed: false });
+    expect(result).toEqual({ text: "not json", updatedCoreMemory: null, shouldComplete: false, parsed: false });
   });
 });

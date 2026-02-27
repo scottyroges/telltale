@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, approvedProcedure } from "@/server/trpc";
 import { conversationService } from "@/services/conversation.service";
 import { bookQuestionRepository } from "@/repositories/book-question.repository";
+import { insightRepository } from "@/repositories/insight.repository";
 import {
   verifyBookOwnership,
   verifyInterviewOwnership,
@@ -80,14 +81,14 @@ export const interviewRouter = router({
     .input(z.object({ interviewId: z.string() }))
     .query(async ({ ctx, input }) => {
       await verifyInterviewOwnership(input.interviewId, ctx.userId);
-      return conversationService.getInsights(input.interviewId);
+      return insightRepository.findByInterviewId(input.interviewId);
     }),
 
   getBookInsights: approvedProcedure
     .input(z.object({ bookId: z.string() }))
     .query(async ({ ctx, input }) => {
       await verifyBookOwnership(input.bookId, ctx.userId);
-      return conversationService.getBookInsights(input.bookId);
+      return insightRepository.findByBookId(input.bookId);
     }),
 
   redirect: approvedProcedure
