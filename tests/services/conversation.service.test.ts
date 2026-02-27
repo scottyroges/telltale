@@ -33,15 +33,6 @@ vi.mock("@/repositories/message.repository", () => ({
   },
 }));
 
-const mockInsightFindByInterviewId = vi.hoisted(() => vi.fn());
-const mockInsightFindByBookId = vi.hoisted(() => vi.fn());
-vi.mock("@/repositories/insight.repository", () => ({
-  insightRepository: {
-    findByInterviewId: mockInsightFindByInterviewId,
-    findByBookId: mockInsightFindByBookId,
-  },
-}));
-
 const mockBookFindById = vi.hoisted(() => vi.fn());
 const mockBookUpdateCoreMemory = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/book.repository", () => ({
@@ -68,8 +59,6 @@ describe("conversationService", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockInsightFindByInterviewId.mockResolvedValue([]);
-    mockInsightFindByBookId.mockResolvedValue([]);
     mockBookFindById.mockResolvedValue(defaultBook);
     mockBookUpdateCoreMemory.mockResolvedValue(defaultBook);
     const mod = await import("@/services/conversation.service");
@@ -538,49 +527,4 @@ describe("conversationService", () => {
     });
   });
 
-  describe("getInsights", () => {
-    it("delegates to insightRepository.findByInterviewId", async () => {
-      const insights = [
-        {
-          id: "ins1",
-          bookId: "b1",
-          interviewId: "int1",
-          type: "ENTITY",
-          content: "sister Maria",
-          explored: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      mockInsightFindByInterviewId.mockResolvedValue(insights);
-
-      const result = await conversationService.getInsights("int1");
-
-      expect(result).toEqual(insights);
-      expect(mockInsightFindByInterviewId).toHaveBeenCalledWith("int1");
-    });
-  });
-
-  describe("getBookInsights", () => {
-    it("delegates to insightRepository.findByBookId", async () => {
-      const insights = [
-        {
-          id: "ins1",
-          bookId: "b1",
-          interviewId: "int1",
-          type: "EMOTION",
-          content: "pride about dad's hardware store",
-          explored: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-      mockInsightFindByBookId.mockResolvedValue(insights);
-
-      const result = await conversationService.getBookInsights("b1");
-
-      expect(result).toEqual(insights);
-      expect(mockInsightFindByBookId).toHaveBeenCalledWith("b1");
-    });
-  });
 });

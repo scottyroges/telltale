@@ -1,7 +1,6 @@
 import { llmProvider } from "@/lib/llm";
 import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
-import { insightRepository } from "@/repositories/insight.repository";
 import { bookRepository } from "@/repositories/book.repository";
 import { parseInterviewerResponse, parseWithRetry } from "@/services/response-parser";
 import { contextService } from "@/services/context.service";
@@ -141,13 +140,5 @@ export const conversationService = {
 
   async completeInterview(interviewId: string) {
     return interviewRepository.complete(interviewId);
-  },
-
-  async getInsights(interviewId: string) {
-    return insightRepository.findByInterviewId(interviewId);
-  },
-
-  async getBookInsights(bookId: string) {
-    return insightRepository.findByBookId(bookId);
   },
 };

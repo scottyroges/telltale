@@ -45,8 +45,6 @@ const mockStartInterview = vi.hoisted(() => vi.fn());
 const mockSendMessage = vi.hoisted(() => vi.fn());
 const mockRedirect = vi.hoisted(() => vi.fn());
 const mockGetInterviewMessages = vi.hoisted(() => vi.fn());
-const mockGetInsights = vi.hoisted(() => vi.fn());
-const mockGetBookInsights = vi.hoisted(() => vi.fn());
 const mockCompleteInterview = vi.hoisted(() => vi.fn());
 vi.mock("@/services/conversation.service", () => ({
   conversationService: {
@@ -54,9 +52,16 @@ vi.mock("@/services/conversation.service", () => ({
     sendMessage: mockSendMessage,
     redirect: mockRedirect,
     getInterviewMessages: mockGetInterviewMessages,
-    getInsights: mockGetInsights,
-    getBookInsights: mockGetBookInsights,
     completeInterview: mockCompleteInterview,
+  },
+}));
+
+const mockInsightFindByInterviewId = vi.hoisted(() => vi.fn());
+const mockInsightFindByBookId = vi.hoisted(() => vi.fn());
+vi.mock("@/repositories/insight.repository", () => ({
+  insightRepository: {
+    findByInterviewId: mockInsightFindByInterviewId,
+    findByBookId: mockInsightFindByBookId,
   },
 }));
 
@@ -376,7 +381,7 @@ describe("interview router", () => {
   });
 
   describe("getInsights", () => {
-    it("verifies ownership and delegates to conversationService", async () => {
+    it("verifies ownership and delegates to insightRepository", async () => {
       mockInterviewFindById.mockResolvedValue(activeInterview);
       mockBookFindById.mockResolvedValue(ownBook);
       const insights = [
@@ -391,7 +396,7 @@ describe("interview router", () => {
           updatedAt: now,
         },
       ];
-      mockGetInsights.mockResolvedValue(insights);
+      mockInsightFindByInterviewId.mockResolvedValue(insights);
 
       const result = await caller.interview.getInsights({
         interviewId: "interview-1",
@@ -399,7 +404,7 @@ describe("interview router", () => {
 
       expect(result).toEqual(insights);
       expect(mockInterviewFindById).toHaveBeenCalledWith("interview-1");
-      expect(mockGetInsights).toHaveBeenCalledWith("interview-1");
+      expect(mockInsightFindByInterviewId).toHaveBeenCalledWith("interview-1");
     });
 
     it("throws NOT_FOUND for missing interview", async () => {
@@ -421,7 +426,7 @@ describe("interview router", () => {
   });
 
   describe("getBookInsights", () => {
-    it("verifies ownership and delegates to conversationService", async () => {
+    it("verifies ownership and delegates to insightRepository", async () => {
       mockBookFindById.mockResolvedValue(ownBook);
       const insights = [
         {
@@ -445,7 +450,7 @@ describe("interview router", () => {
           updatedAt: now,
         },
       ];
-      mockGetBookInsights.mockResolvedValue(insights);
+      mockInsightFindByBookId.mockResolvedValue(insights);
 
       const result = await caller.interview.getBookInsights({
         bookId: "book-1",
@@ -453,7 +458,7 @@ describe("interview router", () => {
 
       expect(result).toEqual(insights);
       expect(mockBookFindById).toHaveBeenCalledWith("book-1");
-      expect(mockGetBookInsights).toHaveBeenCalledWith("book-1");
+      expect(mockInsightFindByBookId).toHaveBeenCalledWith("book-1");
     });
 
     it("throws NOT_FOUND for missing book", async () => {

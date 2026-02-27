@@ -1,9 +1,5 @@
-import type { InsightType } from "@/domain/insight";
-
-export type ParsedInsight = { type: InsightType; content: string };
 export type ParsedResponse = {
   text: string;
-  insights: ParsedInsight[];
   updatedCoreMemory: string | null;
   shouldComplete: boolean;
   parsed: boolean;
@@ -33,11 +29,11 @@ export function parseInterviewerResponse(raw: string): ParsedResponse {
   try {
     const result = JSON.parse(candidate);
     if (typeof result !== "object" || result === null || typeof (result as Record<string, unknown>).response !== "string") {
-      return { text: raw, insights: [], updatedCoreMemory: null, shouldComplete: false, parsed: false };
+      return { text: raw, updatedCoreMemory: null, shouldComplete: false, parsed: false };
     }
     obj = result as Record<string, unknown>;
   } catch {
-    return { text: raw, insights: [], updatedCoreMemory: null, shouldComplete: false, parsed: false };
+    return { text: raw, updatedCoreMemory: null, shouldComplete: false, parsed: false };
   }
 
   const shouldComplete = obj.shouldComplete === true;
@@ -47,7 +43,7 @@ export function parseInterviewerResponse(raw: string): ParsedResponse {
       ? obj.updatedCoreMemory
       : null;
 
-  return { text: obj.response as string, insights: [], updatedCoreMemory, shouldComplete, parsed: true };
+  return { text: obj.response as string, updatedCoreMemory, shouldComplete, parsed: true };
 }
 
 export async function parseWithRetry(
@@ -61,6 +57,6 @@ export async function parseWithRetry(
   const retryResult = parseInterviewerResponse(corrected);
 
   // If retry also fails, preserve the original raw text rather than the failed retry text
-  if (!retryResult.parsed) return { text: raw, insights: [], updatedCoreMemory: null, shouldComplete: false, parsed: false };
+  if (!retryResult.parsed) return { text: raw, updatedCoreMemory: null, shouldComplete: false, parsed: false };
   return retryResult;
 }
