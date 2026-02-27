@@ -41,7 +41,7 @@ New users default to `PENDING` status. They can sign in and browse content but c
 Global prompt catalog — hardcoded starting points that kick off interviews. Has a `category` for search and organization (e.g., "childhood", "career", "relationships"). Not user-specific — shared across all users and books.
 
 ### Book
-Top-level grouping container. A user can have multiple books, each containing a set of interviews and resulting stories. Status lifecycle: `IN_PROGRESS` → `COMPLETE` → `ARCHIVED`.
+Top-level grouping container. A user can have multiple books, each containing a set of interviews and resulting stories. Each book has an optional `coreMemory` — a bounded, evolving text document that the AI interviewer reads and updates each turn, providing persistent memory across all interviews in the book. Status lifecycle: `IN_PROGRESS` → `COMPLETE` → `ARCHIVED`.
 
 ### BookQuestion
 Join table tracking which catalog questions a user has selected for a given book. Provides a curated list of suggested topics. An optional `interviewId` FK links to the interview started from this question — its presence indicates the question has been explored. Unique constraint on `(bookId, questionId)`.

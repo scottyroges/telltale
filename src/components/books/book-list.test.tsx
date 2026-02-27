@@ -8,6 +8,7 @@ function makeBook(overrides: Partial<Book> = {}): Book {
     id: "book-1",
     userId: "user-1",
     title: "My Life Story",
+    coreMemory: null,
     status: "IN_PROGRESS",
     createdAt: new Date(),
     updatedAt: new Date(),

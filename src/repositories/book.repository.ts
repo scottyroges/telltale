@@ -15,6 +15,7 @@ const columns = [
   "id",
   "userId",
   "title",
+  "coreMemory",
   "status",
   "createdAt",
   "updatedAt",
@@ -65,6 +66,7 @@ export const bookRepository = {
         "book.id",
         "book.userId",
         "book.title",
+        "book.coreMemory",
         "book.status",
         "book.createdAt",
         "book.updatedAt",
@@ -146,6 +148,16 @@ export const bookRepository = {
       .updateTable("book")
       .set({ status, updatedAt: new Date() })
       .where("id", "=", id)
+      .returning([...columns])
+      .executeTakeFirstOrThrow();
+  },
+
+  async updateCoreMemory(bookId: string, content: string): Promise<Book> {
+    // UPDATE book SET "coreMemory" = $1, "updatedAt" = $2 WHERE id = $3 RETURNING <columns>
+    return db
+      .updateTable("book")
+      .set({ coreMemory: content, updatedAt: new Date() })
+      .where("id", "=", bookId)
       .returning([...columns])
       .executeTakeFirstOrThrow();
   },

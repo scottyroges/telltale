@@ -38,6 +38,7 @@ describe("bookRepository", () => {
         id: "b1",
         userId: "user1",
         title: "My Life Story",
+        coreMemory: null,
         status: "IN_PROGRESS",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -61,6 +62,7 @@ describe("bookRepository", () => {
         id: "b1",
         userId: "user1",
         title: "My Life Story",
+        coreMemory: null,
         status: "IN_PROGRESS",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -88,6 +90,7 @@ describe("bookRepository", () => {
         id: "b1",
         userId: "user1",
         title: "My Life Story",
+        coreMemory: null,
         status: "IN_PROGRESS",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -145,6 +148,7 @@ describe("bookRepository", () => {
           id: "b1",
           userId: "user1",
           title: "Book 1",
+          coreMemory: null,
           status: "IN_PROGRESS",
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -166,6 +170,7 @@ describe("bookRepository", () => {
         id: "b1",
         userId: "user1",
         title: "Book 1",
+        coreMemory: null,
         status: "COMPLETE",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -173,6 +178,30 @@ describe("bookRepository", () => {
       executeTakeFirstOrThrow.mockResolvedValue(expected);
 
       const result = await bookRepository.updateStatus("b1", "COMPLETE");
+
+      expect(result).toEqual(expected);
+      expect(updateTable).toHaveBeenCalledWith("book");
+      expect(executeTakeFirstOrThrow).toHaveBeenCalled();
+    });
+  });
+
+  describe("updateCoreMemory", () => {
+    it("updates the coreMemory field and returns the updated book", async () => {
+      const expected = {
+        id: "b1",
+        userId: "user1",
+        title: "Book 1",
+        coreMemory: "## Book Memory\nKey people: Maria",
+        status: "IN_PROGRESS",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      executeTakeFirstOrThrow.mockResolvedValue(expected);
+
+      const result = await bookRepository.updateCoreMemory(
+        "b1",
+        "## Book Memory\nKey people: Maria",
+      );
 
       expect(result).toEqual(expected);
       expect(updateTable).toHaveBeenCalledWith("book");
