@@ -22,13 +22,6 @@ vi.mock("@/repositories/message.repository", () => ({
   },
 }));
 
-const mockInsightFindByInterviewId = vi.hoisted(() => vi.fn());
-vi.mock("@/repositories/insight.repository", () => ({
-  insightRepository: {
-    findByInterviewId: mockInsightFindByInterviewId,
-  },
-}));
-
 const mockSummaryCreate = vi.hoisted(() => vi.fn());
 const mockSummaryFindLatest = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/interview-summary.repository", () => ({
@@ -62,10 +55,9 @@ describe("contextService", () => {
   it("returns empty messages for zero messages", async () => {
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue([]);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     expect(result.messages).toEqual([]);
     expect(result.systemPrompt).toBeTruthy();
@@ -86,10 +78,9 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     expect(result.messages).toEqual([
       { role: "user", content: "Hello" },
@@ -126,10 +117,9 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     expect(result.messages).toEqual([
       { role: "user", content: "First message" },
@@ -165,10 +155,9 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     // Should return all messages (no summarization yet - old bucket < 3000 tokens)
     expect(result.messages).toHaveLength(5);
@@ -190,13 +179,12 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
     mockGenerateResponse.mockResolvedValue({
       content: "Summary of old messages",
     });
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     // Should create summary with 9 old messages
     expect(mockSummaryCreate).toHaveBeenCalledWith({
@@ -238,13 +226,12 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(existingSummary);
     mockGenerateResponse.mockResolvedValue({
       content: "Updated summary with new content",
     });
 
-    await contextService.buildContextWindow("int1", "Sarah");
+    await contextService.buildContextWindow("int1", "Sarah", null);
 
     // Should call LLM with previous summary
     expect(mockGenerateResponse).toHaveBeenCalledWith(
@@ -280,13 +267,12 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
     mockGenerateResponse.mockRejectedValue(new Error("LLM failure"));
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     // Should log error
     expect(consoleSpy).toHaveBeenCalledWith(
@@ -326,13 +312,12 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(existingSummary);
     mockGenerateResponse.mockRejectedValue(new Error("LLM failure"));
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     // Should include existing summary
     expect(result.messages[0]).toEqual({
@@ -346,7 +331,7 @@ describe("contextService", () => {
     consoleSpy.mockRestore();
   });
 
-  it("injects insights before last USER message as assistant role", async () => {
+  it("injects core memory before last message as assistant role", async () => {
     const messages = [
       {
         id: "m1",
@@ -374,44 +359,21 @@ describe("contextService", () => {
       },
     ];
 
-    const insights = [
-      {
-        id: "i1",
-        bookId: "b1",
-        interviewId: "int1",
-        type: "ENTITY" as const,
-        content: "sister Maria",
-        explored: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: "i2",
-        bookId: "b1",
-        interviewId: "int1",
-        type: "EMOTION" as const,
-        content: "nostalgia about childhood",
-        explored: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
-
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue(insights);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const coreMemory = "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: childhood";
 
-    // Messages should be: m1, m2, insights (as assistant), m3
+    const result = await contextService.buildContextWindow("int1", "Sarah", coreMemory);
+
+    // Messages should be: m1, m2, core memory (as assistant), m3
     expect(result.messages).toEqual([
       { role: "user", content: "First message" },
       { role: "assistant", content: "Response" },
       {
         role: "assistant",
-        content:
-          "[Previous interview notes]\n- ENTITY: sister Maria\n- EMOTION: nostalgia about childhood",
+        content: `[Your memory — what you know about this subject]\n${coreMemory}`,
       },
       { role: "user", content: "Second message" },
     ]);
@@ -447,10 +409,9 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     // Should only include USER and ASSISTANT messages
     expect(result.messages).toEqual([
@@ -473,12 +434,11 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await contextService.buildContextWindow("int1", "Sarah");
+    await contextService.buildContextWindow("int1", "Sarah", null);
 
     // Verify console.log was called with token breakdown
     expect(consoleSpy).toHaveBeenCalledWith(
@@ -487,7 +447,7 @@ describe("contextService", () => {
         systemPrompt: expect.any(Number),
         summary: 0,
         messages: 3, // ceil(10/4) = 3
-        insights: 0,
+        coreMemory: 0,
         total: expect.any(Number),
       }),
     );
@@ -509,12 +469,11 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    await contextService.buildContextWindow("int1", "Sarah");
+    await contextService.buildContextWindow("int1", "Sarah", null);
 
     expect(consoleSpy).toHaveBeenCalledWith(
       "[Context] Token breakdown:",
@@ -522,7 +481,7 @@ describe("contextService", () => {
         systemPrompt: expect.any(Number),
         summary: expect.any(Number),
         messages: expect.any(Number),
-        insights: expect.any(Number),
+        coreMemory: expect.any(Number),
         total: expect.any(Number),
       }),
     );
@@ -533,15 +492,14 @@ describe("contextService", () => {
   it("throws error when interview not found", async () => {
     mockInterviewFindById.mockResolvedValue(null);
     mockMessageFindByInterviewId.mockResolvedValue([]);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
     await expect(
-      contextService.buildContextWindow("nonexistent", "Sarah"),
+      contextService.buildContextWindow("nonexistent", "Sarah", null),
     ).rejects.toThrow("Interview not found: nonexistent");
   });
 
-  it("skips insight injection when no insights", async () => {
+  it("skips core memory injection when coreMemory is null", async () => {
     const messages = [
       {
         id: "m1",
@@ -571,12 +529,11 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
-    // Should not inject insights message
+    // Should not inject core memory message
     expect(result.messages).toEqual([
       { role: "user", content: "First message" },
       { role: "assistant", content: "Response" },
@@ -602,10 +559,9 @@ describe("contextService", () => {
 
     mockInterviewFindById.mockResolvedValue(mockInterview);
     mockMessageFindByInterviewId.mockResolvedValue(messages);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     // Fallback truncation limits to RECENT_WINDOW_TOKENS * 2 = 4000 tokens
     // At 5000 tokens per message, we should have 0 complete messages after truncation
@@ -633,10 +589,9 @@ describe("contextService", () => {
         createdAt: new Date(),
       },
     ]);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "Sarah");
+    const result = await contextService.buildContextWindow("int1", "Sarah", null);
 
     expect(result.systemPrompt).toContain("Sarah");
     expect(result.systemPrompt).toContain("The storyteller's name is Sarah");
@@ -654,10 +609,9 @@ describe("contextService", () => {
         createdAt: new Date(),
       },
     ]);
-    mockInsightFindByInterviewId.mockResolvedValue([]);
     mockSummaryFindLatest.mockResolvedValue(null);
 
-    const result = await contextService.buildContextWindow("int1", "");
+    const result = await contextService.buildContextWindow("int1", "", null);
 
     expect(result.systemPrompt).not.toContain("storyteller's name is");
     expect(result.systemPrompt).toContain("skilled life story interviewer");

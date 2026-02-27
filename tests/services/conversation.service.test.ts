@@ -33,14 +33,21 @@ vi.mock("@/repositories/message.repository", () => ({
   },
 }));
 
-const mockInsightCreateMany = vi.hoisted(() => vi.fn());
 const mockInsightFindByInterviewId = vi.hoisted(() => vi.fn());
 const mockInsightFindByBookId = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/insight.repository", () => ({
   insightRepository: {
-    createMany: mockInsightCreateMany,
     findByInterviewId: mockInsightFindByInterviewId,
     findByBookId: mockInsightFindByBookId,
+  },
+}));
+
+const mockBookFindById = vi.hoisted(() => vi.fn());
+const mockBookUpdateCoreMemory = vi.hoisted(() => vi.fn());
+vi.mock("@/repositories/book.repository", () => ({
+  bookRepository: {
+    findById: mockBookFindById,
+    updateCoreMemory: mockBookUpdateCoreMemory,
   },
 }));
 
@@ -49,10 +56,22 @@ describe("conversationService", () => {
     typeof import("@/services/conversation.service")
   >["conversationService"];
 
+  const defaultBook = {
+    id: "b1",
+    userId: "u1",
+    title: "My Life Story",
+    coreMemory: "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: old topic",
+    status: "IN_PROGRESS" as const,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
     mockInsightFindByInterviewId.mockResolvedValue([]);
     mockInsightFindByBookId.mockResolvedValue([]);
+    mockBookFindById.mockResolvedValue(defaultBook);
+    mockBookUpdateCoreMemory.mockResolvedValue(defaultBook);
     const mod = await import("@/services/conversation.service");
     conversationService = mod.conversationService;
   });
@@ -82,10 +101,9 @@ describe("conversationService", () => {
         ],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Welcome! Tell me about your earliest memories.","insights":[]}',
+        content: '{"response":"Welcome! Tell me about your earliest memories.","updatedCoreMemory":"## Book Memory\\nKey people: Maria\\n\\n## Interview Memory\\nTopic: Tell me about your earliest memories","shouldComplete":false}',
       });
       mockMessageCreate.mockResolvedValue({});
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       const result = await conversationService.startInterview("b1", "Tell me about your earliest memories", "Sarah");
 
@@ -98,6 +116,9 @@ describe("conversationService", () => {
         topic: "Tell me about your earliest memories",
       });
 
+      // Book loaded in parallel with interview creation
+      expect(mockBookFindById).toHaveBeenCalledWith("b1");
+
       // Topic message persisted first (hidden from transcript)
       expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
         interviewId: "int1",
@@ -108,8 +129,12 @@ describe("conversationService", () => {
         hidden: true,
       });
 
-      // Context service called after topic message persisted
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
+      // Context service called with prepared memory (interview section replaced)
+      expect(mockBuildContextWindow).toHaveBeenCalledWith(
+        "int1",
+        "Sarah",
+        "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: Tell me about your earliest memories",
+      );
 
       expect(mockGenerateResponse).toHaveBeenCalledWith(
         expect.any(String),
@@ -130,9 +155,15 @@ describe("conversationService", () => {
         role: "ASSISTANT",
         content: "Welcome! Tell me about your earliest memories.",
       });
+
+      // Core memory persisted
+      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
+        "b1",
+        "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: Tell me about your earliest memories",
+      );
     });
 
-    it("persists no insights even when LLM response contains them", async () => {
+    it("does not persist core memory when updatedCoreMemory is null", async () => {
       mockInterviewCreate.mockResolvedValue({
         id: "int1",
         bookId: "b1",
@@ -147,21 +178,21 @@ describe("conversationService", () => {
         messages: [{ role: "user", content: "topic message" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Welcome!","insights":[{"type":"ENTITY","content":"sister Maria — older, bossy"}]}',
+        content: '{"response":"Welcome!","shouldComplete":false}',
       });
       mockMessageCreate.mockResolvedValue({});
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       await conversationService.startInterview("b1", "Tell me about your earliest memories", "Sarah");
 
-      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
+      expect(mockBookUpdateCoreMemory).not.toHaveBeenCalled();
     });
 
-    it("persists no insights when AI returns empty insights array", async () => {
+    it("passes null coreMemory for first interview (no existing book memory)", async () => {
+      mockBookFindById.mockResolvedValue({ ...defaultBook, coreMemory: null });
       mockInterviewCreate.mockResolvedValue({
         id: "int1",
         bookId: "b1",
-        topic: "Tell me about your earliest memories",
+        topic: "childhood",
         status: "ACTIVE",
         completedAt: null,
         createdAt: new Date(),
@@ -172,15 +203,49 @@ describe("conversationService", () => {
         messages: [{ role: "user", content: "topic message" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Welcome!","insights":[]}',
+        content: '{"response":"Welcome!","updatedCoreMemory":"## Book Memory\\n\\n## Interview Memory\\nTopic: childhood","shouldComplete":false}',
       });
       mockMessageCreate.mockResolvedValue({});
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
-      await conversationService.startInterview("b1", "Tell me about your earliest memories", "Sarah");
+      await conversationService.startInterview("b1", "childhood", "Sarah");
 
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
-      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
+      // Context service gets null (no existing memory to prepare)
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", null);
+
+      // But memory is still persisted from the LLM response
+      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
+        "b1",
+        "## Book Memory\n\n## Interview Memory\nTopic: childhood",
+      );
+    });
+
+    it("strips old interview section and prepares fresh one", async () => {
+      mockInterviewCreate.mockResolvedValue({
+        id: "int1",
+        bookId: "b1",
+        topic: "school days",
+        status: "ACTIVE",
+        completedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: expect.any(String),
+        messages: [{ role: "user", content: "topic message" }],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: '{"response":"Welcome!","shouldComplete":false}',
+      });
+      mockMessageCreate.mockResolvedValue({});
+
+      await conversationService.startInterview("b1", "school days", "Sarah");
+
+      // The prepared memory should keep book section, replace interview section
+      expect(mockBuildContextWindow).toHaveBeenCalledWith(
+        "int1",
+        "Sarah",
+        "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: school days",
+      );
     });
   });
 
@@ -196,23 +261,25 @@ describe("conversationService", () => {
         ],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"That\'s fascinating! Tell me more.","insights":[]}',
+        content: '{"response":"That\'s fascinating! Tell me more.","updatedCoreMemory":"## Book Memory\\nKey people: Maria\\n\\n## Interview Memory\\nTopic: old topic\\nNew detail: story detail","shouldComplete":false}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       const result = await conversationService.sendMessage("int1", "b1", "my story", "Sarah");
 
       expect(result).toEqual({ content: "That's fascinating! Tell me more.", shouldComplete: false });
 
-      // Persists user message first
+      // Persists user message first (in parallel with book load)
       expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
         interviewId: "int1",
         role: "USER",
         content: "my story",
       });
 
-      // Context service builds context window
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
+      // Book loaded in parallel with user message creation
+      expect(mockBookFindById).toHaveBeenCalledWith("b1");
+
+      // Context service builds context window with raw coreMemory
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", defaultBook.coreMemory);
 
       // Maps roles to lowercase for LLM
       expect(mockGenerateResponse).toHaveBeenCalledWith(
@@ -230,6 +297,12 @@ describe("conversationService", () => {
         role: "ASSISTANT",
         content: "That's fascinating! Tell me more.",
       });
+
+      // Core memory persisted
+      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
+        "b1",
+        "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: old topic\nNew detail: story detail",
+      );
     });
 
     it("filters out SYSTEM messages from LLM history", async () => {
@@ -238,31 +311,14 @@ describe("conversationService", () => {
         systemPrompt: expect.any(String),
         messages: [{ role: "user", content: "hello" }],
       });
-      mockGenerateResponse.mockResolvedValue({ content: '{"response":"hi","insights":[]}' });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
+      mockGenerateResponse.mockResolvedValue({ content: '{"response":"hi","shouldComplete":false}' });
 
       await conversationService.sendMessage("int1", "b1", "hello", "Sarah");
 
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", defaultBook.coreMemory);
       expect(mockGenerateResponse).toHaveBeenCalledWith(expect.any(String), [
         { role: "user", content: "hello" },
       ]);
-    });
-
-    it("persists no insights even when LLM response contains them", async () => {
-      mockMessageCreate.mockResolvedValue({});
-      mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
-        messages: [{ role: "user", content: "I had a sister named Maria" }],
-      });
-      mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Tell me more about Maria.","insights":[{"type":"ENTITY","content":"sister Maria — mentioned in passing"}]}',
-      });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
-
-      await conversationService.sendMessage("int1", "b1", "I had a sister named Maria", "Sarah");
-
-      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
     });
 
     it("auto-completes interview when shouldComplete is true", async () => {
@@ -272,9 +328,8 @@ describe("conversationService", () => {
         messages: [{ role: "user", content: "yes, let's wrap up" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Thank you for sharing!","insights":[],"shouldComplete":true}',
+        content: '{"response":"Thank you for sharing!","updatedCoreMemory":"## Book Memory\\nFinal","shouldComplete":true}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
       mockInterviewComplete.mockResolvedValue({});
 
       const result = await conversationService.sendMessage("int1", "b1", "yes, let's wrap up", "Sarah");
@@ -290,9 +345,8 @@ describe("conversationService", () => {
         messages: [{ role: "user", content: "yes, let's wrap up" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Thank you for sharing!","insights":[],"shouldComplete":true}',
+        content: '{"response":"Thank you for sharing!","shouldComplete":true}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
       mockInterviewComplete.mockRejectedValue(new Error("DB connection lost"));
 
       await expect(
@@ -314,9 +368,8 @@ describe("conversationService", () => {
         messages: [{ role: "user", content: "tell me more" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Tell me more about that.","insights":[],"shouldComplete":false}',
+        content: '{"response":"Tell me more about that.","shouldComplete":false}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       const result = await conversationService.sendMessage("int1", "b1", "tell me more", "Sarah");
 
@@ -324,7 +377,7 @@ describe("conversationService", () => {
       expect(mockInterviewComplete).not.toHaveBeenCalled();
     });
 
-    it("handles parse failure gracefully — falls back to raw text, no insights persisted", async () => {
+    it("does not persist core memory on parse failure", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
         systemPrompt: expect.any(String),
@@ -332,13 +385,12 @@ describe("conversationService", () => {
       });
       // Both initial response and retry return unparseable plain text
       mockGenerateResponse.mockResolvedValue({ content: "This is just plain text, not JSON." });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       const result = await conversationService.sendMessage("int1", "b1", "hello", "Sarah");
 
       expect(result).toEqual({ content: "This is just plain text, not JSON.", shouldComplete: false });
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
-      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", defaultBook.coreMemory);
+      expect(mockBookUpdateCoreMemory).not.toHaveBeenCalled();
       expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",
         role: "ASSISTANT",
@@ -359,9 +411,8 @@ describe("conversationService", () => {
         ],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"What a wonderful story. Let me ask about something different — what was school like for you growing up?","insights":[{"type":"DETAIL","content":"school experiences — unexplored, worth probing"}]}',
+        content: '{"response":"What a wonderful story. Let me ask about something different — what was school like for you growing up?","updatedCoreMemory":"## Book Memory\\nKey people: Maria\\n\\n## Interview Memory\\nTopic: old topic\\nRedirected","shouldComplete":false}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 1 });
 
       const result = await conversationService.redirect("int1", "b1", "Sarah");
 
@@ -369,7 +420,7 @@ describe("conversationService", () => {
         content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
       });
 
-      // Hidden USER message created first
+      // Hidden USER message created in parallel with book load
       expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
         interviewId: "int1",
         role: "USER",
@@ -377,8 +428,11 @@ describe("conversationService", () => {
         hidden: true,
       });
 
-      // Context built after hidden message persisted
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
+      // Book loaded
+      expect(mockBookFindById).toHaveBeenCalledWith("b1");
+
+      // Context built with raw coreMemory
+      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", defaultBook.coreMemory);
 
       // ASSISTANT message persisted (not hidden)
       expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
@@ -386,6 +440,12 @@ describe("conversationService", () => {
         role: "ASSISTANT",
         content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
       });
+
+      // Core memory persisted
+      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
+        "b1",
+        "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: old topic\nRedirected",
+      );
     });
 
     it("creates USER message with hidden: true", async () => {
@@ -395,9 +455,8 @@ describe("conversationService", () => {
         messages: [{ role: "user", content: "redirect prompt" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Let me ask about something else.","insights":[]}',
+        content: '{"response":"Let me ask about something else.","shouldComplete":false}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       await conversationService.redirect("int1", "b1", "Sarah");
 
@@ -405,20 +464,19 @@ describe("conversationService", () => {
       expect(firstCall.hidden).toBe(true);
     });
 
-    it("persists no insights even when LLM response contains them", async () => {
+    it("does not persist core memory when updatedCoreMemory is null", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
         systemPrompt: expect.any(String),
         messages: [{ role: "user", content: "redirect prompt" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Let me ask about something else.","insights":[{"type":"ENTITY","content":"sister Maria — mentioned in passing"}]}',
+        content: '{"response":"Let me ask about something else.","shouldComplete":false}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       await conversationService.redirect("int1", "b1", "Sarah");
 
-      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
+      expect(mockBookUpdateCoreMemory).not.toHaveBeenCalled();
     });
 
     it("does not call interviewRepository.complete even when shouldComplete is true", async () => {
@@ -428,9 +486,8 @@ describe("conversationService", () => {
         messages: [{ role: "user", content: "redirect prompt" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Let me ask about something else.","insights":[],"shouldComplete":true}',
+        content: '{"response":"Let me ask about something else.","shouldComplete":true}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       await conversationService.redirect("int1", "b1", "Sarah");
 

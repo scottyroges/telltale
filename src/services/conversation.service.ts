@@ -2,16 +2,29 @@ import { llmProvider } from "@/lib/llm";
 import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
 import { insightRepository } from "@/repositories/insight.repository";
+import { bookRepository } from "@/repositories/book.repository";
 import { parseInterviewerResponse, parseWithRetry } from "@/services/response-parser";
 import { contextService } from "@/services/context.service";
 import { REDIRECT_PROMPT } from "@/prompts/interviewer";
 
+function prepareMemoryForNewInterview(coreMemory: string | null, topic: string): string | null {
+  if (!coreMemory) return null;
+
+  const marker = "## Interview Memory";
+  const markerIndex = coreMemory.indexOf(marker);
+  const bookSection = markerIndex >= 0 ? coreMemory.slice(0, markerIndex) : coreMemory + "\n\n";
+
+  return `${bookSection}${marker}\nTopic: ${topic}`;
+}
+
 export const conversationService = {
   async startInterview(bookId: string, topic: string, userName: string) {
-    const interview = await interviewRepository.create({
-      bookId,
-      topic,
-    });
+    const [interview, book] = await Promise.all([
+      interviewRepository.create({ bookId, topic }),
+      bookRepository.findById(bookId),
+    ]);
+
+    const preparedMemory = prepareMemoryForNewInterview(book?.coreMemory ?? null, topic);
 
     const topicMessage = `The topic for this conversation is: ${topic}. Please greet the storyteller warmly and ask an opening question about this topic.`;
 
@@ -24,7 +37,7 @@ export const conversationService = {
     });
 
     // Build context window
-    const context = await contextService.buildContextWindow(interview.id, userName);
+    const context = await contextService.buildContextWindow(interview.id, userName, preparedMemory);
 
     const response = await llmProvider.generateResponse(
       context.systemPrompt,
@@ -39,26 +52,24 @@ export const conversationService = {
       content: parsed.text,
     });
 
-    await insightRepository.createMany(
-      parsed.insights.map(i => ({
-        bookId,
-        interviewId: interview.id,
-        type: i.type,
-        content: i.content,
-      }))
-    );
+    if (parsed.updatedCoreMemory !== null) {
+      await bookRepository.updateCoreMemory(bookId, parsed.updatedCoreMemory);
+    }
 
     return { interviewId: interview.id };
   },
 
   async sendMessage(interviewId: string, bookId: string, content: string, userName: string) {
-    await messageRepository.create({
-      interviewId,
-      role: "USER",
-      content,
-    });
+    const [, book] = await Promise.all([
+      messageRepository.create({
+        interviewId,
+        role: "USER",
+        content,
+      }),
+      bookRepository.findById(bookId),
+    ]);
 
-    const context = await contextService.buildContextWindow(interviewId, userName);
+    const context = await contextService.buildContextWindow(interviewId, userName, book?.coreMemory ?? null);
 
     const response = await llmProvider.generateResponse(
       context.systemPrompt,
@@ -80,14 +91,9 @@ export const conversationService = {
       content: parsed.text,
     });
 
-    await insightRepository.createMany(
-      parsed.insights.map(i => ({
-        bookId,
-        interviewId,
-        type: i.type,
-        content: i.content,
-      }))
-    );
+    if (parsed.updatedCoreMemory !== null) {
+      await bookRepository.updateCoreMemory(bookId, parsed.updatedCoreMemory);
+    }
 
     if (parsed.shouldComplete) {
       await interviewRepository.complete(interviewId);
@@ -97,14 +103,17 @@ export const conversationService = {
   },
 
   async redirect(interviewId: string, bookId: string, userName: string) {
-    await messageRepository.create({
-      interviewId,
-      role: "USER",
-      content: REDIRECT_PROMPT,
-      hidden: true,
-    });
+    const [, book] = await Promise.all([
+      messageRepository.create({
+        interviewId,
+        role: "USER",
+        content: REDIRECT_PROMPT,
+        hidden: true,
+      }),
+      bookRepository.findById(bookId),
+    ]);
 
-    const context = await contextService.buildContextWindow(interviewId, userName);
+    const context = await contextService.buildContextWindow(interviewId, userName, book?.coreMemory ?? null);
 
     const response = await llmProvider.generateResponse(
       context.systemPrompt,
@@ -119,14 +128,9 @@ export const conversationService = {
       content: parsed.text,
     });
 
-    await insightRepository.createMany(
-      parsed.insights.map(i => ({
-        bookId,
-        interviewId,
-        type: i.type,
-        content: i.content,
-      }))
-    );
+    if (parsed.updatedCoreMemory !== null) {
+      await bookRepository.updateCoreMemory(bookId, parsed.updatedCoreMemory);
+    }
 
     return { content: parsed.text };
   },
