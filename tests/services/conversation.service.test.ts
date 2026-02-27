@@ -132,7 +132,7 @@ describe("conversationService", () => {
       });
     });
 
-    it("persists extracted insights when present", async () => {
+    it("persists no insights even when LLM response contains them", async () => {
       mockInterviewCreate.mockResolvedValue({
         id: "int1",
         bookId: "b1",
@@ -147,18 +147,14 @@ describe("conversationService", () => {
         messages: [{ role: "user", content: "topic message" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Welcome!","insights":[{"type":"ENTITY","content":"sister Maria — older, bossy"},{"type":"EMOTION","content":"nostalgia for childhood home"}]}',
+        content: '{"response":"Welcome!","insights":[{"type":"ENTITY","content":"sister Maria — older, bossy"}]}',
       });
       mockMessageCreate.mockResolvedValue({});
-      mockInsightCreateMany.mockResolvedValue({ count: 2 });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       await conversationService.startInterview("b1", "Tell me about your earliest memories", "Sarah");
 
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
-      expect(mockInsightCreateMany).toHaveBeenCalledWith([
-        { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — older, bossy" },
-        { bookId: "b1", interviewId: "int1", type: "EMOTION", content: "nostalgia for childhood home" },
-      ]);
+      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
     });
 
     it("persists no insights when AI returns empty insights array", async () => {
@@ -253,7 +249,7 @@ describe("conversationService", () => {
       ]);
     });
 
-    it("persists extracted insights via insightRepository.createMany", async () => {
+    it("persists no insights even when LLM response contains them", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
         systemPrompt: expect.any(String),
@@ -262,14 +258,11 @@ describe("conversationService", () => {
       mockGenerateResponse.mockResolvedValue({
         content: '{"response":"Tell me more about Maria.","insights":[{"type":"ENTITY","content":"sister Maria — mentioned in passing"}]}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 1 });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       await conversationService.sendMessage("int1", "b1", "I had a sister named Maria", "Sarah");
 
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah");
-      expect(mockInsightCreateMany).toHaveBeenCalledWith([
-        { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — mentioned in passing" },
-      ]);
+      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
     });
 
     it("auto-completes interview when shouldComplete is true", async () => {
@@ -412,23 +405,20 @@ describe("conversationService", () => {
       expect(firstCall.hidden).toBe(true);
     });
 
-    it("persists extracted insights", async () => {
+    it("persists no insights even when LLM response contains them", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
         systemPrompt: expect.any(String),
         messages: [{ role: "user", content: "redirect prompt" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Let me ask about something else.","insights":[{"type":"ENTITY","content":"sister Maria — mentioned in passing"},{"type":"EMOTION","content":"nostalgia for childhood home"}]}',
+        content: '{"response":"Let me ask about something else.","insights":[{"type":"ENTITY","content":"sister Maria — mentioned in passing"}]}',
       });
-      mockInsightCreateMany.mockResolvedValue({ count: 2 });
+      mockInsightCreateMany.mockResolvedValue({ count: 0 });
 
       await conversationService.redirect("int1", "b1", "Sarah");
 
-      expect(mockInsightCreateMany).toHaveBeenCalledWith([
-        { bookId: "b1", interviewId: "int1", type: "ENTITY", content: "sister Maria — mentioned in passing" },
-        { bookId: "b1", interviewId: "int1", type: "EMOTION", content: "nostalgia for childhood home" },
-      ]);
+      expect(mockInsightCreateMany).toHaveBeenCalledWith([]);
     });
 
     it("does not call interviewRepository.complete even when shouldComplete is true", async () => {

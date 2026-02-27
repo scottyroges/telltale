@@ -16,19 +16,17 @@ describe("INTERVIEWER_SYSTEM_PROMPT", () => {
 
   it("includes JSON response format instructions", () => {
     expect(INTERVIEWER_SYSTEM_PROMPT).toContain('"response"');
-    expect(INTERVIEWER_SYSTEM_PROMPT).toContain('"insights"');
+    expect(INTERVIEWER_SYSTEM_PROMPT).toContain('"updatedCoreMemory"');
   });
 
-  it("includes insight type definitions", () => {
-    expect(INTERVIEWER_SYSTEM_PROMPT).toContain("ENTITY");
-    expect(INTERVIEWER_SYSTEM_PROMPT).toContain("EVENT");
-    expect(INTERVIEWER_SYSTEM_PROMPT).toContain("EMOTION");
-    expect(INTERVIEWER_SYSTEM_PROMPT).toContain("DETAIL");
+  it("includes core memory section definitions", () => {
+    expect(INTERVIEWER_SYSTEM_PROMPT).toContain("Book Memory");
+    expect(INTERVIEWER_SYSTEM_PROMPT).toContain("Interview Memory");
   });
 
-  it("emphasizes conversational priority over note-taking", () => {
+  it("emphasizes conversational priority over memory management", () => {
     expect(INTERVIEWER_SYSTEM_PROMPT).toContain(
-      "conversational response is the priority"
+      "Never let memory management make the conversation feel mechanical"
     );
   });
 });

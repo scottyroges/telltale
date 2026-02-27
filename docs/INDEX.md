@@ -19,10 +19,14 @@
 
 ## Active Plans
 
-- **phase-1-enhancements-part-2.md** — Second round of Phase 1 improvements (question removal UI, chat readability, interview layout/scroll fixes, back navigation, duplicate interview bug, interview completion/exit strategy, personalize with user name, conversation steering control, usage guidance/helper text)
-
+- **docs/plans/active/2a-core-memory-block.md** — Core memory block: replace per-message insight extraction with a bounded, evolving memory document on Book that persists across interviews (4 phases)
+- **docs/plans/active/2a.1-schema-repository-layer.md** — Phase 1 of 2a: add `coreMemory` field to Book model, migration, domain type, repository method, fixture updates
+- **docs/plans/active/2a.2-system-prompt-response-format.md** — Phase 2 of 2a: rewrite interviewer prompt for core memory block, update response parser for `updatedCoreMemory`, increase max tokens
+- **docs/plans/active/2a.3-context-assembly-conversation-service.md** — Phase 3 of 2a: wire core memory into context assembly and conversation service, replace insight injection with memory block, persist updated memory to Book
+- **docs/plans/active/2a.4-cleanup-cross-interview-verification.md** — Phase 4 of 2a: remove dormant insight code from conversation loop, clean up deprecated types, add cross-interview memory verification tests
 ## Completed Plans
 
+- **docs/plans/completed/phase-1-enhancements-part-2.md** — Second round of Phase 1 improvements (question removal UI, chat readability, interview layout/scroll fixes, back navigation, duplicate interview bug, interview completion/exit strategy, personalize with user name, conversation steering control, usage guidance/helper text)
 - **docs/plans/completed/decouple-interviews-from-questions.md** — Decouple interviews from catalog questions: Interview owns `topic` text, BookQuestion optionally links via `interviewId`, single `startInterview(bookId, topic)` path (3 PRs)
 - **docs/plans/completed/phase-1-enhancements.md** — First round of Phase 1 improvements (token-based summarization, password visibility, Google icon, SSL modes, loading states, dashboard polish)
 - **docs/plans/completed/1.7-email-apple-auth.md** — Email/password authentication, sign-up/sign-in flows, password reset (3 PRs)
