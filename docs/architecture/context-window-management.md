@@ -1,7 +1,7 @@
 # Context Window Management
 
-**Status:** Complete (Plan 1.6 done)
-**Related:** ADR 018 (Insight Context Placement)
+**Status:** Complete (Plan 1.6 done, updated for Plan 2a.3 core memory integration)
+**Related:** ADR 018 (Context Placement)
 
 ## Problem
 
@@ -234,8 +234,8 @@ USER: The topic for this conversation is: childhood memories.
 **Behavior:**
 - Under threshold (no split needed)
 - All messages in recent window
-- Insights injected before last message
-- Returns: `{ systemPrompt, messages: [1,2,3,4,5 with insights] }`
+- Core memory injected before last message
+- Returns: `{ systemPrompt, messages: [1,2,3,4,5 with core memory] }`
 
 **What gets sent to LLM:**
 ```
@@ -246,9 +246,12 @@ ASSISTANT: (message 2)
 USER: (message 3)
 ASSISTANT: (message 4)
 
-ASSISTANT: [Previous interview notes]
-- ENTITY: Elm Street in Ohio — childhood home
-- EMOTION: nostalgia when describing the neighborhood
+ASSISTANT: [Your memory — what you know about this subject]
+## Book Memory
+Key people: Maria (sister), Elm Street in Ohio (childhood home)
+## Interview Memory
+Topic: childhood memories
+Nostalgia when describing the neighborhood
 
 USER: (message 5)
 ```
@@ -272,7 +275,7 @@ USER: (message 5)
 - Calculate: oldTokens = ~2000 tokens (5 messages × ~400 tokens)
 - Check: `oldTokens = 2000 < 3000` → **don't summarize yet**
 - Use existing summary (none), send all messages verbatim
-- Returns: `{ systemPrompt, messages: [1,2,3,4,5,6,7,8,9,10 with insights] }`
+- Returns: `{ systemPrompt, messages: [1,2,3,4,5,6,7,8,9,10 with core memory] }`
 
 **What gets sent to LLM:**
 ```
@@ -288,9 +291,12 @@ USER: (message 7)
 ASSISTANT: (message 8)
 USER: (message 9)
 
-ASSISTANT: [Previous interview notes]
-- ENTITY: Teresa (sister) — played under oak tree
-- DETAIL: Hardware store mentioned but not explored
+ASSISTANT: [Your memory — what you know about this subject]
+## Book Memory
+Key people: Teresa (sister), hardware store on Main St
+## Interview Memory
+Topic: childhood memories
+Teresa played under oak tree, hardware store not yet explored
 
 USER: (message 10)
 ```
@@ -316,7 +322,7 @@ USER: (message 10)
 - Summarize messages 1-8 into prose
 - Create InterviewSummary with `messageCount: 8`
 - After summarization: recent=[9-13], old=[], already_summarized=summary(1-8, count=8)
-- Returns: `{ systemPrompt, messages: [summary, 9,10,11,12,13 with insights] }`
+- Returns: `{ systemPrompt, messages: [summary, 9,10,11,12,13 with core memory] }`
 
 **What gets sent to LLM:**
 ```
@@ -333,9 +339,12 @@ ASSISTANT: (message 10)
 USER: (message 11)
 ASSISTANT: (message 12)
 
-ASSISTANT: [Previous interview notes]
-- ENTITY: Teresa (sister) — played under oak tree
-- DETAIL: Hardware store mentioned but not explored
+A: [Your memory — what you know about this subject]
+## Book Memory
+Key people: Teresa (sister), hardware store on Main St
+## Interview Memory
+Topic: childhood memories
+Teresa played under oak tree, hardware store not yet explored
 
 USER: (message 13)
 ```
@@ -370,7 +379,7 @@ InterviewSummary {
 - Summarize messages 9-16, incorporating previous summary
 - Create InterviewSummary with `messageCount: 16`, links to previous
 - After summarization: recent=[17-21], old=[], already_summarized=summary(1-16, count=16)
-- Returns: `{ systemPrompt, messages: [new summary, 17,18,19,20,21 with insights] }`
+- Returns: `{ systemPrompt, messages: [new summary, 17,18,19,20,21 with core memory] }`
 
 **What gets sent to LLM:**
 ```
@@ -386,9 +395,12 @@ ASSISTANT: (message 18)
 USER: (message 19)
 ASSISTANT: (message 20)
 
-ASSISTANT: [Previous interview notes]
-- ENTITY: Jimmy (childhood best friend) — met on first day of school
-- EVENT: Learning to ride a bike that summer
+ASSISTANT: [Your memory — what you know about this subject]
+## Book Memory
+Key people: Teresa, Jimmy (childhood best friend), Dad (hardware store)
+## Interview Memory
+Topic: childhood memories
+Jimmy met on first day of school, learning to ride a bike that summer
 
 USER: (message 21)
 ```
@@ -433,7 +445,7 @@ InterviewSummary {
   - Typically ~10 messages (if 400 tokens each)
   - Always include at least the most recent message
 - **Do NOT create InterviewSummary** (next turn will retry)
-- Returns: `{ systemPrompt, messages: [existing summary(1-8), 12,13,14,15,16,17,18,19,20,21 with insights] }`
+- Returns: `{ systemPrompt, messages: [existing summary(1-8), 12,13,14,15,16,17,18,19,20,21 with core memory] }`
 
 **What gets sent to LLM:**
 ```
@@ -451,8 +463,8 @@ USER: (message 18)
 ASSISTANT: (message 19)
 USER: (message 20)
 
-ASSISTANT: [Previous interview notes]
-- ...
+ASSISTANT: [Your memory — what you know about this subject]
+...
 
 USER: (message 21)
 ```
@@ -513,7 +525,7 @@ function estimateTokens(text: string): number {
 - System prompt (~500 tokens base, slightly more when personalized with user's name)
 - Summary (if exists, ~200-500 tokens)
 - All messages in context (~varies by content)
-- All insights (~20-50 tokens each)
+- Core memory block (varies — grows over the life of the book)
 
 **Logging:**
 Every turn logs both token breakdown and message buckets:
@@ -528,44 +540,46 @@ console.log('[Context] Token breakdown:', {
   systemPrompt: 512,
   summary: 287,
   messages: 6234,
-  insights: 145,
-  total: 7178
+  coreMemory: 320,
+  total: 7353
 });
 ```
 
 This visibility helps detect:
 - Summaries growing too large (incremental summarization degradation)
 - Unexpectedly large messages
-- Insight accumulation issues
+- Core memory growing too large relative to the context budget
 - When to adjust thresholds
 
 ---
 
-## Insight Injection
+## Core Memory Injection
 
-Insights are always injected **before the last user message**, regardless of conversation length.
+The book's core memory block is injected **before the last user message**, regardless of conversation length. The caller (conversation service) passes the memory string to `buildContextWindow`; the context service injects it without knowing where it came from.
 
 **Why before the last message?**
-- Keeps insights in the "high attention zone" at the end of context
+- Keeps memory in the "high attention zone" at the end of context
 - Avoids the "lost in the middle" problem as conversations grow
-- Semantically clear: "review notes → respond to user's latest question"
+- Semantically clear: "review memory → respond to user's latest message"
 
-**Insight role:**
-- Injected as `role: 'assistant'` (the AI's own notes)
+**Memory role:**
+- Injected as `role: 'assistant'` (the AI's own working notes)
 - More semantically accurate than `role: 'user'`
 - See ADR 018 for placement rationale
 
+**When `coreMemory` is `null`** (first interview, no memory yet), no message is injected.
+
 **Example:**
 ```typescript
-// For recent messages with insights:
+// For recent messages with core memory:
 [
   { role: 'user', content: 'Message N-2' },
   { role: 'assistant', content: 'Response N-2' },
   { role: 'user', content: 'Message N-1' },
   { role: 'assistant', content: 'Response N-1' },
 
-  // Insights injected before last message
-  { role: 'assistant', content: '[Previous interview notes]\n- ENTITY: ...\n- EVENT: ...' },
+  // Core memory injected before last message
+  { role: 'assistant', content: '[Your memory — what you know about this subject]\n## Book Memory\n...\n## Interview Memory\n...' },
 
   { role: 'user', content: 'Message N' }  // Most recent message
 ]
@@ -622,19 +636,18 @@ summary and these new messages.
 ### buildContextWindow Decision Tree
 
 ```
-buildContextWindow(interviewId, userName)
+buildContextWindow(interviewId, userName, coreMemory)
   │
   ├─ Load interview → null? → throw Error("Interview not found")
   ├─ Build personalized system prompt (includes user's name if provided)
   ├─ Load messages (all messages including hidden, filter USER/ASSISTANT roles only)
-  ├─ Load insights
   ├─ Load latest summary (if exists)
   │
-  ├─ Estimate tokens (system + summary + messages + insights)
+  ├─ Estimate tokens (system + summary + messages + coreMemory)
   ├─ Log token breakdown via console.log
   │
   ├─ Total < SUMMARIZATION_THRESHOLD (8000)?
-  │   YES → Assemble all messages with insights
+  │   YES → Assemble all messages with core memory
   │         Apply enforceMaxTokens()
   │         Return
   │   NO  → Continue ↓
@@ -765,26 +778,20 @@ Pattern continues every ~8 messages at 400 tokens/message (3200 tokens in old bu
 - Logging shows actual token usage
 - Can adjust thresholds if needed
 
-### Insights Grow Very Large
-- Token logging shows: `insights: 2000` (unusually high)
-- Current behavior: Still includes all insights
-- Future: May need insight pruning based on explored flag
+### Core Memory Grows Very Large
+- Token logging shows: `coreMemory: 2000` (unusually high)
+- Current behavior: Still includes full memory block
+- Future: May need memory pruning or token budget for the memory block
 
 ---
 
 ## Future Considerations
 
-### Book-Level Insights
-When wiring cross-interview insights:
-- Load book-level insights in `buildContextWindow`
-- Inject alongside interview-specific insights
-- May need separate token budgets for each type
-
-### Insight Explored Tracking
-When `explored` flag is implemented:
-- Filter to only `explored: false` insights
-- Reduces insight token count over time
-- Keeps context focused on unexplored threads
+### Core Memory Size Management
+As books accumulate more interviews, core memory will grow:
+- May need a hard token budget for the memory block
+- Could implement summarization of the book section when it grows too large
+- Token logging tracks growth over time
 
 ### Summary Regeneration
 If summary quality degrades:
@@ -819,7 +826,7 @@ Must cover all scenarios:
 - ✅ Over threshold, old bucket full (create summary, return summary + recent)
 - ✅ Existing summary + new batch (incremental summary with parent reference)
 - ✅ Summarization failure (truncation fallback, no summary record created)
-- ✅ Insight injection (placement before last message, role 'assistant')
+- ✅ Core memory injection (placement before last message, role 'assistant')
 - ✅ Token estimation accuracy
 - ✅ Token logging output (including message bucket counts and token totals)
 - ✅ Hard token limit enforcement (truncates to most recent messages when over MAX_CONTEXT_TOKENS)
@@ -829,10 +836,11 @@ Must cover all scenarios:
 ### Integration Tests (conversation.service.test.ts)
 
 Mock `contextService` and verify:
-- ✅ `startInterview` calls `buildContextWindow` after persisting topic
-- ✅ `sendMessage` calls `buildContextWindow` after persisting user message
+- ✅ `startInterview` calls `buildContextWindow` with prepared memory (book section preserved, fresh interview section)
+- ✅ `sendMessage` calls `buildContextWindow` with raw core memory from book
 - ✅ Context passed correctly to LLM
-- ✅ New insights from response persisted correctly
+- ✅ Updated core memory from response persisted to book via `bookRepository.updateCoreMemory`
+- ✅ Parse failure (`updatedCoreMemory: null`) does not overwrite existing memory
 
 ### Manual Verification
 
@@ -857,6 +865,6 @@ Create conversations at key thresholds:
 5. **Adaptive to content:** Token-based approach handles variable message lengths gracefully throughout the entire pipeline
 6. **Incremental summaries:** Build on previous summary, don't restart from scratch
 7. **Fail gracefully:** Token-based truncation fallback if summarization fails, retry next turn
-8. **Always inject insights:** Before last message, regardless of conversation length
+8. **Inject core memory:** Before last message, regardless of conversation length (caller passes memory; context service injects)
 9. **Log everything:** Token breakdown and message bucket counts (with token totals) on every turn for observability
 10. **Linked list tracking:** InterviewSummary.messageCount tells us what's already compressed
