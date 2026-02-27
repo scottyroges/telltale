@@ -2,7 +2,7 @@ import { llmProvider } from "@/lib/llm";
 import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
 import { bookRepository } from "@/repositories/book.repository";
-import { parseInterviewerResponse, parseWithRetry } from "@/services/response-parser";
+import { parseWithRetry } from "@/services/response-parser";
 import { contextService } from "@/services/context.service";
 import { REDIRECT_PROMPT } from "@/prompts/interviewer";
 
@@ -43,7 +43,14 @@ export const conversationService = {
       context.messages,
     );
 
-    const parsed = parseInterviewerResponse(response.content);
+    const parsed = await parseWithRetry(response.content, async (correctionPrompt) => {
+      const retry = await llmProvider.generateResponse(context.systemPrompt, [
+        ...context.messages,
+        { role: "assistant", content: response.content },
+        { role: "user", content: correctionPrompt },
+      ]);
+      return retry.content;
+    });
 
     await messageRepository.create({
       interviewId: interview.id,
@@ -119,7 +126,14 @@ export const conversationService = {
       context.messages,
     );
 
-    const parsed = parseInterviewerResponse(response.content);
+    const parsed = await parseWithRetry(response.content, async (correctionPrompt) => {
+      const retry = await llmProvider.generateResponse(context.systemPrompt, [
+        ...context.messages,
+        { role: "assistant", content: response.content },
+        { role: "user", content: correctionPrompt },
+      ]);
+      return retry.content;
+    });
 
     await messageRepository.create({
       interviewId,

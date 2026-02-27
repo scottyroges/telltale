@@ -208,6 +208,46 @@ describe("conversationService", () => {
       );
     });
 
+    it("retries parse on invalid JSON and succeeds on retry", async () => {
+      mockInterviewCreate.mockResolvedValue({
+        id: "int1",
+        bookId: "b1",
+        topic: "childhood",
+        status: "ACTIVE",
+        completedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: "sys",
+        messages: [{ role: "user", content: "topic message" }],
+      });
+      // First call returns invalid JSON, second call (retry) returns valid JSON
+      mockGenerateResponse
+        .mockResolvedValueOnce({ content: "This is not JSON" })
+        .mockResolvedValueOnce({
+          content: '{"response":"Welcome!","updatedCoreMemory":"## Book Memory\\n\\n## Interview Memory\\nTopic: childhood","shouldComplete":false}',
+        });
+      mockMessageCreate.mockResolvedValue({});
+
+      const result = await conversationService.startInterview("b1", "childhood", "Sarah");
+
+      expect(result).toEqual({ interviewId: "int1" });
+      // LLM called twice (initial + retry)
+      expect(mockGenerateResponse).toHaveBeenCalledTimes(2);
+      // Retry call includes correction prompt
+      expect(mockGenerateResponse).toHaveBeenNthCalledWith(2, "sys", [
+        { role: "user", content: "topic message" },
+        { role: "assistant", content: "This is not JSON" },
+        { role: "user", content: expect.stringContaining("not valid JSON") },
+      ]);
+      // Core memory persisted from successful retry
+      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
+        "b1",
+        "## Book Memory\n\n## Interview Memory\nTopic: childhood",
+      );
+    });
+
     it("strips old interview section and prepares fresh one", async () => {
       mockInterviewCreate.mockResolvedValue({
         id: "int1",
@@ -466,6 +506,34 @@ describe("conversationService", () => {
       await conversationService.redirect("int1", "b1", "Sarah");
 
       expect(mockBookUpdateCoreMemory).not.toHaveBeenCalled();
+    });
+
+    it("retries parse on invalid JSON and succeeds on retry", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: "sys",
+        messages: [{ role: "user", content: "redirect prompt" }],
+      });
+      // First call returns invalid JSON, second call (retry) returns valid JSON
+      mockGenerateResponse
+        .mockResolvedValueOnce({ content: "Not JSON at all" })
+        .mockResolvedValueOnce({
+          content: '{"response":"Let me ask about something else.","updatedCoreMemory":"## Book Memory\\nUpdated","shouldComplete":false}',
+        });
+
+      const result = await conversationService.redirect("int1", "b1", "Sarah");
+
+      expect(result).toEqual({ content: "Let me ask about something else." });
+      // LLM called twice (initial + retry)
+      expect(mockGenerateResponse).toHaveBeenCalledTimes(2);
+      // Retry call includes correction prompt
+      expect(mockGenerateResponse).toHaveBeenNthCalledWith(2, "sys", [
+        { role: "user", content: "redirect prompt" },
+        { role: "assistant", content: "Not JSON at all" },
+        { role: "user", content: expect.stringContaining("not valid JSON") },
+      ]);
+      // Core memory persisted from successful retry
+      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith("b1", "## Book Memory\nUpdated");
     });
 
     it("does not call interviewRepository.complete even when shouldComplete is true", async () => {
