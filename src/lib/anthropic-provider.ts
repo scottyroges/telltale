@@ -7,7 +7,7 @@ import type {
 } from "@/domain/llm-provider";
 
 const MODEL = "claude-sonnet-4-5-20250929";
-const DEFAULT_MAX_TOKENS = 1024;
+const DEFAULT_MAX_TOKENS = 2048;
 const TEMPERATURE = 0.7;
 
 export class AnthropicProvider implements LLMProvider {
