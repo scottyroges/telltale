@@ -298,6 +298,8 @@ function assembleIncremental(
   };
 }
 
+const CORE_MEMORY_PREFIX = "[Your memory";
+
 function enforceMaxTokens(context: ContextWindow): ContextWindow {
   const systemPromptTokens = estimateTokens(context.systemPrompt);
   const messagesTokens = estimateTokens(
@@ -314,12 +316,23 @@ function enforceMaxTokens(context: ContextWindow): ContextWindow {
     `[Context] Exceeded MAX_CONTEXT_TOKENS (${totalTokens} > ${MAX_CONTEXT_TOKENS}), applying aggressive truncation`,
   );
 
-  // Over hard limit: keep only the most recent messages that fit
-  const messages: LLMMessage[] = [];
+  // Find and reserve the core memory message
+  const coreMemoryIndex = context.messages.findIndex(
+    (m) => m.content.startsWith(CORE_MEMORY_PREFIX),
+  );
   let runningTotal = systemPromptTokens;
 
-  // Work backwards from the most recent message
+  if (coreMemoryIndex !== -1) {
+    runningTotal += estimateTokens(context.messages[coreMemoryIndex]!.content);
+  }
+
+  // Over hard limit: keep only the most recent messages that fit
+  const messages: LLMMessage[] = [];
+
+  // Work backwards from the most recent message, skipping core memory
   for (let i = context.messages.length - 1; i >= 0; i--) {
+    if (i === coreMemoryIndex) continue;
+
     const msg = context.messages[i]!;
     const msgTokens = estimateTokens(msg.content);
 
@@ -332,6 +345,17 @@ function enforceMaxTokens(context: ContextWindow): ContextWindow {
 
     messages.unshift(msg);
     runningTotal += msgTokens;
+  }
+
+  // Re-insert core memory in its original position relative to kept messages
+  if (coreMemoryIndex !== -1) {
+    const coreMemoryMsg = context.messages[coreMemoryIndex]!;
+    // Insert second-to-last (before the final message) if we have messages
+    if (messages.length > 0) {
+      messages.splice(messages.length - 1, 0, coreMemoryMsg);
+    } else {
+      messages.push(coreMemoryMsg);
+    }
   }
 
   return {
