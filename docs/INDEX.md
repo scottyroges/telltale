@@ -19,7 +19,7 @@
 
 ## Active Plans
 
-*(none)*
+- **docs/plans/active/2a-manual-test-plan.md** — Manual test script for 2a core memory block: step-by-step scenarios with SQL validation queries
 
 ## Completed Plans
 
