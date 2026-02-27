@@ -152,6 +152,7 @@ model Book {
   id            String         @id @default(cuid())
   userId        String
   title         String
+  coreMemory    String?
   status        BookStatus     @default(IN_PROGRESS)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookQuestions BookQuestion[]

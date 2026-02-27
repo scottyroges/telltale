@@ -25,6 +25,7 @@ export type Book = {
     id: string;
     userId: string;
     title: string;
+    coreMemory: string | null;
     status: Generated<BookStatus>;
     createdAt: Generated<Timestamp>;
     updatedAt: Timestamp;

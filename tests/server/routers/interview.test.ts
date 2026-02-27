@@ -78,6 +78,7 @@ const ownBook = {
   id: "book-1",
   userId: "user-1",
   title: "My Life",
+  coreMemory: null,
   status: "IN_PROGRESS",
   createdAt: now,
   updatedAt: now,
