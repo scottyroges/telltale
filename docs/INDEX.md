@@ -19,10 +19,11 @@
 
 ## Active Plans
 
-- **docs/plans/active/2a-core-memory-block.md** — Core memory block: replace per-message insight extraction with a bounded, evolving memory document on Book that persists across interviews (4 phases)
+- **docs/plans/active/2a-manual-test-plan.md** — Manual test script for 2a core memory block: step-by-step scenarios with SQL validation queries
 
 ## Completed Plans
 
+- **docs/plans/completed/2a-core-memory-block.md** — Core memory block: replace per-message insight extraction with a bounded, evolving memory document on Book that persists across interviews (4 phases + follow-up fixes)
 - **docs/plans/completed/2a.4-cleanup-cross-interview-verification.md** — Phase 4 of 2a: remove dormant insight code from conversation loop, clean up deprecated types, add cross-interview memory verification tests
 - **docs/plans/completed/2a.3-context-assembly-conversation-service.md** — Phase 3 of 2a: wire core memory into context assembly and conversation service, replace insight injection with memory block, persist updated memory to Book
 - **docs/plans/completed/2a.2-system-prompt-response-format.md** — Phase 2 of 2a: rewrite interviewer prompt for core memory block, update response parser for `updatedCoreMemory`, increase max tokens
