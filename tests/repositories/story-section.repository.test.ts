@@ -47,7 +47,7 @@ describe("storySectionRepository", () => {
       });
 
       expect(result).toEqual(expected);
-      expect(insertInto).toHaveBeenCalledWith("story_section");
+      expect(insertInto).toHaveBeenCalledWith("storySection");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
@@ -79,7 +79,7 @@ describe("storySectionRepository", () => {
       const result = await storySectionRepository.findByStoryId("st1");
 
       expect(result).toEqual(expected);
-      expect(selectFrom).toHaveBeenCalledWith("story_section");
+      expect(selectFrom).toHaveBeenCalledWith("storySection");
       expect(execute).toHaveBeenCalled();
     });
   });
@@ -103,7 +103,7 @@ describe("storySectionRepository", () => {
       );
 
       expect(result).toEqual(expected);
-      expect(updateTable).toHaveBeenCalledWith("story_section");
+      expect(updateTable).toHaveBeenCalledWith("storySection");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
@@ -124,7 +124,7 @@ describe("storySectionRepository", () => {
       const result = await storySectionRepository.updateStatus("ss1", "FINAL");
 
       expect(result).toEqual(expected);
-      expect(updateTable).toHaveBeenCalledWith("story_section");
+      expect(updateTable).toHaveBeenCalledWith("storySection");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });

@@ -22,7 +22,7 @@ export const bookQuestionRepository = {
     //   VALUES ($1, $2, $3, $4, $5)
     //   RETURNING <columns>
     return db
-      .insertInto("book_question")
+      .insertInto("bookQuestion")
       .values({
         id: createId(),
         ...data,
@@ -36,7 +36,7 @@ export const bookQuestionRepository = {
     // SELECT <columns> FROM book_question WHERE id = $1
     return (
       (await db
-        .selectFrom("book_question")
+        .selectFrom("bookQuestion")
         .where("id", "=", id)
         .select([...columns])
         .executeTakeFirst()) ?? null
@@ -46,7 +46,7 @@ export const bookQuestionRepository = {
   async findByBookId(bookId: string): Promise<BookQuestion[]> {
     // SELECT <columns> FROM book_question WHERE "bookId" = $1 ORDER BY "orderIndex" ASC
     return db
-      .selectFrom("book_question")
+      .selectFrom("bookQuestion")
       .where("bookId", "=", bookId)
       .select([...columns])
       .orderBy("orderIndex", "asc")
@@ -56,7 +56,7 @@ export const bookQuestionRepository = {
   async setInterviewId(id: string, interviewId: string): Promise<BookQuestion> {
     // UPDATE book_question SET "interviewId" = $1, "updatedAt" = $2 WHERE id = $3 RETURNING <columns>
     return db
-      .updateTable("book_question")
+      .updateTable("bookQuestion")
       .set({ interviewId, updatedAt: new Date() })
       .where("id", "=", id)
       .returning([...columns])
@@ -65,7 +65,7 @@ export const bookQuestionRepository = {
 
   async getNextOrderIndex(bookId: string): Promise<number> {
     const result = await db
-      .selectFrom("book_question")
+      .selectFrom("bookQuestion")
       .where("bookId", "=", bookId)
       .select(db.fn.max("orderIndex").as("maxIndex"))
       .executeTakeFirst();
@@ -75,7 +75,7 @@ export const bookQuestionRepository = {
   async delete(id: string): Promise<BookQuestion> {
     // DELETE FROM book_question WHERE id = $1 RETURNING <columns>
     return db
-      .deleteFrom("book_question")
+      .deleteFrom("bookQuestion")
       .where("id", "=", id)
       .returning([...columns])
       .executeTakeFirstOrThrow();

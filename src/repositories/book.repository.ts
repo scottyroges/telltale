@@ -74,22 +74,22 @@ export const bookRepository = {
       .select((eb) => [
         jsonArrayFrom(
           eb
-            .selectFrom("book_question")
-            .whereRef("book_question.bookId", "=", "book.id")
+            .selectFrom("bookQuestion")
+            .whereRef("bookQuestion.bookId", "=", "book.id")
             .select([
-              "book_question.id",
-              "book_question.bookId",
-              "book_question.questionId",
-              "book_question.orderIndex",
-              "book_question.interviewId",
-              "book_question.createdAt",
-              "book_question.updatedAt",
+              "bookQuestion.id",
+              "bookQuestion.bookId",
+              "bookQuestion.questionId",
+              "bookQuestion.orderIndex",
+              "bookQuestion.interviewId",
+              "bookQuestion.createdAt",
+              "bookQuestion.updatedAt",
             ])
             .select((eb2) => [
               jsonObjectFrom(
                 eb2
                   .selectFrom("question")
-                  .whereRef("question.id", "=", "book_question.questionId")
+                  .whereRef("question.id", "=", "bookQuestion.questionId")
                   .select([
                     "question.id",
                     "question.category",
@@ -100,7 +100,7 @@ export const bookRepository = {
                   ]),
               ).as("question"),
             ])
-            .orderBy("book_question.orderIndex", "asc"),
+            .orderBy("bookQuestion.orderIndex", "asc"),
         ).as("bookQuestions"),
         jsonArrayFrom(
           eb

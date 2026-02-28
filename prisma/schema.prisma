@@ -12,6 +12,7 @@ generator kysely {
   output       = "../src/db"
   fileName     = "types.ts"
   enumFileName = "enums.ts"
+  camelCase    = true
 }
 
 datasource db {
@@ -26,34 +27,34 @@ model User {
   id             String             @id
   name           String
   email          String             @unique
-  emailVerified  Boolean            @default(false)
+  emailVerified  Boolean            @default(false) @map("email_verified")
   image          String?
-  approvalStatus UserApprovalStatus @default(PENDING)
+  approvalStatus UserApprovalStatus @default(PENDING) @map("approval_status")
   role           UserRole           @default(USER)
   accounts       Account[]
   sessions       Session[]
   books          Book[]
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
 
   @@map("user")
 }
 
 model Account {
   id                    String    @id
-  userId                String
-  accountId             String
-  providerId            String
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
+  userId                String    @map("user_id")
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
   scope                 String?
   password              String?
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("account")
@@ -61,14 +62,14 @@ model Account {
 
 model Session {
   id        String   @id
-  userId    String
+  userId    String   @map("user_id")
   token     String   @unique
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("session")
@@ -78,9 +79,9 @@ model Verification {
   id         String   @id
   identifier String
   value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([identifier])
   @@map("verification")
@@ -140,27 +141,27 @@ model Question {
   id             String         @id @default(cuid())
   category       String
   prompt         String
-  orderIndex     Int
+  orderIndex     Int            @map("order_index")
   bookQuestions  BookQuestion[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
 
   @@map("question")
 }
 
 model Book {
   id            String         @id @default(cuid())
-  userId        String
+  userId        String         @map("user_id")
   title         String
-  coreMemory    String?
+  coreMemory    String?        @map("core_memory")
   status        BookStatus     @default(IN_PROGRESS)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookQuestions BookQuestion[]
   interviews    Interview[]
   insights      Insight[]
   stories       Story[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("book")
@@ -168,15 +169,15 @@ model Book {
 
 model BookQuestion {
   id          String     @id @default(cuid())
-  bookId      String
-  questionId  String
-  orderIndex  Int
-  interviewId String?    @unique
+  bookId      String     @map("book_id")
+  questionId  String     @map("question_id")
+  orderIndex  Int        @map("order_index")
+  interviewId String?    @unique @map("interview_id")
   book        Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
   question    Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
   interview   Interview? @relation(fields: [interviewId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
 
   @@unique([bookId, questionId])
   @@index([bookId])
@@ -186,18 +187,18 @@ model BookQuestion {
 
 model Interview {
   id           String             @id @default(cuid())
-  bookId       String
+  bookId       String             @map("book_id")
   topic        String
   status       InterviewStatus    @default(ACTIVE)
-  completedAt  DateTime?
+  completedAt  DateTime?          @map("completed_at")
   book         Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
   bookQuestion BookQuestion?
   messages     Message[]
   insights     Insight[]
   summaries    InterviewSummary[]
   stories      Story[]
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
 
   @@index([bookId])
   @@map("interview")
@@ -205,12 +206,12 @@ model Interview {
 
 model Message {
   id          String      @id @default(cuid())
-  interviewId String
+  interviewId String      @map("interview_id")
   role        MessageRole
   content     String
   hidden      Boolean     @default(false)
   interview   Interview   @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  createdAt   DateTime    @default(now())
+  createdAt   DateTime    @default(now()) @map("created_at")
 
   @@index([interviewId])
   @@map("message")
@@ -218,15 +219,15 @@ model Message {
 
 model Insight {
   id          String      @id @default(cuid())
-  bookId      String
-  interviewId String
+  bookId      String      @map("book_id")
+  interviewId String      @map("interview_id")
   type        InsightType
   content     String
   explored    Boolean     @default(false)
   book        Book        @relation(fields: [bookId], references: [id], onDelete: Cascade)
   interview   Interview   @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   @@index([bookId])
   @@index([interviewId])
@@ -235,14 +236,14 @@ model Insight {
 
 model InterviewSummary {
   id              String            @id @default(cuid())
-  interviewId     String
-  parentSummaryId String?           @unique
+  interviewId     String            @map("interview_id")
+  parentSummaryId String?           @unique @map("parent_summary_id")
   content         String
-  messageCount    Int
+  messageCount    Int               @map("message_count")
   interview       Interview         @relation(fields: [interviewId], references: [id], onDelete: Cascade)
   parentSummary   InterviewSummary? @relation("SummaryChain", fields: [parentSummaryId], references: [id])
   childSummary    InterviewSummary? @relation("SummaryChain")
-  createdAt       DateTime          @default(now())
+  createdAt       DateTime          @default(now()) @map("created_at")
 
   @@index([interviewId])
   @@index([parentSummaryId])
@@ -251,17 +252,17 @@ model InterviewSummary {
 
 model Story {
   id          String         @id @default(cuid())
-  bookId      String
-  interviewId String
+  bookId      String         @map("book_id")
+  interviewId String         @map("interview_id")
   title       String
   prose       String?
-  orderIndex  Int
+  orderIndex  Int            @map("order_index")
   status      StoryStatus    @default(DRAFT)
   book        Book           @relation(fields: [bookId], references: [id], onDelete: Cascade)
   interview   Interview      @relation(fields: [interviewId], references: [id], onDelete: Cascade)
   sections    StorySection[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
 
   @@index([bookId])
   @@index([interviewId])
@@ -270,13 +271,13 @@ model Story {
 
 model StorySection {
   id         String             @id @default(cuid())
-  storyId    String
-  orderIndex Int
+  storyId    String             @map("story_id")
+  orderIndex Int                @map("order_index")
   content    String
   status     StorySectionStatus @default(GENERATING)
   story      Story              @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
 
   @@index([storyId])
   @@map("story_section")

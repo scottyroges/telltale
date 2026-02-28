@@ -74,6 +74,7 @@ Ordered chunks of generated prose within a story. Each section is generated inde
 
 - **Application model IDs** use `@default(cuid())` in the Prisma schema, but since the Prisma client is not used at runtime, repositories generate IDs via `@paralleldrive/cuid2`. Better Auth models use plain `String @id` with runtime-generated IDs.
 - **Table names** use `@@map("snake_case")` for all models
+- **Column names** use `@map("snake_case")` in Prisma so the database is fully snake_case, while the Prisma schema and application code stay camelCase. Kysely's `CamelCasePlugin` handles the translation automatically — repositories reference tables and columns in camelCase (e.g., `selectFrom("bookQuestion")`, `.where("bookId", "=", id)`), and the plugin rewrites them to snake_case in the generated SQL. The `prisma-kysely` generator is configured with `camelCase = true` so the generated DB type map also uses camelCase table keys.
 - **Foreign keys** have `@@index` for query performance and `onDelete: Cascade` on parent relations
 - **InterviewSummary.parentSummaryId** has `@unique` to enforce a strict 1:1 linked list (each summary can be the parent of at most one child)
 - **Message** and **InterviewSummary** have no `updatedAt` — they are append-only/immutable

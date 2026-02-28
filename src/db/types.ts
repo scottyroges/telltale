@@ -134,15 +134,15 @@ export type Verification = {
 export type DB = {
     account: Account;
     book: Book;
-    book_question: BookQuestion;
+    bookQuestion: BookQuestion;
     insight: Insight;
     interview: Interview;
-    interview_summary: InterviewSummary;
+    interviewSummary: InterviewSummary;
     message: Message;
     question: Question;
     session: Session;
     story: Story;
-    story_section: StorySection;
+    storySection: StorySection;
     user: User;
     verification: Verification;
 };

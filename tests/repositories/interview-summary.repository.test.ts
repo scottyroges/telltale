@@ -45,7 +45,7 @@ describe("interviewSummaryRepository", () => {
       });
 
       expect(result).toEqual(expected);
-      expect(insertInto).toHaveBeenCalledWith("interview_summary");
+      expect(insertInto).toHaveBeenCalledWith("interviewSummary");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
 
@@ -68,7 +68,7 @@ describe("interviewSummaryRepository", () => {
       });
 
       expect(result).toEqual(expected);
-      expect(insertInto).toHaveBeenCalledWith("interview_summary");
+      expect(insertInto).toHaveBeenCalledWith("interviewSummary");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
@@ -89,7 +89,7 @@ describe("interviewSummaryRepository", () => {
         await interviewSummaryRepository.findLatestByInterviewId("i1");
 
       expect(result).toEqual(expected);
-      expect(selectFrom).toHaveBeenCalledWith("interview_summary");
+      expect(selectFrom).toHaveBeenCalledWith("interviewSummary");
       expect(executeTakeFirst).toHaveBeenCalled();
     });
 
@@ -100,7 +100,7 @@ describe("interviewSummaryRepository", () => {
         await interviewSummaryRepository.findLatestByInterviewId("i1");
 
       expect(result).toBeNull();
-      expect(selectFrom).toHaveBeenCalledWith("interview_summary");
+      expect(selectFrom).toHaveBeenCalledWith("interviewSummary");
     });
   });
 });
