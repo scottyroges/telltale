@@ -49,7 +49,7 @@ describe("bookQuestionRepository", () => {
       });
 
       expect(result).toEqual(expected);
-      expect(insertInto).toHaveBeenCalledWith("book_question");
+      expect(insertInto).toHaveBeenCalledWith("bookQuestion");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
@@ -70,7 +70,7 @@ describe("bookQuestionRepository", () => {
       const result = await bookQuestionRepository.findById("bq1");
 
       expect(result).toEqual(expected);
-      expect(selectFrom).toHaveBeenCalledWith("book_question");
+      expect(selectFrom).toHaveBeenCalledWith("bookQuestion");
       expect(executeTakeFirst).toHaveBeenCalled();
     });
 
@@ -101,7 +101,7 @@ describe("bookQuestionRepository", () => {
       const result = await bookQuestionRepository.findByBookId("b1");
 
       expect(result).toEqual(expected);
-      expect(selectFrom).toHaveBeenCalledWith("book_question");
+      expect(selectFrom).toHaveBeenCalledWith("bookQuestion");
       expect(execute).toHaveBeenCalled();
     });
   });
@@ -122,7 +122,7 @@ describe("bookQuestionRepository", () => {
       const result = await bookQuestionRepository.setInterviewId("bq1", "int-1");
 
       expect(result).toEqual(expected);
-      expect(updateTable).toHaveBeenCalledWith("book_question");
+      expect(updateTable).toHaveBeenCalledWith("bookQuestion");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });
@@ -143,7 +143,7 @@ describe("bookQuestionRepository", () => {
       const result = await bookQuestionRepository.delete("bq1");
 
       expect(result).toEqual(expected);
-      expect(deleteFrom).toHaveBeenCalledWith("book_question");
+      expect(deleteFrom).toHaveBeenCalledWith("bookQuestion");
       expect(executeTakeFirstOrThrow).toHaveBeenCalled();
     });
   });

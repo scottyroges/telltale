@@ -22,7 +22,7 @@ export const interviewSummaryRepository = {
     //   VALUES ($1, $2, $3, $4, $5)
     //   RETURNING <columns>
     return db
-      .insertInto("interview_summary")
+      .insertInto("interviewSummary")
       .values({
         id: createId(),
         interviewId: data.interviewId,
@@ -41,7 +41,7 @@ export const interviewSummaryRepository = {
     //   WHERE "interviewId" = $1 ORDER BY "createdAt" DESC LIMIT 1
     return (
       (await db
-        .selectFrom("interview_summary")
+        .selectFrom("interviewSummary")
         .where("interviewId", "=", interviewId)
         .select([...columns])
         .orderBy("createdAt", "desc")

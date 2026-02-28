@@ -22,7 +22,7 @@ export const storySectionRepository = {
     //   VALUES ($1, $2, $3, $4, 'GENERATING', $5)
     //   RETURNING <columns>
     return db
-      .insertInto("story_section")
+      .insertInto("storySection")
       .values({
         id: createId(),
         ...data,
@@ -36,7 +36,7 @@ export const storySectionRepository = {
   async findByStoryId(storyId: string): Promise<StorySection[]> {
     // SELECT <columns> FROM story_section WHERE "storyId" = $1 ORDER BY "orderIndex" ASC
     return db
-      .selectFrom("story_section")
+      .selectFrom("storySection")
       .where("storyId", "=", storyId)
       .select([...columns])
       .orderBy("orderIndex", "asc")
@@ -46,7 +46,7 @@ export const storySectionRepository = {
   async updateContent(id: string, content: string): Promise<StorySection> {
     // UPDATE story_section SET content = $1, "updatedAt" = $2 WHERE id = $3 RETURNING <columns>
     return db
-      .updateTable("story_section")
+      .updateTable("storySection")
       .set({ content, updatedAt: new Date() })
       .where("id", "=", id)
       .returning([...columns])
@@ -59,7 +59,7 @@ export const storySectionRepository = {
   ): Promise<StorySection> {
     // UPDATE story_section SET status = $1, "updatedAt" = $2 WHERE id = $3 RETURNING <columns>
     return db
-      .updateTable("story_section")
+      .updateTable("storySection")
       .set({ status, updatedAt: new Date() })
       .where("id", "=", id)
       .returning([...columns])
