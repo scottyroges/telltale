@@ -4,7 +4,7 @@ import { llmProvider } from "@/lib/llm";
 import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
 import { interviewSummaryRepository } from "@/repositories/interview-summary.repository";
-import { getInterviewerSystemPrompt } from "@/prompts/interviewer";
+import { getConversationSystemPrompt } from "@/prompts/interviewer";
 import { SUMMARIZATION_PROMPT } from "@/prompts/summarization";
 import type { LLMMessage } from "@/domain/llm-provider";
 import type { Message } from "@/domain/message";
@@ -378,7 +378,7 @@ export const contextService = {
       throw new Error(`Interview not found: ${interviewId}`);
     }
 
-    const systemPrompt = getInterviewerSystemPrompt(userName);
+    const systemPrompt = getConversationSystemPrompt(userName);
 
     // Filter to USER + ASSISTANT only (exclude SYSTEM)
     const conversationMessages = allMessages.filter(

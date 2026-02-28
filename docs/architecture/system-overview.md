@@ -53,11 +53,11 @@ src/
 │   └── summarization.ts       # Prompt for conversation summarization
 │
 ├── services/                  # Business logic (NO framework imports)
-│   ├── conversation.service   # AI interview engine
+│   ├── conversation.service   # AI interview engine (fires conversation + memory in parallel)
 │   ├── context.service        # Context window assembly + summarization
+│   ├── memory.service         # Core memory updates (parallel LLM call, DB write, error-resilient)
 │   ├── story.service          # Story CRUD + lifecycle
 │   ├── synthesis.service      # Conversation → polished narrative
-│   ├── response-parser        # Parse structured LLM output (response text, core memory block, completion signal)
 │   ├── book.service           # Book assembly + export
 │   ├── admin.service          # User approval management
 │   └── audio.service          # Transcription + TTS (Phase 2)

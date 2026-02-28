@@ -835,12 +835,13 @@ Must cover all scenarios:
 
 ### Integration Tests (conversation.service.test.ts)
 
-Mock `contextService` and verify:
+Mock `contextService` and `memoryService`, verify:
 - ✅ `startInterview` calls `buildContextWindow` with prepared memory (book section preserved, fresh interview section)
+- ✅ `startInterview` does not call `memoryService` (no meaningful context yet)
 - ✅ `sendMessage` calls `buildContextWindow` with raw core memory from book
+- ✅ `sendMessage` and `redirect` fire conversation + memory calls in parallel
 - ✅ Context passed correctly to LLM
-- ✅ Updated core memory from response persisted to book via `bookRepository.updateCoreMemory`
-- ✅ Parse failure (`updatedCoreMemory: null`) does not overwrite existing memory
+- ✅ `shouldComplete` from memory service triggers interview completion
 
 ### Manual Verification
 
