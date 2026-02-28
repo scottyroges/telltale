@@ -17,4 +17,10 @@ export interface LLMProvider {
     messages: LLMMessage[],
     options?: LLMGenerateOptions,
   ): Promise<LLMResponse>;
+
+  generateStreamingResponse(
+    systemPrompt: string,
+    messages: LLMMessage[],
+    options?: LLMGenerateOptions,
+  ): AsyncIterable<string>;
 }

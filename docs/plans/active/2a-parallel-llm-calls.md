@@ -1,4 +1,4 @@
-# Plan 2b: Parallel LLM Calls (Conversation + Memory)
+# Plan 2a: Parallel LLM Calls (Conversation + Memory)
 
 ## Problem
 

@@ -33,4 +33,30 @@ export class AnthropicProvider implements LLMProvider {
     }
     return { content: textBlock.text };
   }
+
+  async *generateStreamingResponse(
+    systemPrompt: string,
+    messages: LLMMessage[],
+    options?: LLMGenerateOptions,
+  ): AsyncGenerator<string> {
+    const stream = anthropic.messages.stream({
+      model: MODEL,
+      max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
+      temperature: TEMPERATURE,
+      system: systemPrompt,
+      messages: messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+    });
+
+    for await (const event of stream) {
+      if (
+        event.type === "content_block_delta" &&
+        event.delta.type === "text_delta"
+      ) {
+        yield event.delta.text;
+      }
+    }
+  }
 }
