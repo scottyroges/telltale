@@ -23,17 +23,19 @@ When the user sends a message, fire two LLM calls simultaneously:
 
 ### Memory call — the interviewer's internal thoughts
 
-- Input: system prompt (memory instructions only) + current core memory + last 2-4 messages (not the full conversation)
+- Input: system prompt (memory instructions only) + current core memory + messages since last memory update (typically 2: previous assistant response + new user message)
 - Output: JSON with `{ updatedCoreMemory, shouldComplete }`
 - Runs in background, writes to DB on completion
 - Can use a cheaper/smaller model since it's just note-taking
 - Owns all analytical judgments: what to remember, what to compress, and whether the interview has reached its natural end
 
-The memory call doesn't need the full conversation history — it *is* the memory. The core memory block carries forward everything it's decided to retain. It only needs to see what's new (the latest exchange) to decide what to update. This keeps the context window tiny and the cost low.
+The memory call doesn't need the full conversation history — it *is* the memory. The core memory block carries forward everything it's decided to retain. It only needs to see what's new since the last update — typically the previous assistant response and the new user message. In edge cases (rapid messages, failed updates), it includes all messages since the last successful memory write. This keeps the context window tiny and the cost low.
+
+Note: The memory call does not see the current turn's AI response — only prior messages. This is by design. The calls run in parallel, so the AI's response doesn't exist yet when the memory call fires. The memory call's job is to react to what the user said, not to what the AI said back.
 
 ### Timing
 
-The next turn's conversation call needs the updated memory. This is naturally satisfied — the user takes longer to read and type than the memory call takes to complete. If for some reason it hasn't landed yet, wait for it before sending the next turn's context.
+The next turn's conversation call reads whatever memory is committed in the DB. The user typically takes longer to read and type than the memory call takes to complete, so memory is fresh. If the memory call hasn't landed yet, the conversation uses the previous turn's memory — one turn stale at worst. The adaptive message window on the memory call ("since last successful write") means it will catch up on the next turn.
 
 ## Benefits
 
@@ -51,23 +53,42 @@ The next turn's conversation call needs the updated memory. This is naturally sa
 - Extract memory instructions into a memory-only prompt (JSON output with `updatedCoreMemory` and `shouldComplete`)
 
 ### Conversation service
-- `src/services/conversation.service.ts` — Replace single `generateResponse` with two parallel calls
-- Conversation call returns a stream; memory call returns a promise
-- Handle the case where memory call fails (log error, preserve existing memory, don't break the conversation)
+- `src/services/conversation.service.ts` — Fires the conversation call (streaming) and the memory call (via `memoryService`) in parallel in all three methods: `sendMessage`, `startInterview`, and `redirect`
+- Conversation call returns a stream
+- Assistant message persisted to DB after the stream completes (collect full text during streaming, save once done)
+
+### Memory service (new)
+- `src/services/memory.service.ts` — Owns the memory call end-to-end: context assembly (core memory + messages since last update), LLM call, JSON parsing, DB write
+- Context assembly is simple — no summarization or token counting, just concatenate core memory + recent messages
+- Handles its own errors — if the call or parse fails, log and preserve existing memory
+- Called by `conversationService`, independently testable
 
 ### Streaming infrastructure
-- tRPC subscription or SSE endpoint for streaming the conversation response to the client
+- Switch tRPC client from `httpBatchLink` to `httpBatchStreamLink` — enables streaming responses over existing HTTP transport
+- Model the conversation call as a tRPC generator procedure that `yield`s string chunks during execution and `return`s `{ shouldComplete }` after awaiting the memory call at the end
+- Client iterates chunks for rendering, reads the return value for completion state
 - Client-side rendering of streaming tokens in the interview UI
 
 ### Response parsing
 - Conversation response is plain text — no JSON parsing needed
 - Memory response is simpler JSON — just `{ updatedCoreMemory, shouldComplete }`
+- No retry mechanism for memory call — if JSON parsing fails, log the error, preserve existing memory, and move on. The next turn's memory call will naturally pick up the unprocessed messages since it includes all messages since the last successful memory write
 
 ## Open Questions
 
-- **Streaming transport:** tRPC subscriptions vs SSE vs something else. Need to evaluate what works best with Next.js App Router.
-- **Race condition:** What if the user sends another message before the memory call completes? Need a strategy — queue, drop the stale update, or merge.
-- **Completion handoff:** When the memory call sets `shouldComplete: true`, the conversation response is already streaming (or finished). Need a mechanism to signal the client that this was a closing turn — e.g. the client polls for completion status after each turn, or the memory call result pushes an event.
+- ~~**Streaming transport:**~~ **Resolved:** tRPC v11 `httpBatchStreamLink` with generator procedures. No new transport needed — just swap the link and yield chunks from the procedure.
+- ~~**Race condition:**~~ **Resolved:** No waiting. The conversation call reads whatever memory is in the DB. If the previous memory call hasn't landed, the conversation uses stale memory for one turn. The memory call's adaptive window (messages since last successful write) catches up naturally.
+- ~~**Completion handoff:**~~ **Resolved:** The tRPC generator procedure `yield`s chunks during streaming, then awaits the memory call and `return`s `{ shouldComplete }`. The client gets completion state as the procedure's return value after the stream ends.
+
+## PR Split
+
+**PR 1: Prompt split.** Extract the single interviewer prompt into two: a conversation-only prompt (plain text output) and a memory-only prompt (JSON with `{ updatedCoreMemory, shouldComplete }`). No behavior change — the conversation service still makes a single call. Delivers independently testable prompts.
+
+**PR 2: `LLMProvider` streaming interface.** Add a `generateStreamingResponse` method to `LLMProvider` and implement it in `AnthropicProvider`. Pure infrastructure — no callers change yet.
+
+**PR 3: Memory service + parallel calls.** Create `memoryService`. Change `conversationService` to fire conversation and memory calls in parallel. Conversation call still uses non-streaming `generateResponse` for now. Delivers the latency improvement from parallelism and the resilience benefit without touching any client code.
+
+**PR 4: Streaming transport + client rendering.** Switch to `httpBatchStreamLink`, convert tRPC procedures to generators that yield chunks, update the interview UI to render tokens incrementally. End-to-end streaming.
 
 ## Out of Scope
 
