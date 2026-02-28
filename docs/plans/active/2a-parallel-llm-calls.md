@@ -82,11 +82,11 @@ The next turn's conversation call reads whatever memory is committed in the DB. 
 
 ## PR Split
 
-**PR 1: Prompt split.** Extract the single interviewer prompt into two: a conversation-only prompt (plain text output) and a memory-only prompt (JSON with `{ updatedCoreMemory, shouldComplete }`). No behavior change — the conversation service still makes a single call. Delivers independently testable prompts.
+**PR 1: Prompt split.** Extract the single interviewer prompt into two: a conversation-only prompt (plain text output) and a memory-only prompt (JSON with `{ updatedCoreMemory, shouldComplete }`). No behavior change — the conversation service still makes a single call. Delivers independently testable prompts. **Complete.**
 
-**PR 2: `LLMProvider` streaming interface.** Add a `generateStreamingResponse` method to `LLMProvider` and implement it in `AnthropicProvider`. Pure infrastructure — no callers change yet.
+**PR 2: `LLMProvider` streaming interface.** Add a `generateStreamingResponse` method to `LLMProvider` and implement it in `AnthropicProvider`. Pure infrastructure — no callers change yet. **Complete.**
 
-**PR 3: Memory service + parallel calls.** Create `memoryService`. Change `conversationService` to fire conversation and memory calls in parallel. Conversation call still uses non-streaming `generateResponse` for now. Delivers the latency improvement from parallelism and the resilience benefit without touching any client code.
+**PR 3: Memory service + parallel calls.** Create `memoryService`. Change `conversationService` to fire conversation and memory calls in parallel. Conversation call still uses non-streaming `generateResponse` for now. Delivers the latency improvement from parallelism and the resilience benefit without touching any client code. **Complete.** Memory service is self-contained (`src/services/memory.service.ts`): fetches recent messages, calls LLM with memory prompt, parses JSON, writes to DB. Wrapped in try/catch so failures never propagate. Conversation responses are plain text (no JSON wrapper, no `parseWithRetry`). `startInterview` skips memory call (no meaningful context at interview start).
 
 **PR 4: Streaming transport + client rendering.** Switch to `httpBatchStreamLink`, convert tRPC procedures to generators that yield chunks, update the interview UI to render tokens incrementally. End-to-end streaming.
 

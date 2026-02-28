@@ -2,8 +2,8 @@ import { llmProvider } from "@/lib/llm";
 import { interviewRepository } from "@/repositories/interview.repository";
 import { messageRepository } from "@/repositories/message.repository";
 import { bookRepository } from "@/repositories/book.repository";
-import { parseWithRetry } from "@/services/response-parser";
 import { contextService } from "@/services/context.service";
+import { memoryService } from "@/services/memory.service";
 import { REDIRECT_PROMPT } from "@/prompts/interviewer";
 
 function prepareMemoryForNewInterview(coreMemory: string | null, topic: string): string | null {
@@ -43,24 +43,11 @@ export const conversationService = {
       context.messages,
     );
 
-    const parsed = await parseWithRetry(response.content, async (correctionPrompt) => {
-      const retry = await llmProvider.generateResponse(context.systemPrompt, [
-        ...context.messages,
-        { role: "assistant", content: response.content },
-        { role: "user", content: correctionPrompt },
-      ]);
-      return retry.content;
-    });
-
     await messageRepository.create({
       interviewId: interview.id,
       role: "ASSISTANT",
-      content: parsed.text,
+      content: response.content,
     });
-
-    if (parsed.updatedCoreMemory !== null) {
-      await bookRepository.updateCoreMemory(bookId, parsed.updatedCoreMemory);
-    }
 
     return { interviewId: interview.id };
   },
@@ -77,35 +64,23 @@ export const conversationService = {
 
     const context = await contextService.buildContextWindow(interviewId, userName, book?.coreMemory ?? null);
 
-    const response = await llmProvider.generateResponse(
-      context.systemPrompt,
-      context.messages,
-    );
-
-    const parsed = await parseWithRetry(response.content, async (correctionPrompt) => {
-      const retry = await llmProvider.generateResponse(context.systemPrompt, [
-        ...context.messages,
-        { role: "assistant", content: response.content },
-        { role: "user", content: correctionPrompt },
-      ]);
-      return retry.content;
-    });
+    // Fire conversation + memory in parallel
+    const [response, memoryResult] = await Promise.all([
+      llmProvider.generateResponse(context.systemPrompt, context.messages),
+      memoryService.updateMemory(interviewId, bookId, book?.coreMemory ?? null),
+    ]);
 
     await messageRepository.create({
       interviewId,
       role: "ASSISTANT",
-      content: parsed.text,
+      content: response.content,
     });
 
-    if (parsed.updatedCoreMemory !== null) {
-      await bookRepository.updateCoreMemory(bookId, parsed.updatedCoreMemory);
-    }
-
-    if (parsed.shouldComplete) {
+    if (memoryResult.shouldComplete) {
       await interviewRepository.complete(interviewId);
     }
 
-    return { content: parsed.text, shouldComplete: parsed.shouldComplete };
+    return { content: response.content, shouldComplete: memoryResult.shouldComplete };
   },
 
   async redirect(interviewId: string, bookId: string, userName: string) {
@@ -121,31 +96,20 @@ export const conversationService = {
 
     const context = await contextService.buildContextWindow(interviewId, userName, book?.coreMemory ?? null);
 
-    const response = await llmProvider.generateResponse(
-      context.systemPrompt,
-      context.messages,
-    );
-
-    const parsed = await parseWithRetry(response.content, async (correctionPrompt) => {
-      const retry = await llmProvider.generateResponse(context.systemPrompt, [
-        ...context.messages,
-        { role: "assistant", content: response.content },
-        { role: "user", content: correctionPrompt },
-      ]);
-      return retry.content;
-    });
+    // Fire conversation + memory in parallel.
+    // shouldComplete is intentionally ignored — redirect signals the user wants to continue.
+    const [response] = await Promise.all([
+      llmProvider.generateResponse(context.systemPrompt, context.messages),
+      memoryService.updateMemory(interviewId, bookId, book?.coreMemory ?? null),
+    ]);
 
     await messageRepository.create({
       interviewId,
       role: "ASSISTANT",
-      content: parsed.text,
+      content: response.content,
     });
 
-    if (parsed.updatedCoreMemory !== null) {
-      await bookRepository.updateCoreMemory(bookId, parsed.updatedCoreMemory);
-    }
-
-    return { content: parsed.text };
+    return { content: response.content };
   },
 
   async getInterviewMessages(interviewId: string) {

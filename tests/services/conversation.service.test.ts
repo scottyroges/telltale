@@ -15,6 +15,13 @@ vi.mock("@/services/context.service", () => ({
   },
 }));
 
+const mockMemoryUpdate = vi.hoisted(() => vi.fn());
+vi.mock("@/services/memory.service", () => ({
+  memoryService: {
+    updateMemory: mockMemoryUpdate,
+  },
+}));
+
 const mockInterviewCreate = vi.hoisted(() => vi.fn());
 const mockInterviewComplete = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/interview.repository", () => ({
@@ -34,11 +41,9 @@ vi.mock("@/repositories/message.repository", () => ({
 }));
 
 const mockBookFindById = vi.hoisted(() => vi.fn());
-const mockBookUpdateCoreMemory = vi.hoisted(() => vi.fn());
 vi.mock("@/repositories/book.repository", () => ({
   bookRepository: {
     findById: mockBookFindById,
-    updateCoreMemory: mockBookUpdateCoreMemory,
   },
 }));
 
@@ -60,7 +65,7 @@ describe("conversationService", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockBookFindById.mockResolvedValue(defaultBook);
-    mockBookUpdateCoreMemory.mockResolvedValue(defaultBook);
+    mockMemoryUpdate.mockResolvedValue({ shouldComplete: false });
     const mod = await import("@/services/conversation.service");
     conversationService = mod.conversationService;
   });
@@ -79,7 +84,7 @@ describe("conversationService", () => {
 
       mockInterviewCreate.mockResolvedValue(interview);
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [
           {
             role: "user",
@@ -90,7 +95,7 @@ describe("conversationService", () => {
         ],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Welcome! Tell me about your earliest memories.","updatedCoreMemory":"## Book Memory\\nKey people: Maria\\n\\n## Interview Memory\\nTopic: Tell me about your earliest memories","shouldComplete":false}',
+        content: "Welcome! Tell me about your earliest memories.",
       });
       mockMessageCreate.mockResolvedValue({});
 
@@ -126,7 +131,7 @@ describe("conversationService", () => {
       );
 
       expect(mockGenerateResponse).toHaveBeenCalledWith(
-        expect.any(String),
+        "system prompt",
         [
           {
             role: "user",
@@ -145,35 +150,8 @@ describe("conversationService", () => {
         content: "Welcome! Tell me about your earliest memories.",
       });
 
-      // Core memory persisted
-      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
-        "b1",
-        "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: Tell me about your earliest memories",
-      );
-    });
-
-    it("does not persist core memory when updatedCoreMemory is null", async () => {
-      mockInterviewCreate.mockResolvedValue({
-        id: "int1",
-        bookId: "b1",
-        topic: "Tell me about your earliest memories",
-        status: "ACTIVE",
-        completedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
-        messages: [{ role: "user", content: "topic message" }],
-      });
-      mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Welcome!","shouldComplete":false}',
-      });
-      mockMessageCreate.mockResolvedValue({});
-
-      await conversationService.startInterview("b1", "Tell me about your earliest memories", "Sarah");
-
-      expect(mockBookUpdateCoreMemory).not.toHaveBeenCalled();
+      // Memory service not called — no meaningful context at interview start
+      expect(mockMemoryUpdate).not.toHaveBeenCalled();
     });
 
     it("passes null coreMemory for first interview (no existing book memory)", async () => {
@@ -188,11 +166,11 @@ describe("conversationService", () => {
         updatedAt: new Date(),
       });
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [{ role: "user", content: "topic message" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Welcome!","updatedCoreMemory":"## Book Memory\\n\\n## Interview Memory\\nTopic: childhood","shouldComplete":false}',
+        content: "Welcome!",
       });
       mockMessageCreate.mockResolvedValue({});
 
@@ -201,51 +179,8 @@ describe("conversationService", () => {
       // Context service gets null (no existing memory to prepare)
       expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", null);
 
-      // But memory is still persisted from the LLM response
-      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
-        "b1",
-        "## Book Memory\n\n## Interview Memory\nTopic: childhood",
-      );
-    });
-
-    it("retries parse on invalid JSON and succeeds on retry", async () => {
-      mockInterviewCreate.mockResolvedValue({
-        id: "int1",
-        bookId: "b1",
-        topic: "childhood",
-        status: "ACTIVE",
-        completedAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: "sys",
-        messages: [{ role: "user", content: "topic message" }],
-      });
-      // First call returns invalid JSON, second call (retry) returns valid JSON
-      mockGenerateResponse
-        .mockResolvedValueOnce({ content: "This is not JSON" })
-        .mockResolvedValueOnce({
-          content: '{"response":"Welcome!","updatedCoreMemory":"## Book Memory\\n\\n## Interview Memory\\nTopic: childhood","shouldComplete":false}',
-        });
-      mockMessageCreate.mockResolvedValue({});
-
-      const result = await conversationService.startInterview("b1", "childhood", "Sarah");
-
-      expect(result).toEqual({ interviewId: "int1" });
-      // LLM called twice (initial + retry)
-      expect(mockGenerateResponse).toHaveBeenCalledTimes(2);
-      // Retry call includes correction prompt
-      expect(mockGenerateResponse).toHaveBeenNthCalledWith(2, "sys", [
-        { role: "user", content: "topic message" },
-        { role: "assistant", content: "This is not JSON" },
-        { role: "user", content: expect.stringContaining("not valid JSON") },
-      ]);
-      // Core memory persisted from successful retry
-      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
-        "b1",
-        "## Book Memory\n\n## Interview Memory\nTopic: childhood",
-      );
+      // Memory service not called at interview start
+      expect(mockMemoryUpdate).not.toHaveBeenCalled();
     });
 
     it("strips old interview section and prepares fresh one", async () => {
@@ -259,11 +194,11 @@ describe("conversationService", () => {
         updatedAt: new Date(),
       });
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [{ role: "user", content: "topic message" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Welcome!","shouldComplete":false}',
+        content: "Welcome!",
       });
       mockMessageCreate.mockResolvedValue({});
 
@@ -282,7 +217,7 @@ describe("conversationService", () => {
     it("persists user message, calls LLM with history, and returns response", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [
           { role: "user", content: "topic message" },
           { role: "assistant", content: "opening question" },
@@ -290,7 +225,7 @@ describe("conversationService", () => {
         ],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"That\'s fascinating! Tell me more.","updatedCoreMemory":"## Book Memory\\nKey people: Maria\\n\\n## Interview Memory\\nTopic: old topic\\nNew detail: story detail","shouldComplete":false}',
+        content: "That's fascinating! Tell me more.",
       });
 
       const result = await conversationService.sendMessage("int1", "b1", "my story", "Sarah");
@@ -310,9 +245,9 @@ describe("conversationService", () => {
       // Context service builds context window with raw coreMemory
       expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", defaultBook.coreMemory);
 
-      // Maps roles to lowercase for LLM
+      // LLM called with context
       expect(mockGenerateResponse).toHaveBeenCalledWith(
-        expect.any(String),
+        "system prompt",
         [
           { role: "user", content: "topic message" },
           { role: "assistant", content: "opening question" },
@@ -320,45 +255,27 @@ describe("conversationService", () => {
         ],
       );
 
-      // Persists assistant response (plain text, not raw JSON)
+      // Persists assistant response (plain text)
       expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",
         role: "ASSISTANT",
         content: "That's fascinating! Tell me more.",
       });
 
-      // Core memory persisted
-      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
-        "b1",
-        "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: old topic\nNew detail: story detail",
-      );
+      // Memory service called with correct args
+      expect(mockMemoryUpdate).toHaveBeenCalledWith("int1", "b1", defaultBook.coreMemory);
     });
 
-    it("filters out SYSTEM messages from LLM history", async () => {
+    it("auto-completes interview when memory service returns shouldComplete: true", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
-        messages: [{ role: "user", content: "hello" }],
-      });
-      mockGenerateResponse.mockResolvedValue({ content: '{"response":"hi","shouldComplete":false}' });
-
-      await conversationService.sendMessage("int1", "b1", "hello", "Sarah");
-
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", defaultBook.coreMemory);
-      expect(mockGenerateResponse).toHaveBeenCalledWith(expect.any(String), [
-        { role: "user", content: "hello" },
-      ]);
-    });
-
-    it("auto-completes interview when shouldComplete is true", async () => {
-      mockMessageCreate.mockResolvedValue({});
-      mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [{ role: "user", content: "yes, let's wrap up" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Thank you for sharing!","updatedCoreMemory":"## Book Memory\\nFinal","shouldComplete":true}',
+        content: "Thank you for sharing!",
       });
+      mockMemoryUpdate.mockResolvedValue({ shouldComplete: true });
       mockInterviewComplete.mockResolvedValue({});
 
       const result = await conversationService.sendMessage("int1", "b1", "yes, let's wrap up", "Sarah");
@@ -370,12 +287,13 @@ describe("conversationService", () => {
     it("propagates error when interviewRepository.complete() fails during auto-completion", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [{ role: "user", content: "yes, let's wrap up" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Thank you for sharing!","shouldComplete":true}',
+        content: "Thank you for sharing!",
       });
+      mockMemoryUpdate.mockResolvedValue({ shouldComplete: true });
       mockInterviewComplete.mockRejectedValue(new Error("DB connection lost"));
 
       await expect(
@@ -393,11 +311,11 @@ describe("conversationService", () => {
     it("does not complete interview when shouldComplete is false", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [{ role: "user", content: "tell me more" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Tell me more about that.","shouldComplete":false}',
+        content: "Tell me more about that.",
       });
 
       const result = await conversationService.sendMessage("int1", "b1", "tell me more", "Sarah");
@@ -405,34 +323,13 @@ describe("conversationService", () => {
       expect(result).toEqual({ content: "Tell me more about that.", shouldComplete: false });
       expect(mockInterviewComplete).not.toHaveBeenCalled();
     });
-
-    it("does not persist core memory on parse failure", async () => {
-      mockMessageCreate.mockResolvedValue({});
-      mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
-        messages: [{ role: "user", content: "hello" }],
-      });
-      // Both initial response and retry return unparseable plain text
-      mockGenerateResponse.mockResolvedValue({ content: "This is just plain text, not JSON." });
-
-      const result = await conversationService.sendMessage("int1", "b1", "hello", "Sarah");
-
-      expect(result).toEqual({ content: "This is just plain text, not JSON.", shouldComplete: false });
-      expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", defaultBook.coreMemory);
-      expect(mockBookUpdateCoreMemory).not.toHaveBeenCalled();
-      expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
-        interviewId: "int1",
-        role: "ASSISTANT",
-        content: "This is just plain text, not JSON.",
-      });
-    });
   });
 
   describe("redirect", () => {
     it("creates hidden USER message, calls LLM, persists ASSISTANT message, and returns content", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [
           { role: "user", content: "topic message" },
           { role: "assistant", content: "opening question" },
@@ -440,7 +337,7 @@ describe("conversationService", () => {
         ],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"What a wonderful story. Let me ask about something different — what was school like for you growing up?","updatedCoreMemory":"## Book Memory\\nKey people: Maria\\n\\n## Interview Memory\\nTopic: old topic\\nRedirected","shouldComplete":false}',
+        content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
       });
 
       const result = await conversationService.redirect("int1", "b1", "Sarah");
@@ -470,21 +367,18 @@ describe("conversationService", () => {
         content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
       });
 
-      // Core memory persisted
-      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith(
-        "b1",
-        "## Book Memory\nKey people: Maria\n\n## Interview Memory\nTopic: old topic\nRedirected",
-      );
+      // Memory service called
+      expect(mockMemoryUpdate).toHaveBeenCalledWith("int1", "b1", defaultBook.coreMemory);
     });
 
     it("creates USER message with hidden: true", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [{ role: "user", content: "redirect prompt" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Let me ask about something else.","shouldComplete":false}',
+        content: "Let me ask about something else.",
       });
 
       await conversationService.redirect("int1", "b1", "Sarah");
@@ -493,58 +387,16 @@ describe("conversationService", () => {
       expect(firstCall.hidden).toBe(true);
     });
 
-    it("does not persist core memory when updatedCoreMemory is null", async () => {
+    it("does not call interviewRepository.complete even when memory returns shouldComplete: true", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
+        systemPrompt: "system prompt",
         messages: [{ role: "user", content: "redirect prompt" }],
       });
       mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Let me ask about something else.","shouldComplete":false}',
+        content: "Let me ask about something else.",
       });
-
-      await conversationService.redirect("int1", "b1", "Sarah");
-
-      expect(mockBookUpdateCoreMemory).not.toHaveBeenCalled();
-    });
-
-    it("retries parse on invalid JSON and succeeds on retry", async () => {
-      mockMessageCreate.mockResolvedValue({});
-      mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: "sys",
-        messages: [{ role: "user", content: "redirect prompt" }],
-      });
-      // First call returns invalid JSON, second call (retry) returns valid JSON
-      mockGenerateResponse
-        .mockResolvedValueOnce({ content: "Not JSON at all" })
-        .mockResolvedValueOnce({
-          content: '{"response":"Let me ask about something else.","updatedCoreMemory":"## Book Memory\\nUpdated","shouldComplete":false}',
-        });
-
-      const result = await conversationService.redirect("int1", "b1", "Sarah");
-
-      expect(result).toEqual({ content: "Let me ask about something else." });
-      // LLM called twice (initial + retry)
-      expect(mockGenerateResponse).toHaveBeenCalledTimes(2);
-      // Retry call includes correction prompt
-      expect(mockGenerateResponse).toHaveBeenNthCalledWith(2, "sys", [
-        { role: "user", content: "redirect prompt" },
-        { role: "assistant", content: "Not JSON at all" },
-        { role: "user", content: expect.stringContaining("not valid JSON") },
-      ]);
-      // Core memory persisted from successful retry
-      expect(mockBookUpdateCoreMemory).toHaveBeenCalledWith("b1", "## Book Memory\nUpdated");
-    });
-
-    it("does not call interviewRepository.complete even when shouldComplete is true", async () => {
-      mockMessageCreate.mockResolvedValue({});
-      mockBuildContextWindow.mockResolvedValue({
-        systemPrompt: expect.any(String),
-        messages: [{ role: "user", content: "redirect prompt" }],
-      });
-      mockGenerateResponse.mockResolvedValue({
-        content: '{"response":"Let me ask about something else.","shouldComplete":true}',
-      });
+      mockMemoryUpdate.mockResolvedValue({ shouldComplete: true });
 
       await conversationService.redirect("int1", "b1", "Sarah");
 
