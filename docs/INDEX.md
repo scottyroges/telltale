@@ -19,6 +19,8 @@
 
 ## Active Plans
 
+- **docs/plans/active/2a-parallel-llm-calls.md** — Parallel LLM calls: split conversation + memory into independent calls, streaming response, memory service
+- **docs/plans/active/2a-interview-prompt-tuning.md** — Interview prompt tuning: improve conversation quality, tone, follow-up depth
 - **docs/plans/active/2a-manual-test-plan.md** — Manual test script for 2a core memory block: step-by-step scenarios with SQL validation queries
 
 ## Completed Plans
