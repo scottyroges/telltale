@@ -146,39 +146,58 @@ For testing patterns and examples, see [Testing Patterns](./testing-patterns.md)
 
 ### Optimistic Updates
 
-When implementing optimistic updates with mutations, update local state immediately and let the mutation callbacks handle success/error:
+When implementing optimistic updates with mutations, update local state immediately and handle success/error in the handler.
+
+For standard mutations, use `useMutation` with `mutationOptions`:
 
 ```typescript
-const [messages, setMessages] = useState(initialMessages);
-
-const sendMessage = useMutation(
-  trpc.interview.sendMessage.mutationOptions({
-    onSuccess: (response) => {
-      setMessages(prev => [...prev, {
-        role: "ASSISTANT",
-        content: response.content,
-        // ... other fields
-      }]);
-    },
-    onError: () => {
-      // Remove the optimistic message
-      setMessages(prev => prev.slice(0, -1));
-    },
+const trpc = useTRPC();
+const createBook = useMutation(
+  trpc.book.create.mutationOptions({
+    onSuccess: (data) => router.push(`/book/${data.id}`),
+    onError: (error) => console.error("Failed:", error),
   })
 );
+```
 
-const handleSend = (content: string) => {
-  // Add optimistic message immediately
-  setMessages(prev => [...prev, {
-    role: "USER",
-    content,
-    // ... other fields
-  }]);
+### Streaming Mutations
 
-  // Trigger mutation
-  sendMessage.mutate({ content });
+For mutations that return a stream (async generators on the server), use `useTRPCClient` instead of `useMutation`. The tRPC client's `.mutate()` returns an async iterable that yields chunks:
+
+```typescript
+const trpcClient = useTRPCClient();
+
+const handleSend = async (content: string) => {
+  // Optimistic user message
+  setMessages(prev => [...prev, { role: "USER", content, ... }]);
+  setIsWaitingForResponse(true);
+
+  try {
+    const stream = await trpcClient.interview.sendMessage.mutate({ interviewId, content });
+    let accumulated = "";
+    for await (const chunk of stream) {
+      if (chunk.type === "text") {
+        accumulated += chunk.text;
+        setStreamingContent(accumulated);
+      } else if (chunk.type === "done") {
+        setMessages(prev => [...prev, { role: "ASSISTANT", content: accumulated, ... }]);
+        setStreamingContent(null);
+        setIsWaitingForResponse(false);
+      }
+    }
+  } catch (error) {
+    // Remove optimistic message, show error
+    setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
+    setIsWaitingForResponse(false);
+    setError("Something went wrong. Try again.");
+  }
 };
 ```
+
+**Why `useTRPCClient` instead of `useMutation`:**
+- `useMutation` expects a single resolved value, not an async iterable
+- `useTRPCClient` gives direct access to the underlying tRPC client, which supports iterating over generator procedure results
+- Streaming state (accumulated text, waiting indicator) is managed manually since React Query doesn't model incremental responses
 
 ### Auto-scroll Behavior
 

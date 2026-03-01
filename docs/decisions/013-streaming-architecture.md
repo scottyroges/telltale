@@ -1,7 +1,8 @@
 # ADR 013: Conversation Response Delivery
 
-**Status:** Accepted
+**Status:** Superseded
 **Date:** 2026-02
+**Superseded by:** Plan 2a PR 4 — streaming now implemented via tRPC async generators + `httpBatchStreamLink`
 
 ## Context
 

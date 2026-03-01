@@ -11,9 +11,10 @@ const AUTOSCROLL_THRESHOLD_PX = 100;
 export type TranscriptProps = {
   messages: Message[];
   isWaitingForResponse: boolean;
+  streamingContent: string | null;
 };
 
-export function Transcript({ messages, isWaitingForResponse }: TranscriptProps) {
+export function Transcript({ messages, isWaitingForResponse, streamingContent }: TranscriptProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(messages.length);
   const hasScrolledInitiallyRef = useRef(false);
@@ -70,6 +71,19 @@ export function Transcript({ messages, isWaitingForResponse }: TranscriptProps) 
     prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
+  // Auto-scroll during streaming
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !streamingContent) return;
+
+    if (wasNearBottomRef.current) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "auto",
+      });
+    }
+  }, [streamingContent]);
+
   const displayMessages = messages.filter((m) => !m.hidden);
 
   return (
@@ -81,15 +95,20 @@ export function Transcript({ messages, isWaitingForResponse }: TranscriptProps) 
           content={message.content}
         />
       ))}
-      {isWaitingForResponse && (
-        <div className={styles.thinkingIndicator}>
+      {streamingContent ? (
+        <InterviewMessage
+          role="ASSISTANT"
+          content={streamingContent}
+        />
+      ) : isWaitingForResponse ? (
+        <div className={styles.thinkingIndicator} aria-label="Thinking">
           <div className={styles.thinkingDots}>
             <span>.</span>
             <span>.</span>
             <span>.</span>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

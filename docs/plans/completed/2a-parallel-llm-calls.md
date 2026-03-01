@@ -88,7 +88,7 @@ The next turn's conversation call reads whatever memory is committed in the DB. 
 
 **PR 3: Memory service + parallel calls.** Create `memoryService`. Change `conversationService` to fire conversation and memory calls in parallel. Conversation call still uses non-streaming `generateResponse` for now. Delivers the latency improvement from parallelism and the resilience benefit without touching any client code. **Complete.** Memory service is self-contained (`src/services/memory.service.ts`): fetches recent messages, calls LLM with memory prompt, parses JSON, writes to DB. Wrapped in try/catch so failures never propagate. Conversation responses are plain text (no JSON wrapper, no `parseWithRetry`). `startInterview` skips memory call (no meaningful context at interview start).
 
-**PR 4: Streaming transport + client rendering.** Switch to `httpBatchStreamLink`, convert tRPC procedures to generators that yield chunks, update the interview UI to render tokens incrementally. End-to-end streaming.
+**PR 4: Streaming transport + client rendering.** Switch to `httpBatchStreamLink`, convert tRPC procedures to generators that yield chunks, update the interview UI to render tokens incrementally. End-to-end streaming. **Complete.** Added `StreamChunk` domain type (`text` | `done`). `sendMessage` and `redirect` are now async generators that `yield` text chunks and a final `done` chunk with `shouldComplete`. Client uses `useTRPCClient` for direct stream consumption via `consumeStream` helper. Transcript component accepts `streamingContent` prop for incremental rendering with auto-scroll.
 
 ## Out of Scope
 

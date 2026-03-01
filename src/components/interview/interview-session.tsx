@@ -5,7 +5,8 @@ import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import type { InterviewStatus } from "@/domain/interview";
 import type { Message } from "@/domain/message";
-import { useTRPC } from "@/lib/trpc/client";
+import type { StreamChunk } from "@/domain/streaming";
+import { useTRPC, useTRPCClient } from "@/lib/trpc/client";
 import { Transcript } from "./transcript";
 import { InterviewInput } from "./interview-input";
 import styles from "./interview-session.module.css";
@@ -30,11 +31,13 @@ export function InterviewSession({
 }: InterviewSessionProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const [streamingContent, setStreamingContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(status === "COMPLETE");
 
   const trpc = useTRPC();
+  const trpcClient = useTRPCClient();
 
   const completeMutation = useMutation(
     trpc.interview.complete.mutationOptions({
@@ -49,93 +52,64 @@ export function InterviewSession({
     })
   );
 
-  const sendMessage = useMutation(
-    trpc.interview.sendMessage.mutationOptions({
-      onMutate: async ({ content }) => {
-        // Add optimistic user message and return its ID in context
-        // Use prefix to distinguish temporary client IDs from server IDs
-        const optimisticId = `optimistic-${crypto.randomUUID()}`;
-        const userMessage: Message = {
-          id: optimisticId,
-          interviewId,
-          role: "USER",
-          content,
-          hidden: false,
-          createdAt: new Date(),
-        };
-        setMessages((prev) => [...prev, userMessage]);
-        setIsWaitingForResponse(true);
-
-        return { optimisticId };
-      },
-      onSuccess: (response) => {
-        // Add AI response to messages
-        const assistantMessage: Message = {
-          id: crypto.randomUUID(),
-          interviewId,
-          role: "ASSISTANT",
-          content: response.content,
-          hidden: false,
-          createdAt: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+  const consumeStream = async (
+    stream: AsyncIterable<StreamChunk>,
+    onDone?: (chunk: { shouldComplete: boolean }) => void
+  ): Promise<void> => {
+    let accumulated = "";
+    for await (const chunk of stream) {
+      if (chunk.type === "text") {
+        accumulated += chunk.text;
+        setStreamingContent(accumulated);
+      } else if (chunk.type === "done") {
+        setMessages((prev) => [...prev, { id: crypto.randomUUID(), interviewId, role: "ASSISTANT", content: accumulated, hidden: false, createdAt: new Date() }]);
+        setStreamingContent(null);
         setIsWaitingForResponse(false);
+        onDone?.(chunk);
+      }
+    }
+  };
 
-        if (response.shouldComplete) {
+  const handleSend = async (content: string): Promise<void> => {
+    setError(null);
+
+    // Optimistic user message
+    const optimisticId = `optimistic-${crypto.randomUUID()}`;
+    setMessages((prev) => [...prev, { id: optimisticId, interviewId, role: "USER", content, hidden: false, createdAt: new Date() }]);
+    setIsWaitingForResponse(true);
+    setStreamingContent("");
+
+    try {
+      const stream = await trpcClient.interview.sendMessage.mutate({ interviewId, content });
+      await consumeStream(stream, (done) => {
+        if (done.shouldComplete) {
           setIsCompleted(true);
           setCompletionMessage(COMPLETION_MESSAGE);
         }
-      },
-      onError: (error, _variables, context) => {
-        console.error("Failed to send message:", error);
-        // Remove the specific optimistic message using ID from context
-        if (context?.optimisticId) {
-          setMessages((prev) =>
-            prev.filter((msg) => msg.id !== context.optimisticId)
-          );
-        }
-        setIsWaitingForResponse(false);
-        setError("Something went wrong. Try again.");
-      },
-    })
-  );
-
-  const handleSend = (content: string): void => {
-    // Clear any previous error
-    setError(null);
-
-    // Send to server (optimistic update happens in onMutate)
-    sendMessage.mutate({ interviewId, content });
+      });
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId));
+      setStreamingContent(null);
+      setIsWaitingForResponse(false);
+      setError("Something went wrong. Try again.");
+    }
   };
 
-  const redirectMutation = useMutation(
-    trpc.interview.redirect.mutationOptions({
-      onMutate: () => {
-        setIsWaitingForResponse(true);
-        setError(null);
-      },
-      onSuccess: (response) => {
-        const assistantMessage: Message = {
-          id: crypto.randomUUID(),
-          interviewId,
-          role: "ASSISTANT",
-          content: response.content,
-          hidden: false,
-          createdAt: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-        setIsWaitingForResponse(false);
-      },
-      onError: (error) => {
-        console.error("Failed to redirect:", error);
-        setIsWaitingForResponse(false);
-        setError("Something went wrong. Try again.");
-      },
-    })
-  );
+  const handleRedirect = async (): Promise<void> => {
+    setError(null);
+    setIsWaitingForResponse(true);
+    setStreamingContent("");
 
-  const handleRedirect = (): void => {
-    redirectMutation.mutate({ interviewId });
+    try {
+      const stream = await trpcClient.interview.redirect.mutate({ interviewId });
+      await consumeStream(stream);
+    } catch (error) {
+      console.error("Failed to redirect:", error);
+      setStreamingContent(null);
+      setIsWaitingForResponse(false);
+      setError("Something went wrong. Try again.");
+    }
   };
 
   const handleComplete = (): void => {
@@ -184,7 +158,7 @@ export function InterviewSession({
       {completionMessage && (
         <div className={styles.completionMessage}>{completionMessage}</div>
       )}
-      <Transcript messages={messages} isWaitingForResponse={isWaitingForResponse} />
+      <Transcript messages={messages} isWaitingForResponse={isWaitingForResponse} streamingContent={streamingContent} />
       {!isComplete && (
         <>
           <InterviewInput

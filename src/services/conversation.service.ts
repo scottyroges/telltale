@@ -5,6 +5,7 @@ import { bookRepository } from "@/repositories/book.repository";
 import { contextService } from "@/services/context.service";
 import { memoryService } from "@/services/memory.service";
 import { REDIRECT_PROMPT } from "@/prompts/interviewer";
+import type { StreamChunk } from "@/domain/streaming";
 
 function prepareMemoryForNewInterview(coreMemory: string | null, topic: string): string | null {
   if (!coreMemory) return null;
@@ -52,7 +53,7 @@ export const conversationService = {
     return { interviewId: interview.id };
   },
 
-  async sendMessage(interviewId: string, bookId: string, content: string, userName: string) {
+  async *sendMessage(interviewId: string, bookId: string, content: string, userName: string): AsyncGenerator<StreamChunk> {
     const [, book] = await Promise.all([
       messageRepository.create({
         interviewId,
@@ -64,26 +65,34 @@ export const conversationService = {
 
     const context = await contextService.buildContextWindow(interviewId, userName, book?.coreMemory ?? null);
 
-    // Fire conversation + memory in parallel
-    const [response, memoryResult] = await Promise.all([
-      llmProvider.generateResponse(context.systemPrompt, context.messages),
-      memoryService.updateMemory(interviewId, bookId, book?.coreMemory ?? null),
-    ]);
+    // Start streaming + memory in parallel
+    const memoryPromise = memoryService.updateMemory(interviewId, bookId, book?.coreMemory ?? null);
+    const stream = llmProvider.generateStreamingResponse(context.systemPrompt, context.messages);
 
+    // Yield text chunks, accumulate full content
+    let fullContent = "";
+    for await (const chunk of stream) {
+      fullContent += chunk;
+      yield { type: "text" as const, text: chunk };
+    }
+
+    // Persist complete assistant message
     await messageRepository.create({
       interviewId,
       role: "ASSISTANT",
-      content: response.content,
+      content: fullContent,
     });
 
+    // Await memory, handle completion
+    const memoryResult = await memoryPromise;
     if (memoryResult.shouldComplete) {
       await interviewRepository.complete(interviewId);
     }
 
-    return { content: response.content, shouldComplete: memoryResult.shouldComplete };
+    yield { type: "done" as const, shouldComplete: memoryResult.shouldComplete };
   },
 
-  async redirect(interviewId: string, bookId: string, userName: string) {
+  async *redirect(interviewId: string, bookId: string, userName: string): AsyncGenerator<StreamChunk> {
     const [, book] = await Promise.all([
       messageRepository.create({
         interviewId,
@@ -96,20 +105,29 @@ export const conversationService = {
 
     const context = await contextService.buildContextWindow(interviewId, userName, book?.coreMemory ?? null);
 
-    // Fire conversation + memory in parallel.
+    // Start streaming + memory in parallel.
     // shouldComplete is intentionally ignored — redirect signals the user wants to continue.
-    const [response] = await Promise.all([
-      llmProvider.generateResponse(context.systemPrompt, context.messages),
-      memoryService.updateMemory(interviewId, bookId, book?.coreMemory ?? null),
-    ]);
+    const memoryPromise = memoryService.updateMemory(interviewId, bookId, book?.coreMemory ?? null);
+    const stream = llmProvider.generateStreamingResponse(context.systemPrompt, context.messages);
 
+    // Yield text chunks, accumulate full content
+    let fullContent = "";
+    for await (const chunk of stream) {
+      fullContent += chunk;
+      yield { type: "text" as const, text: chunk };
+    }
+
+    // Persist complete assistant message
     await messageRepository.create({
       interviewId,
       role: "ASSISTANT",
-      content: response.content,
+      content: fullContent,
     });
 
-    return { content: response.content };
+    // Await memory to avoid unhandled rejections
+    await memoryPromise;
+
+    yield { type: "done" as const, shouldComplete: false };
   },
 
   async getInterviewMessages(interviewId: string) {
