@@ -6,11 +6,11 @@ import {
 } from "@/prompts/interviewer";
 
 describe("getConversationSystemPrompt", () => {
-  it("contains conversational guidelines", () => {
+  it("contains response format guidelines", () => {
     const prompt = getConversationSystemPrompt();
 
     expect(prompt).toContain("open-ended follow-up questions");
-    expect(prompt).toContain("conversational");
+    expect(prompt).toContain("2-3 sentences");
   });
 
   it("contains check-in guidance at natural seams", () => {

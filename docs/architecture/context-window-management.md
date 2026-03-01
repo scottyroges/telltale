@@ -779,19 +779,20 @@ Pattern continues every ~8 messages at 400 tokens/message (3200 tokens in old bu
 - Can adjust thresholds if needed
 
 ### Core Memory Grows Very Large
-- Token logging shows: `coreMemory: 2000` (unusually high)
+- The memory prompt targets 800-1,500 characters (~200-375 tokens)
+- Token logging shows: `coreMemory: 500+` (unusually high for a single interview)
 - Current behavior: Still includes full memory block
-- Future: May need memory pruning or token budget for the memory block
+- The prompt instructs the LLM to compress rather than grow, so this is largely self-managing
 
 ---
 
 ## Future Considerations
 
 ### Core Memory Size Management
-As books accumulate more interviews, core memory will grow:
-- May need a hard token budget for the memory block
-- Could implement summarization of the book section when it grows too large
+The memory prompt targets 800-1,500 characters and instructs the LLM to compress rather than grow as interviews accumulate. This is a soft constraint — the LLM may occasionally exceed it.
 - Token logging tracks growth over time
+- If blocks consistently exceed the target, prompt tuning is the first lever (already done once: lowered from 2,000-3,000 to 800-1,500)
+- A hard token budget in code remains an option if prompt-level control proves insufficient
 
 ### Summary Regeneration
 If summary quality degrades:

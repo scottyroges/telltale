@@ -62,7 +62,7 @@ ORDER BY "createdAt" DESC LIMIT 10;
 | Step | Action | Expected |
 |------|--------|----------|
 | 1 | Continue interview #1 from Scenario 1 — send 5+ more messages | AI responds to each |
-| 2 | Query DB after each message: check `LENGTH("coreMemory")` | Total length stays roughly in the 2,000-3,000 character range |
+| 2 | Query DB after each message: check `LENGTH("coreMemory")` | Total length stays roughly in the 800-1,500 character range |
 | 3 | Compare Book Memory across turns | Book Memory only changes when new durable information is learned — not every single turn |
 | 4 | Compare Interview Memory across turns | Interview Memory updates more freely — current thread shifts, active threads change |
 
@@ -146,6 +146,6 @@ All scenarios pass when:
 1. `coreMemory` bootstraps from NULL on first message
 2. Book Memory accumulates durable facts and persists across interviews
 3. Interview Memory resets when a new interview starts
-4. Memory stays bounded (roughly 2,000-3,000 characters)
+4. Memory stays bounded (roughly 800-1,500 characters)
 5. Redirects update memory normally
 6. Abandoned interviews don't lose Book Memory
