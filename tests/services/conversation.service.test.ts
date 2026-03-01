@@ -4,8 +4,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const mockGenerateResponse = vi.hoisted(() => vi.fn());
+const mockGenerateStreamingResponse = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/llm", () => ({
-  llmProvider: { generateResponse: mockGenerateResponse },
+  llmProvider: {
+    generateResponse: mockGenerateResponse,
+    generateStreamingResponse: mockGenerateStreamingResponse,
+  },
 }));
 
 const mockBuildContextWindow = vi.hoisted(() => vi.fn());
@@ -69,6 +73,28 @@ describe("conversationService", () => {
     const mod = await import("@/services/conversation.service");
     conversationService = mod.conversationService;
   });
+
+  async function* mockStream(text: string) {
+    for (const word of text.split(" ")) {
+      yield word + " ";
+    }
+  }
+
+  async function collectStream(generator: AsyncGenerator<{ type: string; text?: string; shouldComplete?: boolean }>) {
+    const chunks: { type: string; text?: string; shouldComplete?: boolean }[] = [];
+    let fullContent = "";
+    let shouldComplete = false;
+    for await (const chunk of generator) {
+      chunks.push(chunk);
+      if (chunk.type === "text" && chunk.text) {
+        fullContent += chunk.text;
+      }
+      if (chunk.type === "done") {
+        shouldComplete = chunk.shouldComplete ?? false;
+      }
+    }
+    return { chunks, fullContent, shouldComplete };
+  }
 
   describe("startInterview", () => {
     it("creates interview and returns opening message", async () => {
@@ -214,7 +240,7 @@ describe("conversationService", () => {
   });
 
   describe("sendMessage", () => {
-    it("persists user message, calls LLM with history, and returns response", async () => {
+    it("streams text chunks and persists complete message", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
         systemPrompt: "system prompt",
@@ -224,13 +250,14 @@ describe("conversationService", () => {
           { role: "user", content: "my story" },
         ],
       });
-      mockGenerateResponse.mockResolvedValue({
-        content: "That's fascinating! Tell me more.",
-      });
+      mockGenerateStreamingResponse.mockReturnValue(mockStream("That's fascinating! Tell me more."));
 
-      const result = await conversationService.sendMessage("int1", "b1", "my story", "Sarah");
+      const { fullContent, shouldComplete } = await collectStream(
+        conversationService.sendMessage("int1", "b1", "my story", "Sarah"),
+      );
 
-      expect(result).toEqual({ content: "That's fascinating! Tell me more.", shouldComplete: false });
+      expect(fullContent).toBe("That's fascinating! Tell me more. ");
+      expect(shouldComplete).toBe(false);
 
       // Persists user message first (in parallel with book load)
       expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
@@ -245,8 +272,8 @@ describe("conversationService", () => {
       // Context service builds context window with raw coreMemory
       expect(mockBuildContextWindow).toHaveBeenCalledWith("int1", "Sarah", defaultBook.coreMemory);
 
-      // LLM called with context
-      expect(mockGenerateResponse).toHaveBeenCalledWith(
+      // Streaming LLM called with context
+      expect(mockGenerateStreamingResponse).toHaveBeenCalledWith(
         "system prompt",
         [
           { role: "user", content: "topic message" },
@@ -255,11 +282,11 @@ describe("conversationService", () => {
         ],
       );
 
-      // Persists assistant response (plain text)
+      // Persists assistant response (full accumulated text)
       expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",
         role: "ASSISTANT",
-        content: "That's fascinating! Tell me more.",
+        content: "That's fascinating! Tell me more. ",
       });
 
       // Memory service called with correct args
@@ -272,15 +299,15 @@ describe("conversationService", () => {
         systemPrompt: "system prompt",
         messages: [{ role: "user", content: "yes, let's wrap up" }],
       });
-      mockGenerateResponse.mockResolvedValue({
-        content: "Thank you for sharing!",
-      });
+      mockGenerateStreamingResponse.mockReturnValue(mockStream("Thank you for sharing!"));
       mockMemoryUpdate.mockResolvedValue({ shouldComplete: true });
       mockInterviewComplete.mockResolvedValue({});
 
-      const result = await conversationService.sendMessage("int1", "b1", "yes, let's wrap up", "Sarah");
+      const { shouldComplete } = await collectStream(
+        conversationService.sendMessage("int1", "b1", "yes, let's wrap up", "Sarah"),
+      );
 
-      expect(result).toEqual({ content: "Thank you for sharing!", shouldComplete: true });
+      expect(shouldComplete).toBe(true);
       expect(mockInterviewComplete).toHaveBeenCalledWith("int1");
     });
 
@@ -290,21 +317,19 @@ describe("conversationService", () => {
         systemPrompt: "system prompt",
         messages: [{ role: "user", content: "yes, let's wrap up" }],
       });
-      mockGenerateResponse.mockResolvedValue({
-        content: "Thank you for sharing!",
-      });
+      mockGenerateStreamingResponse.mockReturnValue(mockStream("Thank you for sharing!"));
       mockMemoryUpdate.mockResolvedValue({ shouldComplete: true });
       mockInterviewComplete.mockRejectedValue(new Error("DB connection lost"));
 
       await expect(
-        conversationService.sendMessage("int1", "b1", "yes, let's wrap up", "Sarah"),
+        collectStream(conversationService.sendMessage("int1", "b1", "yes, let's wrap up", "Sarah")),
       ).rejects.toThrow("DB connection lost");
 
       // Assistant message should still have been persisted before complete() was called
       expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",
         role: "ASSISTANT",
-        content: "Thank you for sharing!",
+        content: "Thank you for sharing! ",
       });
     });
 
@@ -314,19 +339,19 @@ describe("conversationService", () => {
         systemPrompt: "system prompt",
         messages: [{ role: "user", content: "tell me more" }],
       });
-      mockGenerateResponse.mockResolvedValue({
-        content: "Tell me more about that.",
-      });
+      mockGenerateStreamingResponse.mockReturnValue(mockStream("Tell me more about that."));
 
-      const result = await conversationService.sendMessage("int1", "b1", "tell me more", "Sarah");
+      const { shouldComplete } = await collectStream(
+        conversationService.sendMessage("int1", "b1", "tell me more", "Sarah"),
+      );
 
-      expect(result).toEqual({ content: "Tell me more about that.", shouldComplete: false });
+      expect(shouldComplete).toBe(false);
       expect(mockInterviewComplete).not.toHaveBeenCalled();
     });
   });
 
   describe("redirect", () => {
-    it("creates hidden USER message, calls LLM, persists ASSISTANT message, and returns content", async () => {
+    it("streams text chunks, persists ASSISTANT message, and yields shouldComplete: false", async () => {
       mockMessageCreate.mockResolvedValue({});
       mockBuildContextWindow.mockResolvedValue({
         systemPrompt: "system prompt",
@@ -336,15 +361,16 @@ describe("conversationService", () => {
           { role: "user", content: "The storyteller would like to explore a different aspect" },
         ],
       });
-      mockGenerateResponse.mockResolvedValue({
-        content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
-      });
+      mockGenerateStreamingResponse.mockReturnValue(
+        mockStream("What a wonderful story. Let me ask about something different."),
+      );
 
-      const result = await conversationService.redirect("int1", "b1", "Sarah");
+      const { fullContent, shouldComplete } = await collectStream(
+        conversationService.redirect("int1", "b1", "Sarah"),
+      );
 
-      expect(result).toEqual({
-        content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
-      });
+      expect(fullContent).toBe("What a wonderful story. Let me ask about something different. ");
+      expect(shouldComplete).toBe(false);
 
       // Hidden USER message created in parallel with book load
       expect(mockMessageCreate).toHaveBeenNthCalledWith(1, {
@@ -364,7 +390,7 @@ describe("conversationService", () => {
       expect(mockMessageCreate).toHaveBeenNthCalledWith(2, {
         interviewId: "int1",
         role: "ASSISTANT",
-        content: "What a wonderful story. Let me ask about something different — what was school like for you growing up?",
+        content: "What a wonderful story. Let me ask about something different. ",
       });
 
       // Memory service called
@@ -377,11 +403,9 @@ describe("conversationService", () => {
         systemPrompt: "system prompt",
         messages: [{ role: "user", content: "redirect prompt" }],
       });
-      mockGenerateResponse.mockResolvedValue({
-        content: "Let me ask about something else.",
-      });
+      mockGenerateStreamingResponse.mockReturnValue(mockStream("Let me ask about something else."));
 
-      await conversationService.redirect("int1", "b1", "Sarah");
+      await collectStream(conversationService.redirect("int1", "b1", "Sarah"));
 
       const firstCall = mockMessageCreate.mock.calls[0]![0];
       expect(firstCall.hidden).toBe(true);
@@ -393,12 +417,10 @@ describe("conversationService", () => {
         systemPrompt: "system prompt",
         messages: [{ role: "user", content: "redirect prompt" }],
       });
-      mockGenerateResponse.mockResolvedValue({
-        content: "Let me ask about something else.",
-      });
+      mockGenerateStreamingResponse.mockReturnValue(mockStream("Let me ask about something else."));
       mockMemoryUpdate.mockResolvedValue({ shouldComplete: true });
 
-      await conversationService.redirect("int1", "b1", "Sarah");
+      await collectStream(conversationService.redirect("int1", "b1", "Sarah"));
 
       expect(mockInterviewComplete).not.toHaveBeenCalled();
     });

@@ -56,7 +56,7 @@ export const interviewRouter = router({
 
   sendMessage: approvedProcedure
     .input(z.object({ interviewId: z.string(), content: z.string() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async function* ({ ctx, input }) {
       const interview = await verifyInterviewOwnership(
         input.interviewId,
         ctx.userId,
@@ -67,7 +67,7 @@ export const interviewRouter = router({
           message: "Cannot send messages to completed interviews",
         });
       }
-      return conversationService.sendMessage(input.interviewId, interview.bookId, input.content, ctx.userName);
+      yield* conversationService.sendMessage(input.interviewId, interview.bookId, input.content, ctx.userName);
     }),
 
   getMessages: approvedProcedure
@@ -93,7 +93,7 @@ export const interviewRouter = router({
 
   redirect: approvedProcedure
     .input(z.object({ interviewId: z.string() }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async function* ({ ctx, input }) {
       const interview = await verifyInterviewOwnership(
         input.interviewId,
         ctx.userId,
@@ -104,7 +104,7 @@ export const interviewRouter = router({
           message: "Cannot redirect completed interviews",
         });
       }
-      return conversationService.redirect(input.interviewId, interview.bookId, ctx.userName);
+      yield* conversationService.redirect(input.interviewId, interview.bookId, ctx.userName);
     }),
 
   complete: protectedProcedure

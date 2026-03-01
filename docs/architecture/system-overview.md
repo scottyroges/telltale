@@ -107,4 +107,4 @@ Middleware procedures in `server/trpc.ts`:
 
 **Domain (`domain/`)** — TypeScript types and interfaces shared across layers. No runtime code.
 
-**Lib (`lib/`)** — Thin wrappers around external SDKs (Anthropic, Resend, R2, Kysely database instance). Configuration and client instantiation only. Also contains tRPC wiring: `lib/trpc/client.tsx` provides the React Query-backed tRPC client for Client Components, `lib/trpc/server.ts` provides `serverTRPC()` for Server Components to call procedures directly without HTTP.
+**Lib (`lib/`)** — Thin wrappers around external SDKs (Anthropic, Resend, R2, Kysely database instance). Configuration and client instantiation only. Also contains tRPC wiring: `lib/trpc/client.tsx` provides the React Query-backed tRPC client (`useTRPC` for mutations/queries, `useTRPCClient` for direct client access used by streaming mutations), `lib/trpc/server.ts` provides `serverTRPC()` for Server Components to call procedures directly without HTTP. The tRPC client uses `httpBatchStreamLink` to support streaming responses from async generator procedures.

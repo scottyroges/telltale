@@ -243,21 +243,36 @@ describe("interview router", () => {
   });
 
   describe("sendMessage", () => {
-    it("verifies ownership and delegates to conversationService", async () => {
+    async function* mockStreamChunks(content: string, shouldComplete: boolean) {
+      for (const word of content.split(" ")) {
+        yield { type: "text" as const, text: word + " " };
+      }
+      yield { type: "done" as const, shouldComplete };
+    }
+
+    it("verifies ownership and streams chunks from conversationService", async () => {
       mockInterviewFindById.mockResolvedValue(activeInterview);
       mockBookFindById.mockResolvedValue(ownBook);
-      mockSendMessage.mockResolvedValue({
-        content: "That sounds fascinating. Tell me more.",
-      });
+      mockSendMessage.mockReturnValue(
+        mockStreamChunks("That sounds fascinating.", false),
+      );
 
-      const result = await caller.interview.sendMessage({
+      const stream = await caller.interview.sendMessage({
         interviewId: "interview-1",
         content: "I grew up in a small town.",
       });
 
-      expect(result).toEqual({
-        content: "That sounds fascinating. Tell me more.",
-      });
+      const chunks: unknown[] = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toEqual([
+        { type: "text", text: "That " },
+        { type: "text", text: "sounds " },
+        { type: "text", text: "fascinating. " },
+        { type: "done", shouldComplete: false },
+      ]);
       expect(mockInterviewFindById).toHaveBeenCalledWith("interview-1");
       expect(mockBookFindById).toHaveBeenCalledWith("book-1");
       expect(mockSendMessage).toHaveBeenCalledWith(
@@ -272,41 +287,65 @@ describe("interview router", () => {
       mockInterviewFindById.mockResolvedValue(completeInterview);
       mockBookFindById.mockResolvedValue(ownBook);
 
-      await expect(
-        caller.interview.sendMessage({
-          interviewId: "interview-1",
-          content: "Hello",
-        }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      const stream = await caller.interview.sendMessage({
+        interviewId: "interview-1",
+        content: "Hello",
+      });
+
+      const iterate = async () => {
+        for await (const _ of stream) { /* drain */ }
+      };
+      await expect(iterate()).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
 
     it("throws NOT_FOUND for missing interview", async () => {
       mockInterviewFindById.mockResolvedValue(null);
 
-      await expect(
-        caller.interview.sendMessage({
-          interviewId: "missing",
-          content: "Hello",
-        }),
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      const stream = await caller.interview.sendMessage({
+        interviewId: "missing",
+        content: "Hello",
+      });
+
+      const iterate = async () => {
+        for await (const _ of stream) { /* drain */ }
+      };
+      await expect(iterate()).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
   });
 
   describe("redirect", () => {
-    it("verifies ownership and delegates to conversationService.redirect", async () => {
+    async function* mockStreamChunks(content: string) {
+      for (const word of content.split(" ")) {
+        yield { type: "text" as const, text: word + " " };
+      }
+      yield { type: "done" as const, shouldComplete: false };
+    }
+
+    it("verifies ownership and streams chunks from conversationService.redirect", async () => {
       mockInterviewFindById.mockResolvedValue(activeInterview);
       mockBookFindById.mockResolvedValue(ownBook);
-      mockRedirect.mockResolvedValue({
-        content: "Let me ask about something different.",
-      });
+      mockRedirect.mockReturnValue(
+        mockStreamChunks("Let me ask about something different."),
+      );
 
-      const result = await caller.interview.redirect({
+      const stream = await caller.interview.redirect({
         interviewId: "interview-1",
       });
 
-      expect(result).toEqual({
-        content: "Let me ask about something different.",
-      });
+      const chunks: unknown[] = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toEqual([
+        { type: "text", text: "Let " },
+        { type: "text", text: "me " },
+        { type: "text", text: "ask " },
+        { type: "text", text: "about " },
+        { type: "text", text: "something " },
+        { type: "text", text: "different. " },
+        { type: "done", shouldComplete: false },
+      ]);
       expect(mockInterviewFindById).toHaveBeenCalledWith("interview-1");
       expect(mockBookFindById).toHaveBeenCalledWith("book-1");
       expect(mockRedirect).toHaveBeenCalledWith(
@@ -320,26 +359,35 @@ describe("interview router", () => {
       mockInterviewFindById.mockResolvedValue(completeInterview);
       mockBookFindById.mockResolvedValue(ownBook);
 
-      await expect(
-        caller.interview.redirect({ interviewId: "interview-1" }),
-      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      const stream = await caller.interview.redirect({ interviewId: "interview-1" });
+
+      const iterate = async () => {
+        for await (const _ of stream) { /* drain */ }
+      };
+      await expect(iterate()).rejects.toMatchObject({ code: "BAD_REQUEST" });
     });
 
     it("throws NOT_FOUND for missing interview", async () => {
       mockInterviewFindById.mockResolvedValue(null);
 
-      await expect(
-        caller.interview.redirect({ interviewId: "missing" }),
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      const stream = await caller.interview.redirect({ interviewId: "missing" });
+
+      const iterate = async () => {
+        for await (const _ of stream) { /* drain */ }
+      };
+      await expect(iterate()).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
 
     it("throws FORBIDDEN for another user's interview", async () => {
       mockInterviewFindById.mockResolvedValue(activeInterview);
       mockBookFindById.mockResolvedValue({ ...ownBook, userId: "other-user" });
 
-      await expect(
-        caller.interview.redirect({ interviewId: "interview-1" }),
-      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      const stream = await caller.interview.redirect({ interviewId: "interview-1" });
+
+      const iterate = async () => {
+        for await (const _ of stream) { /* drain */ }
+      };
+      await expect(iterate()).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
 

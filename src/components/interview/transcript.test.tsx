@@ -37,7 +37,7 @@ describe("Transcript", () => {
   });
 
   it("renders messages in order", () => {
-    render(<Transcript messages={mockMessages} isWaitingForResponse={false} />);
+    render(<Transcript messages={mockMessages} isWaitingForResponse={false} streamingContent={null} />);
 
     expect(
       screen.getByText("Hello! Let's talk about your memories.")
@@ -48,7 +48,7 @@ describe("Transcript", () => {
   });
 
   it("filters out hidden messages", () => {
-    render(<Transcript messages={mockMessages} isWaitingForResponse={false} />);
+    render(<Transcript messages={mockMessages} isWaitingForResponse={false} streamingContent={null} />);
 
     // Hidden message should not be visible
     expect(
@@ -64,16 +64,50 @@ describe("Transcript", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows thinking indicator when isWaitingForResponse={true}", () => {
-    render(<Transcript messages={mockMessages} isWaitingForResponse={true} />);
+  it("shows thinking indicator when isWaitingForResponse={true} and no streaming content", () => {
+    render(<Transcript messages={mockMessages} isWaitingForResponse={true} streamingContent={null} />);
 
     // Check for dots in thinking indicator (via text content)
     const dots = screen.getAllByText(".", { exact: false });
     expect(dots.length).toBeGreaterThan(0);
   });
 
+  it("shows thinking dots when streamingContent is empty string", () => {
+    render(<Transcript messages={mockMessages} isWaitingForResponse={true} streamingContent="" />);
+
+    // Empty streaming content should show thinking dots, not a streaming message
+    const dots = screen.getAllByText(".", { exact: false });
+    expect(dots.length).toBeGreaterThan(0);
+  });
+
+  it("shows streaming content as assistant message when non-empty", () => {
+    render(
+      <Transcript
+        messages={mockMessages}
+        isWaitingForResponse={true}
+        streamingContent="This is streaming text so far"
+      />
+    );
+
+    expect(
+      screen.getByText("This is streaming text so far")
+    ).toBeInTheDocument();
+  });
+
+  it("does not show thinking dots when streaming content is present", () => {
+    render(
+      <Transcript
+        messages={mockMessages}
+        isWaitingForResponse={true}
+        streamingContent="Streaming..."
+      />
+    );
+
+    expect(screen.queryByLabelText("Thinking")).not.toBeInTheDocument();
+  });
+
   it("USER messages aligned right, ASSISTANT messages aligned left", () => {
-    render(<Transcript messages={mockMessages} isWaitingForResponse={false} />);
+    render(<Transcript messages={mockMessages} isWaitingForResponse={false} streamingContent={null} />);
 
     // Verify both message types are rendered
     expect(
@@ -86,7 +120,7 @@ describe("Transcript", () => {
 
   it("scrolls to bottom on new messages", () => {
     const { rerender } = render(
-      <Transcript messages={mockMessages} isWaitingForResponse={false} />
+      <Transcript messages={mockMessages} isWaitingForResponse={false} streamingContent={null} />
     );
 
     const newMessage: Message = {
@@ -102,6 +136,7 @@ describe("Transcript", () => {
       <Transcript
         messages={[...mockMessages, newMessage]}
         isWaitingForResponse={false}
+        streamingContent={null}
       />
     );
 
@@ -110,7 +145,7 @@ describe("Transcript", () => {
   });
 
   it("handles empty message array gracefully", () => {
-    render(<Transcript messages={[]} isWaitingForResponse={false} />);
+    render(<Transcript messages={[]} isWaitingForResponse={false} streamingContent={null} />);
 
     // Should render without crashing
     // No messages to display, but component should render container

@@ -19,12 +19,12 @@
 
 ## Active Plans
 
-- **docs/plans/active/2a-parallel-llm-calls.md** — Parallel LLM calls: split conversation + memory into independent calls, streaming response, memory service
 - **docs/plans/active/2a-interview-prompt-tuning.md** — Interview prompt tuning: improve conversation quality, tone, follow-up depth
 - **docs/plans/active/2a-manual-test-plan.md** — Manual test script for 2a core memory block: step-by-step scenarios with SQL validation queries
 
 ## Completed Plans
 
+- **docs/plans/completed/2a-parallel-llm-calls.md** — Parallel LLM calls: split conversation + memory into independent calls, streaming response via tRPC generators, memory service (4 PRs)
 - **docs/plans/completed/2a-core-memory-block.md** — Core memory block: replace per-message insight extraction with a bounded, evolving memory document on Book that persists across interviews (4 phases + follow-up fixes)
 - **docs/plans/completed/2a.4-cleanup-cross-interview-verification.md** — Phase 4 of 2a: remove dormant insight code from conversation loop, clean up deprecated types, add cross-interview memory verification tests
 - **docs/plans/completed/2a.3-context-assembly-conversation-service.md** — Phase 3 of 2a: wire core memory into context assembly and conversation service, replace insight injection with memory block, persist updated memory to Book
@@ -99,7 +99,7 @@
 - **010** — Testing strategy: Vitest + React Testing Library + Playwright
 - **011** — Server vs Client Component conventions
 - **012** — Turbopack for development only (not production builds)
-- **013** — Conversation response delivery: Plain request/response through tRPC, no streaming (vs. ReadableStream, Vercel AI SDK)
+- **013** — Conversation response delivery: Plain request/response through tRPC, no streaming (vs. ReadableStream, Vercel AI SDK) — *superseded: streaming now implemented via tRPC generators*
 - **014** — Insight extraction strategy: Inline structured output vs. separate background call
 - **015** — Query layer: Prisma Migrate + Kysely queries (vs. Prisma client, Drizzle, raw SQL)
 - **016** — LLM structured output reliability: defensive parsing + single retry (vs. tool use / function calling)

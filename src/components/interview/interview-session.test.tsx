@@ -5,26 +5,25 @@ import { InterviewSession } from "@/components/interview/interview-session";
 import type { Message } from "@/domain/message";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const { mockSendMessageMutationOptions, mockCompleteMutationOptions, mockRedirectMutationOptions } = vi.hoisted(() => ({
-  mockSendMessageMutationOptions: vi.fn(),
+const { mockCompleteMutationOptions, mockTRPCClient } = vi.hoisted(() => ({
   mockCompleteMutationOptions: vi.fn(),
-  mockRedirectMutationOptions: vi.fn(),
+  mockTRPCClient: {
+    interview: {
+      sendMessage: { mutate: vi.fn() },
+      redirect: { mutate: vi.fn() },
+    },
+  },
 }));
 
 vi.mock("@/lib/trpc/client", () => ({
   useTRPC: () => ({
     interview: {
-      sendMessage: {
-        mutationOptions: mockSendMessageMutationOptions,
-      },
       complete: {
         mutationOptions: mockCompleteMutationOptions,
       },
-      redirect: {
-        mutationOptions: mockRedirectMutationOptions,
-      },
     },
   }),
+  useTRPCClient: () => mockTRPCClient,
 }));
 
 function createWrapper() {
@@ -41,9 +40,14 @@ function createWrapper() {
   return Wrapper;
 }
 
+async function* mockStreamChunks(content: string, shouldComplete = false) {
+  for (const word of content.split(" ")) {
+    yield { type: "text" as const, text: word + " " };
+  }
+  yield { type: "done" as const, shouldComplete };
+}
+
 describe("InterviewSession", () => {
-  // Topic message is hidden and filtered by the repository, so initialMessages
-  // only contains visible messages (the AI greeting onward).
   const initialMessages: Message[] = [
     {
       id: "2",
@@ -56,26 +60,22 @@ describe("InterviewSession", () => {
   ];
 
   beforeEach(() => {
-    mockSendMessageMutationOptions.mockReset();
     mockCompleteMutationOptions.mockReset();
-    mockRedirectMutationOptions.mockReset();
+    mockTRPCClient.interview.sendMessage.mutate.mockReset();
+    mockTRPCClient.interview.redirect.mutate.mockReset();
     vi.clearAllMocks();
-    // Mock scrollTo
     HTMLElement.prototype.scrollTo = vi.fn();
-    // Mock window.confirm
     global.confirm = vi.fn(() => true);
 
-    // Default mocks return mutation options with no-op mutationFn
-    mockSendMessageMutationOptions.mockImplementation((opts) => ({
-      mutationFn: async () => ({ content: "Default response", shouldComplete: false }),
-      ...opts,
-    }));
+    // Default mocks: sendMessage returns a streaming generator
+    mockTRPCClient.interview.sendMessage.mutate.mockImplementation(
+      () => mockStreamChunks("Default response"),
+    );
+    mockTRPCClient.interview.redirect.mutate.mockImplementation(
+      () => mockStreamChunks("Let me ask about something else."),
+    );
     mockCompleteMutationOptions.mockImplementation((opts) => ({
       mutationFn: async () => ({ status: "COMPLETE" }),
-      ...opts,
-    }));
-    mockRedirectMutationOptions.mockImplementation((opts) => ({
-      mutationFn: async () => ({ content: "Let me ask about something else." }),
       ...opts,
     }));
   });
@@ -106,7 +106,7 @@ describe("InterviewSession", () => {
     });
   });
 
-  it("shows ASSISTANT response after mutation succeeds", async () => {
+  it("shows ASSISTANT response after streaming completes", async () => {
     const user = userEvent.setup();
 
     render(
@@ -123,11 +123,10 @@ describe("InterviewSession", () => {
     const textarea = screen.getByPlaceholderText("Share your story...");
     await user.type(textarea, "I worked there for two years.");
 
-    // Submit should trigger mutation
     const sendButton = screen.getByRole("button", { name: /send/i });
     await user.click(sendButton);
 
-    // Wait for AI response to appear (default response)
+    // Wait for streamed AI response to appear
     await waitFor(() => {
       expect(screen.getByText("Default response")).toBeInTheDocument();
     });
@@ -136,14 +135,9 @@ describe("InterviewSession", () => {
   it("shows inline error on mutation failure", async () => {
     const user = userEvent.setup();
 
-    // Mock mutation to fail
-    mockSendMessageMutationOptions.mockReset();
-    mockSendMessageMutationOptions.mockImplementation((opts) => ({
-      ...opts,
-      mutationFn: async () => {
-        throw new Error("Network error");
-      },
-    }));
+    mockTRPCClient.interview.sendMessage.mutate.mockRejectedValue(
+      new Error("Network error"),
+    );
 
     render(
       <InterviewSession
@@ -160,7 +154,6 @@ describe("InterviewSession", () => {
     await user.type(textarea, "Test message");
     await user.keyboard("{Enter}");
 
-    // Error message should be displayed inline (not using alert())
     await waitFor(() => {
       expect(screen.getByText("Something went wrong. Try again.")).toBeInTheDocument();
     });
@@ -172,19 +165,15 @@ describe("InterviewSession", () => {
   it("clears error when sending a new message", async () => {
     const user = userEvent.setup();
 
-    // First mutation fails
+    // First mutation fails, second succeeds
     let callCount = 0;
-    mockSendMessageMutationOptions.mockReset();
-    mockSendMessageMutationOptions.mockImplementation((opts) => ({
-      ...opts,
-      mutationFn: async () => {
-        callCount++;
-        if (callCount === 1) {
-          throw new Error("Network error");
-        }
-        return { content: "Success response" };
-      },
-    }));
+    mockTRPCClient.interview.sendMessage.mutate.mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.reject(new Error("Network error"));
+      }
+      return mockStreamChunks("Success response");
+    });
 
     render(
       <InterviewSession
@@ -201,12 +190,10 @@ describe("InterviewSession", () => {
     await user.type(textarea, "First message");
     await user.keyboard("{Enter}");
 
-    // Wait for error to appear
     await waitFor(() => {
       expect(screen.getByText("Something went wrong. Try again.")).toBeInTheDocument();
     });
 
-    // Send another message (second call succeeds)
     await user.clear(textarea);
     await user.type(textarea, "Second message");
     await user.keyboard("{Enter}");
@@ -223,7 +210,6 @@ describe("InterviewSession", () => {
       expect(screen.getByText("Success response")).toBeInTheDocument();
     });
 
-    // Input should be re-enabled after successful retry
     expect(textarea).not.toBeDisabled();
   });
 
@@ -245,7 +231,6 @@ describe("InterviewSession", () => {
     await user.type(textarea, "Test message");
     await user.keyboard("{Enter}");
 
-    // Message should appear immediately (optimistic update)
     expect(screen.getByText("Test message")).toBeInTheDocument();
   });
 
@@ -267,14 +252,13 @@ describe("InterviewSession", () => {
     expect(screen.queryByRole("button", { name: /send/i })).not.toBeInTheDocument();
   });
 
-  it("shows thinking indicator while isWaitingForResponse", async () => {
+  it("shows thinking indicator while waiting for first streaming token", async () => {
     const user = userEvent.setup();
 
-    // Make mutation hang to keep waiting state
-    mockSendMessageMutationOptions.mockImplementationOnce((opts) => ({
-      mutationFn: () => new Promise(() => {}), // Never resolves
-      ...opts,
-    }));
+    // Make mutation hang to keep waiting state (before any chunks arrive)
+    mockTRPCClient.interview.sendMessage.mutate.mockReturnValue(
+      new Promise(() => {}), // Never resolves
+    );
 
     render(
       <InterviewSession
@@ -316,10 +300,8 @@ describe("InterviewSession", () => {
     await user.type(textarea, "Test message");
     await user.keyboard("{Enter}");
 
-    // User message should appear
     expect(screen.getByText("Test message")).toBeInTheDocument();
 
-    // Eventually AI response appears (using default mock)
     await waitFor(() => {
       expect(screen.getByText("Default response")).toBeInTheDocument();
     });
@@ -379,11 +361,9 @@ describe("InterviewSession", () => {
     it("shows completion message and hides input when shouldComplete is true", async () => {
       const user = userEvent.setup();
 
-      mockSendMessageMutationOptions.mockReset();
-      mockSendMessageMutationOptions.mockImplementation((opts) => ({
-        mutationFn: async () => ({ content: "Thank you for sharing!", shouldComplete: true }),
-        ...opts,
-      }));
+      mockTRPCClient.interview.sendMessage.mutate.mockImplementation(
+        () => mockStreamChunks("Thank you for sharing!", true),
+      );
 
       render(
         <InterviewSession
@@ -400,20 +380,15 @@ describe("InterviewSession", () => {
       await user.type(textarea, "Yes, let's wrap up.");
       await user.keyboard("{Enter}");
 
-      // AI response should appear
       await waitFor(() => {
         expect(screen.getByText("Thank you for sharing!")).toBeInTheDocument();
       });
 
-      // Completion message should appear
       await waitFor(() => {
         expect(screen.getByText(/interview marked as complete/i)).toBeInTheDocument();
       });
 
-      // Input should be hidden
       expect(screen.queryByPlaceholderText("Share your story...")).not.toBeInTheDocument();
-
-      // End Interview button should be hidden
       expect(screen.queryByRole("button", { name: /end interview/i })).not.toBeInTheDocument();
     });
 
@@ -435,15 +410,11 @@ describe("InterviewSession", () => {
       await user.type(textarea, "Tell me more.");
       await user.keyboard("{Enter}");
 
-      // AI response should appear
       await waitFor(() => {
         expect(screen.getByText("Default response")).toBeInTheDocument();
       });
 
-      // No completion message
       expect(screen.queryByText(/interview marked as complete/i)).not.toBeInTheDocument();
-
-      // Input should still be visible
       expect(screen.getByPlaceholderText("Share your story...")).toBeInTheDocument();
     });
   });
@@ -508,7 +479,6 @@ describe("InterviewSession", () => {
       const mockConfirm = vi.fn(() => true);
       global.confirm = mockConfirm;
 
-      const mockMutate = vi.fn();
       mockCompleteMutationOptions.mockImplementation((opts) => ({
         mutationFn: async () => ({ status: "COMPLETE" }),
         ...opts,
@@ -528,7 +498,6 @@ describe("InterviewSession", () => {
       const endButton = screen.getByRole("button", { name: /end interview/i });
       await user.click(endButton);
 
-      // Mutation should be called
       expect(mockConfirm).toHaveBeenCalled();
     });
 
@@ -561,9 +530,8 @@ describe("InterviewSession", () => {
       const user = userEvent.setup();
       global.confirm = vi.fn(() => true);
 
-      // Make mutation hang to keep pending state
       mockCompleteMutationOptions.mockImplementation((opts) => ({
-        mutationFn: () => new Promise(() => {}), // Never resolves
+        mutationFn: () => new Promise(() => {}),
         ...opts,
       }));
 
@@ -581,7 +549,6 @@ describe("InterviewSession", () => {
       const endButton = screen.getByRole("button", { name: /end interview/i });
       await user.click(endButton);
 
-      // Button should be disabled while pending
       await waitFor(() => {
         expect(endButton).toBeDisabled();
       });
@@ -590,11 +557,9 @@ describe("InterviewSession", () => {
     it("disables End Interview button while waiting for AI response", async () => {
       const user = userEvent.setup();
 
-      // Make sendMessage hang to keep waiting state
-      mockSendMessageMutationOptions.mockImplementation((opts) => ({
-        mutationFn: () => new Promise(() => {}), // Never resolves
-        ...opts,
-      }));
+      mockTRPCClient.interview.sendMessage.mutate.mockReturnValue(
+        new Promise(() => {}),
+      );
 
       render(
         <InterviewSession
@@ -607,12 +572,10 @@ describe("InterviewSession", () => {
         { wrapper: createWrapper() }
       );
 
-      // Send a message to trigger waiting state
       const textarea = screen.getByPlaceholderText("Share your story...");
       await user.type(textarea, "Test");
       await user.keyboard("{Enter}");
 
-      // End Interview button should be disabled while waiting
       await waitFor(() => {
         const endButton = screen.getByRole("button", { name: /end interview/i });
         expect(endButton).toBeDisabled();
@@ -644,7 +607,6 @@ describe("InterviewSession", () => {
       const endButton = screen.getByRole("button", { name: /end interview/i });
       await user.click(endButton);
 
-      // Mutation should not be called
       expect(mockMutate).not.toHaveBeenCalled();
     });
 
@@ -652,7 +614,6 @@ describe("InterviewSession", () => {
       const user = userEvent.setup();
       global.confirm = vi.fn(() => true);
 
-      // Mock mutation to fail
       mockCompleteMutationOptions.mockImplementation((opts) => ({
         ...opts,
         mutationFn: async () => {
@@ -739,7 +700,6 @@ describe("InterviewSession", () => {
       await user.type(textarea, "I worked at a bakery.");
       await user.keyboard("{Enter}");
 
-      // Wait for AI response so we're no longer waiting
       await waitFor(() => {
         expect(screen.getByText("Default response")).toBeInTheDocument();
       });
@@ -769,14 +729,12 @@ describe("InterviewSession", () => {
       });
       await user.click(redirectButton);
 
-      // ASSISTANT redirect response should appear
       await waitFor(() => {
         expect(
           screen.getByText("Let me ask about something else.")
         ).toBeInTheDocument();
       });
 
-      // No redirect prompt text should appear as a user message
       expect(
         screen.queryByText(/ask me a different follow-up/i)
       ).not.toBeInTheDocument();
@@ -785,13 +743,9 @@ describe("InterviewSession", () => {
     it("shows error on redirect failure", async () => {
       const user = userEvent.setup();
 
-      mockRedirectMutationOptions.mockReset();
-      mockRedirectMutationOptions.mockImplementation((opts) => ({
-        ...opts,
-        mutationFn: async () => {
-          throw new Error("Network error");
-        },
-      }));
+      mockTRPCClient.interview.redirect.mutate.mockRejectedValue(
+        new Error("Network error"),
+      );
 
       render(
         <InterviewSession
