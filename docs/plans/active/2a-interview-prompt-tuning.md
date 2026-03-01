@@ -9,11 +9,20 @@ After manual testing of the 2a core memory block, four issues were observed:
 3. **Doesn't follow threads** — jumps to new topics instead of circling back to unexplored threads
 4. **Interview never ends naturally** — never triggered completion check even when topic felt exhausted
 
-This PR addresses items 1-3 (all prompt tweaks in `interviewer.ts`). Items 3-4 and latency (streaming) are documented in a new enhancements plan for future work.
+This plan addresses items 1-3 (all prompt tweaks). Item 4 (completion) is covered by `shouldComplete` instructions which are already in the memory prompt and can be tuned separately.
+
+## Current Architecture
+
+Since this plan was originally written, the prompt and service architecture has changed:
+
+- **Two separate prompts** in `src/prompts/interviewer.ts`: `getConversationSystemPrompt()` (plain text output) and `getMemorySystemPrompt()` (JSON output)
+- **Two parallel LLM calls**: conversation (streaming, plain text) and memory (background, JSON with `{ updatedCoreMemory, shouldComplete }`)
+- **Memory service** at `src/services/memory.service.ts` owns the memory call end-to-end
+- **No response parser** — `response-parser.ts` has been removed; memory JSON parsing lives in `memory.service.ts`
 
 ## Changes
 
-### 1. `src/prompts/interviewer.ts` — Guidelines (lines 18-26)
+### 1. `src/prompts/interviewer.ts` — Conversation prompt (`getConversationSystemPrompt`)
 
 **Response brevity** — Replace line 21:
 ```
@@ -33,16 +42,14 @@ with:
 - Before introducing a new topic, check your active threads — circle back to unexplored threads from earlier in the conversation before moving on to something new
 ```
 
-### 2. `src/prompts/interviewer.ts` — JSON example (line 32)
+### 2. `src/prompts/interviewer.ts` — Memory prompt (`getMemorySystemPrompt`)
 
-Replace placeholder ellipses with terse concrete fragments that model the target style:
+**JSON example** — Replace the placeholder JSON example (line 70) with terse concrete fragments that model the target style:
 ```
 "updatedCoreMemory": "## Book Memory\nKey people: Maria (sister, complicated). Dad (hardware store, quiet, respected).\nLife narrative: Grew up rural Ohio, oldest of three. Left for college, then Chicago.\nEmotional patterns: Quiet about mother. Lights up about Navy.\n\n## Interview Memory\nTopic: Early career\nCurrent thread: First job at Burnett\nActive threads: Dave's firing — strong reaction. 'Lost year' 1982-84.\nSession notes: Reflective today, volunteering details."
 ```
 
-### 3. `src/prompts/interviewer.ts` — Core memory instructions (lines 36-58)
-
-Replace the entire block with:
+**Core memory instructions** — Replace the entire block (lines 38-60) with:
 
 ```
 Core memory instructions:
@@ -68,25 +75,26 @@ Keep the total memory block between 800-1,500 characters. Start small and stay s
 If you have no existing memory of this subject, create a minimal initial block from what they share. Resist the urge to record everything — capture only what you'd need to pick up the conversation tomorrow.
 ```
 
-### 4. `docs/plans/active/2a-manual-test-plan.md`
+### 3. `docs/plans/active/2a-manual-test-plan.md`
 
 Update character target references from "2,000-3,000" to "800-1,500":
 - Line 65 (Scenario 2, step 2)
 - Line 149 (Pass criteria item 4)
 
-### 5. `docs/plans/active/2b-interview-experience-enhancements.md` (new)
+### 4. `tests/prompts/interviewer.test.ts`
 
-Create an enhancements plan documenting all four observations for tracking. Items 1-3 marked as addressed by this PR. Items 4 (interview completion) and latency (streaming) documented as future work.
+Update test assertions that will break due to wording changes:
+- "conversational" assertion (line 13) — the word "conversational" is removed from the conversation prompt; update to check for the new brevity language ("2-3 sentences")
+- Other assertions should still pass since key phrases like "open-ended follow-up questions", "natural seam", "plain text", etc. are preserved
 
 ## What does NOT change
 
 - File structure, function signatures, `sanitizeUserName`, name context
 - Two-section memory structure (`## Book Memory` / `## Interview Memory` headers)
 - All field names in memory block
-- JSON response format (`{ response, updatedCoreMemory, shouldComplete }`)
-- Response parser, context service, conversation service — no code changes
+- Memory JSON format (`{ updatedCoreMemory, shouldComplete }`)
+- `memory.service.ts`, `conversation.service.ts` — no code changes
 - `prepareMemoryForNewInterview` relies on `## Interview Memory` marker — preserved
-- Closing line "Never let memory management make the conversation feel mechanical" — preserved
 - `shouldComplete` instructions — unchanged
 
 ## Summary of prompt differences
@@ -106,7 +114,7 @@ Create an enhancements plan documenting all four observations for tracking. Item
 ## Verification
 
 1. `npm run typecheck` — no type changes
-2. `npx vitest run tests/prompts/interviewer.test.ts` — all existing assertions pass (verified: they check for strings preserved in the new prompt)
+2. `npx vitest run tests/prompts/interviewer.test.ts` — all assertions pass (update any that reference changed wording)
 3. Manual test: start a new interview, send 4-5 messages, verify:
    - Core memory stays under ~1,500 characters
    - AI responses are 2-3 sentences, not parroting

@@ -39,8 +39,8 @@ Revisit the interview engine to support cross-interview memory and the full data
 ### 2a: Core Memory Block + Cross-Interview Memory (Stage 1 revisit) ✅
 Replace the current per-message insight extraction with a core memory block that lives on the Book and persists across interviews. Each interview starts knowing what prior interviews covered.
 
-- Core memory block on Book — ~2-5k characters, updated in-place each turn
-- LLM returns conversational response + updated memory block together
+- Core memory block on Book — ~800-1,500 characters, updated in-place each turn
+- Two parallel LLM calls: conversation (streaming, plain text) + memory (background, JSON)
 - Memory block contains: key people, current era, active threads, emotional landscape, brief narrative
 - Cross-interview continuity — the AI starts each interview with accumulated context
 - Curated briefing injection at interview start (initially manual/simple, later from Stage 2 pipeline)
