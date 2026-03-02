@@ -19,7 +19,13 @@
 
 ## Active Plans
 
-*(none)*
+- **docs/plans/active/2b-onboarding-interview-planning.md** — Onboarding conversation + LLM-generated interview plan: replace catalog-driven questions with a personalized intake flow that bootstraps core memory and generates tailored interview topics (6 phases)
+- **docs/plans/active/2b.1-schema-domain-repositories.md** — Phase 1 of 2b: new models (LifeAreaResponse, InterviewTopic, Thread), enums, domain types, life area constants, repositories, and Question category → lifeAreaKey rename (2 PRs)
+- **docs/plans/active/2b.2-plan-generation-service.md** — Phase 2 of 2b: plan generation prompt and service — LLM turns life area responses into personalized interview topics and bootstraps core memory (1 PR)
+- **docs/plans/active/2b.3-onboarding-service-router.md** — Phase 3 of 2b: onboarding orchestration service and tRPC router — saveResponse, deleteResponse, getStatus, complete (1 PR)
+- **docs/plans/active/2b.4-onboarding-ui.md** — Phase 4 of 2b: onboarding page with life area form, auto-save on blur, plan generation with loading state, CTA on interviews page (1 PR)
+- **docs/plans/active/2b.5-plan-progress-view.md** — Phase 5 of 2b: plan/progress view on interviews page — topics grouped by life area, start/skip/restore actions, thread list, catalog-to-topic bridge (1 PR)
+- **docs/plans/active/2b.6-polish-manual-testing.md** — Phase 6 of 2b: UX polish, prompt tuning, and manual test plan with 8 end-to-end scenarios (1 PR)
 
 ## Completed Plans
 
