@@ -246,7 +246,7 @@ ASSISTANT: (message 2)
 USER: (message 3)
 ASSISTANT: (message 4)
 
-ASSISTANT: [Your memory — what you know about this subject]
+USER: [Your memory — what you know about this subject]
 ## Book Memory
 Key people: Maria (sister), Elm Street in Ohio (childhood home)
 ## Interview Memory
@@ -291,7 +291,7 @@ USER: (message 7)
 ASSISTANT: (message 8)
 USER: (message 9)
 
-ASSISTANT: [Your memory — what you know about this subject]
+USER: [Your memory — what you know about this subject]
 ## Book Memory
 Key people: Teresa (sister), hardware store on Main St
 ## Interview Memory
@@ -339,7 +339,7 @@ ASSISTANT: (message 10)
 USER: (message 11)
 ASSISTANT: (message 12)
 
-A: [Your memory — what you know about this subject]
+USER: [Your memory — what you know about this subject]
 ## Book Memory
 Key people: Teresa (sister), hardware store on Main St
 ## Interview Memory
@@ -395,7 +395,7 @@ ASSISTANT: (message 18)
 USER: (message 19)
 ASSISTANT: (message 20)
 
-ASSISTANT: [Your memory — what you know about this subject]
+USER: [Your memory — what you know about this subject]
 ## Book Memory
 Key people: Teresa, Jimmy (childhood best friend), Dad (hardware store)
 ## Interview Memory
@@ -463,7 +463,7 @@ USER: (message 18)
 ASSISTANT: (message 19)
 USER: (message 20)
 
-ASSISTANT: [Your memory — what you know about this subject]
+USER: [Your memory — what you know about this subject]
 ...
 
 USER: (message 21)
@@ -563,8 +563,8 @@ The book's core memory block is injected **before the last user message**, regar
 - Semantically clear: "review memory → respond to user's latest message"
 
 **Memory role:**
-- Injected as `role: 'assistant'` (the AI's own working notes)
-- More semantically accurate than `role: 'user'`
+- Injected as `role: 'user'` (per ADR 018)
+- Prevents the LLM from treating the memory block as its own prior output, which can cause it to echo the block back in responses
 - See ADR 018 for placement rationale
 
 **When `coreMemory` is `null`** (first interview, no memory yet), no message is injected.
@@ -579,7 +579,7 @@ The book's core memory block is injected **before the last user message**, regar
   { role: 'assistant', content: 'Response N-1' },
 
   // Core memory injected before last message
-  { role: 'assistant', content: '[Your memory — what you know about this subject]\n## Book Memory\n...\n## Interview Memory\n...' },
+  { role: 'user', content: '[Your memory — what you know about this subject]\n## Book Memory\n...\n## Interview Memory\n...' },
 
   { role: 'user', content: 'Message N' }  // Most recent message
 ]
@@ -827,7 +827,7 @@ Must cover all scenarios:
 - ✅ Over threshold, old bucket full (create summary, return summary + recent)
 - ✅ Existing summary + new batch (incremental summary with parent reference)
 - ✅ Summarization failure (truncation fallback, no summary record created)
-- ✅ Core memory injection (placement before last message, role 'assistant')
+- ✅ Core memory injection (placement before last message, role 'user')
 - ✅ Token estimation accuracy
 - ✅ Token logging output (including message bucket counts and token totals)
 - ✅ Hard token limit enforcement (truncates to most recent messages when over MAX_CONTEXT_TOKENS)

@@ -331,7 +331,7 @@ describe("contextService", () => {
     consoleSpy.mockRestore();
   });
 
-  it("injects core memory before last message as assistant role", async () => {
+  it("injects core memory before last message as user role", async () => {
     const messages = [
       {
         id: "m1",
@@ -367,12 +367,12 @@ describe("contextService", () => {
 
     const result = await contextService.buildContextWindow("int1", "Sarah", coreMemory);
 
-    // Messages should be: m1, m2, core memory (as assistant), m3
+    // Messages should be: m1, m2, core memory (as user per ADR 018), m3
     expect(result.messages).toEqual([
       { role: "user", content: "First message" },
       { role: "assistant", content: "Response" },
       {
-        role: "assistant",
+        role: "user",
         content: `[Your memory — what you know about this subject]\n${coreMemory}`,
       },
       { role: "user", content: "Second message" },
