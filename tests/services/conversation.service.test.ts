@@ -13,11 +13,15 @@ vi.mock("@/lib/llm", () => ({
 }));
 
 const mockBuildContextWindow = vi.hoisted(() => vi.fn());
-vi.mock("@/services/context.service", () => ({
-  contextService: {
-    buildContextWindow: mockBuildContextWindow,
-  },
-}));
+vi.mock("@/services/context.service", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/services/context.service")>();
+  return {
+    CORE_MEMORY_PREFIX: actual.CORE_MEMORY_PREFIX,
+    contextService: {
+      buildContextWindow: mockBuildContextWindow,
+    },
+  };
+});
 
 const mockMemoryUpdate = vi.hoisted(() => vi.fn());
 vi.mock("@/services/memory.service", () => ({
@@ -423,6 +427,139 @@ describe("conversationService", () => {
       await collectStream(conversationService.redirect("int1", "b1", "Sarah"));
 
       expect(mockInterviewComplete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("memory block filtering", () => {
+    it("strips memory block from streamed sendMessage response", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: "system prompt",
+        messages: [{ role: "user", content: "my story" }],
+      });
+
+      async function* streamWithMemory() {
+        yield "That sounds amazing! ";
+        yield "Tell me more.\n\n";
+        yield "[Your memory — what you know about this subject]\n";
+        yield "## Book Memory\nKey people: Maria\n";
+      }
+      mockGenerateStreamingResponse.mockReturnValue(streamWithMemory());
+
+      const { fullContent } = await collectStream(
+        conversationService.sendMessage("int1", "b1", "my story", "Sarah"),
+      );
+
+      expect(fullContent).toBe("That sounds amazing! Tell me more.");
+    });
+
+    it("persists clean content without memory block", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: "system prompt",
+        messages: [{ role: "user", content: "my story" }],
+      });
+
+      async function* streamWithMemory() {
+        yield "Great story!\n\n";
+        yield "[Your memory — what you know about this subject]\n";
+        yield "## Book Memory\nStuff";
+      }
+      mockGenerateStreamingResponse.mockReturnValue(streamWithMemory());
+
+      await collectStream(
+        conversationService.sendMessage("int1", "b1", "my story", "Sarah"),
+      );
+
+      // The persisted ASSISTANT message should be clean
+      const assistantCall = mockMessageCreate.mock.calls.find(
+        (call) => call[0].role === "ASSISTANT",
+      );
+      expect(assistantCall![0].content).toBe("Great story!");
+    });
+
+    it("strips memory block from streamed redirect response", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: "system prompt",
+        messages: [{ role: "user", content: "redirect prompt" }],
+      });
+
+      async function* streamWithMemory() {
+        yield "Let's explore something else. ";
+        yield "What about your school days?\n\n";
+        yield "[Your memory — what you know about this subject]\n";
+        yield "## Interview Memory\nTopic: school";
+      }
+      mockGenerateStreamingResponse.mockReturnValue(streamWithMemory());
+
+      const { fullContent } = await collectStream(
+        conversationService.redirect("int1", "b1", "Sarah"),
+      );
+
+      expect(fullContent).toBe("Let's explore something else. What about your school days?");
+    });
+
+    it("strips memory block from non-streaming startInterview response", async () => {
+      mockInterviewCreate.mockResolvedValue({
+        id: "int1",
+        bookId: "b1",
+        topic: "childhood",
+        status: "ACTIVE",
+        completedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: "system prompt",
+        messages: [{ role: "user", content: "topic message" }],
+      });
+      mockGenerateResponse.mockResolvedValue({
+        content: "Welcome! Tell me about your childhood.\n\n[Your memory — what you know about this subject]\n## Book Memory\nKey people: (none)",
+      });
+      mockMessageCreate.mockResolvedValue({});
+
+      await conversationService.startInterview("b1", "childhood", "Sarah");
+
+      const assistantCall = mockMessageCreate.mock.calls.find(
+        (call) => call[0].role === "ASSISTANT",
+      );
+      expect(assistantCall![0].content).toBe("Welcome! Tell me about your childhood.");
+    });
+
+    it("passes through response unchanged when no memory block present", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: "system prompt",
+        messages: [{ role: "user", content: "my story" }],
+      });
+      mockGenerateStreamingResponse.mockReturnValue(mockStream("That's fascinating! Tell me more."));
+
+      const { fullContent } = await collectStream(
+        conversationService.sendMessage("int1", "b1", "my story", "Sarah"),
+      );
+
+      expect(fullContent).toBe("That's fascinating! Tell me more. ");
+    });
+
+    it("handles memory marker split across stream chunks", async () => {
+      mockMessageCreate.mockResolvedValue({});
+      mockBuildContextWindow.mockResolvedValue({
+        systemPrompt: "system prompt",
+        messages: [{ role: "user", content: "my story" }],
+      });
+
+      async function* streamWithSplitMarker() {
+        yield "Great answer!\n\n[Your";
+        yield " memory — what you know about this subject]\n## Book Memory";
+      }
+      mockGenerateStreamingResponse.mockReturnValue(streamWithSplitMarker());
+
+      const { fullContent } = await collectStream(
+        conversationService.sendMessage("int1", "b1", "my story", "Sarah"),
+      );
+
+      expect(fullContent).toBe("Great answer!");
     });
   });
 

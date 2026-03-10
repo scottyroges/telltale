@@ -24,7 +24,7 @@ function estimateTokens(text: string): number {
 }
 
 function buildCoreMemoryContextMessage(coreMemory: string): string {
-  return `[Your memory — what you know about this subject]\n${coreMemory}`;
+  return `${CORE_MEMORY_PREFIX}\n${coreMemory}`;
 }
 
 function assembleMessagesWithCoreMemory(
@@ -43,10 +43,10 @@ function assembleMessagesWithCoreMemory(
     llmMessages.push(...conversationMessages.slice(0, -1));
   }
 
-  // Inject core memory before the last message as assistant role
+  // Inject core memory before the last message as user role (ADR 018)
   if (coreMemory) {
     llmMessages.push({
-      role: "assistant",
+      role: "user",
       content: buildCoreMemoryContextMessage(coreMemory),
     });
   }
@@ -298,7 +298,7 @@ function assembleIncremental(
   };
 }
 
-const CORE_MEMORY_PREFIX = "[Your memory";
+export const CORE_MEMORY_PREFIX = "[Your memory — what you know about this subject]";
 
 function enforceMaxTokens(context: ContextWindow): ContextWindow {
   const systemPromptTokens = estimateTokens(context.systemPrompt);
